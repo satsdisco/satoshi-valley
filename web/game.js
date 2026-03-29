@@ -170,32 +170,61 @@ const INTRO_SLIDES = [
   { text: '"I\'ve been running the last node in this valley\nfor 15 years. Not your keys, not your coins.\nNot your node, not your rules."', sub: "— Uncle Toshi", dur: 6 },
   { text: '"The seed is split into 24 pieces, hidden in the\nplaces where Bitcoin history was made.\nFind them all. Verify, don\'t trust."', sub: "", dur: 6 },
   { text: "He left you everything.", sub: "A homestead. Mining rigs. A node. And the most important thing: sovereignty.", dur: 5 },
-  { text: "⛏️ SATOSHI VALLEY ⛏️", sub: "Stack sats. Build your citadel. Fix the money, fix the world.", dur: 999 },
+  { text: "⛏️ SATOSHI VALLEY ⛏️", sub: "Stack sats. Build your citadel. Fix the money, fix the world.\n\nA guided tutorial will show you how to play.", dur: 999 },
 ];
 
 const TUTORIAL_STEPS = [
-  { msg: "Welcome to Satoshi Valley. This is your uncle's homestead.", trigger: 'auto', dur: 4 },
-  { msg: "Use WASD or Arrow Keys to move around. Explore your new home.", trigger: 'move' },
-  { msg: "Walk to the Mining Shed (west). Your uncle left two CPU miners running.", trigger: 'near_rig' },
-  { msg: "Press E near a rig to toggle its power. Try turning one off and on.", trigger: 'interact_rig' },
-  { msg: "Rigs generate sats automatically. Watch your balance grow!", trigger: 'earn_sats' },
-  { msg: "Press I to open your Inventory. You have a wrench and some bread.", trigger: 'open_inv' },
-  { msg: "Select items with number keys 1-9. Press R to use the selected item.", trigger: 'select_item' },
-  { msg: "Ruby's Shop is south of your cabin. Walk there and press B near Ruby to buy supplies.", trigger: 'visit_shop' },
-  { msg: "Press O anytime to see your current objectives. Now go explore!", trigger: 'auto', dur: 5 },
+  // Phase 1: Orientation
+  { msg: "Welcome to Satoshi Valley. Your uncle left you this homestead.", trigger: 'auto', dur: 4, highlight: null },
+  { msg: "🎮 CONTROLS: Use WASD or Arrow Keys to move. Try walking around!", trigger: 'move', highlight: 'controls' },
+  { msg: "Great! You can see your cabin here. Let's check on the mining operation.", trigger: 'auto', dur: 3.5, highlight: null },
+  
+  // Phase 2: Mining (core mechanic)
+  { msg: "⛏️ Walk WEST (left) to the Mining Shed. Follow the path!", trigger: 'near_rig', highlight: 'arrow_west' },
+  { msg: "These are CPU miners your uncle left running. They earn sats automatically!", trigger: 'auto', dur: 4, highlight: null },
+  { msg: "⚡ Press E near a rig to toggle its power on/off. Try it!", trigger: 'interact_rig', highlight: 'key_e' },
+  { msg: "Watch the ₿ sats counter in the top-left. You're earning Bitcoin!", trigger: 'earn_sats', highlight: 'hud_sats' },
+  
+  // Phase 3: Inventory
+  { msg: "📦 Press I to open your Inventory. You have tools and seeds to start.", trigger: 'open_inv', highlight: 'key_i' },
+  { msg: "Select items with number keys 1-9 on the hotbar at the bottom.", trigger: 'select_item', highlight: 'hotbar' },
+  { msg: "Select the Wrench (slot 1) and press E near a rig to repair it.", trigger: 'auto', dur: 5, highlight: 'key_1' },
+  
+  // Phase 4: Shop
+  { msg: "🏪 Ruby's Hardware Shop is SOUTH. Walk down the path to find her!", trigger: 'visit_shop', highlight: 'arrow_south' },
+  { msg: "Press B near Ruby to open the shop. Buy upgrades, tools, and seeds!", trigger: 'auto', dur: 4, highlight: 'key_b' },
+  
+  // Phase 5: Farming
+  { msg: "🌱 FARMING: Select potato seeds, face a brown dirt tile, press R to plant!", trigger: 'auto', dur: 5, highlight: 'garden' },
+  { msg: "Crops grow over several days. Press H to harvest when they glow gold.", trigger: 'auto', dur: 4, highlight: null },
+  
+  // Phase 6: World & Goals
+  { msg: "🗺️ EXPLORE! The forest (west), mountains (north), and lake (east) await.", trigger: 'auto', dur: 4, highlight: null },
+  { msg: "🧩 Your uncle hid 24 seed phrase fragments. Find them to unlock his secret.", trigger: 'auto', dur: 4.5, highlight: null },
+  { msg: "Press O for Objectives, K for Skills, ? for all Controls. Good luck, pleb!", trigger: 'auto', dur: 5, highlight: null },
 ];
 
 const objectives = [
-  { id: 'place_rig', text: 'Place your first mining rig', done: false },
-  { id: 'earn_1000', text: 'Earn 1,000 sats', done: false },
-  { id: 'visit_shop', text: "Visit Ruby's Shop", done: false },
-  { id: 'buy_gpu', text: 'Buy a GPU Rig upgrade', done: false },
-  { id: 'place_solar', text: 'Place a solar panel', done: false },
-  { id: 'repair_rig', text: 'Repair a broken rig', done: false },
-  { id: 'find_hermit', text: 'Find The Hermit in the forest', done: false },
-  { id: 'earn_50000', text: 'Earn 50,000 sats', done: false },
-  { id: 'survive_bear', text: 'Survive a Capitulation phase', done: false },
-  { id: 'first_halving', text: 'Witness the first Halving', done: false },
+  // Chapter 1: Getting Started
+  { id: 'place_rig', text: '⛏️ Place your first mining rig', done: false, chapter: 'Chapter 1: The Homestead' },
+  { id: 'earn_1000', text: '💰 Earn 1,000 sats', done: false, chapter: '' },
+  { id: 'visit_shop', text: "🏪 Visit Ruby's Hardware Shop", done: false, chapter: '' },
+  { id: 'repair_rig', text: '🔧 Repair a broken rig', done: false, chapter: '' },
+  
+  // Chapter 2: Growing
+  { id: 'buy_gpu', text: '🖥️ Buy a GPU Rig upgrade', done: false, chapter: 'Chapter 2: Proof of Work' },
+  { id: 'place_solar', text: '☀️ Place a solar panel (off-grid!)', done: false, chapter: '' },
+  { id: 'plant_crop', text: '🌱 Plant your first crop', done: false, chapter: '' },
+  { id: 'find_hermit', text: '🌲 Find The Hermit in the forest', done: false, chapter: '' },
+  
+  // Chapter 3: The Market
+  { id: 'earn_50000', text: '💰 Earn 50,000 sats', done: false, chapter: 'Chapter 3: Market Cycles' },
+  { id: 'survive_bear', text: '🐻 Survive a Capitulation phase', done: false, chapter: '' },
+  { id: 'first_halving', text: '🔶 Witness the first Halving', done: false, chapter: '' },
+  
+  // Chapter 4: The Mystery
+  { id: 'find_seed', text: '🧩 Find a seed phrase fragment', done: false, chapter: "Chapter 4: Uncle Toshi's Secret" },
+  { id: 'talk_all', text: '💬 Talk to every villager', done: false, chapter: '' },
 ];
 
 function completeObjective(id) {
@@ -1031,7 +1060,7 @@ function update(dt) {
       // Check seed fragments
       for(let i=decor.length-1;i>=0;i--){
         if(decor[i].type==='seed_fragment'&&Math.hypot(decor[i].x*TILE+8-player.x,decor[i].y*TILE+8-player.y)<20){
-          addItem('seed_fragment');notify('🧩 Found a seed phrase fragment!',4,true);sfx.block();decor.splice(i,1);
+          addItem('seed_fragment');notify('🧩 Found a seed phrase fragment!',4,true);sfx.block();decor.splice(i,1);completeObjective('find_seed');
         }
       }
     }
@@ -1103,6 +1132,7 @@ function update(dt) {
           plantCrop(tx,ty,cropType);
           sfx.place();notify(`🌱 Planted ${CROP_TYPES[cropType].name}! (${CROP_TYPES[cropType].grow} days)`,2);
           addXP('farming',5);
+          completeObjective('plant_crop');
         } else { notify("Plant on empty dirt tiles!",1.5); sfx.error(); }
       }
     }
@@ -1581,10 +1611,52 @@ function drawHUD(){
   
   // Tutorial
   if(!tutorialDone&&tutorialStep<TUTORIAL_STEPS.length){
-    const tw=Math.min(600,canvas.width-80),th=50;
-    const tx=(canvas.width-tw)/2,ty=p+200;
-    panel(tx,ty,tw,th);ctx.fillStyle=C.orange;ctx.font=`bold 12px ${FONT}`;ctx.textAlign='center';
-    ctx.fillText(TUTORIAL_STEPS[tutorialStep].msg,canvas.width/2,ty+30);
+    const tut = TUTORIAL_STEPS[tutorialStep];
+    const tw=Math.min(650,canvas.width-60),th=58;
+    const tx=(canvas.width-tw)/2,ty=canvas.height*0.14;
+    
+    // Tutorial box
+    panel(tx,ty,tw,th);
+    
+    // Progress dots
+    for(let i=0;i<TUTORIAL_STEPS.length;i++){
+      ctx.fillStyle=i<tutorialStep?C.orange:i===tutorialStep?C.gold:'#333';
+      ctx.beginPath();ctx.arc(tx+16+i*10,ty+8,3,0,Math.PI*2);ctx.fill();
+    }
+    
+    // Message
+    ctx.fillStyle=C.white;ctx.font=`bold 15px ${FONT}`;ctx.textAlign='center';
+    wrapText(tut.msg,canvas.width/2-tw/2+20,ty+32,tw-40,18);
+    
+    // Step counter
+    ctx.fillStyle=C.gray;ctx.font=`12px ${FONT}`;ctx.textAlign='right';
+    ctx.fillText(`${tutorialStep+1}/${TUTORIAL_STEPS.length}`,tx+tw-12,ty+th-6);
+    
+    // Visual guide arrows
+    const sx2=player.x*SCALE-cam.x,sy2=player.y*SCALE-cam.y;
+    if(tut.highlight==='arrow_west'){drawTutArrow(sx2-70,sy2,'left');}
+    else if(tut.highlight==='arrow_south'){drawTutArrow(sx2,sy2+70,'down');}
+    else if(tut.highlight==='key_e'||tut.highlight==='key_i'||tut.highlight==='key_b'||tut.highlight==='key_1'){
+      const key=tut.highlight.replace('key_','').toUpperCase();
+      const pulse=0.5+Math.sin(performance.now()/300)*0.3;
+      ctx.fillStyle=`rgba(247,147,26,${pulse})`;ctx.font=`bold 28px ${FONT}`;ctx.textAlign='center';
+      ctx.fillText(`[ ${key} ]`,canvas.width/2,ty+th+30);
+    }
+    else if(tut.highlight==='hotbar'){
+      ctx.strokeStyle=`rgba(247,147,26,${0.5+Math.sin(performance.now()/300)*0.3})`;ctx.lineWidth=3;
+      const hbX2=(canvas.width-10*48)/2;ctx.strokeRect(hbX2-6,canvas.height-68,10*48+12,56);
+    }
+    else if(tut.highlight==='hud_sats'){
+      ctx.strokeStyle=`rgba(247,147,26,${0.5+Math.sin(performance.now()/300)*0.3})`;ctx.lineWidth=3;
+      ctx.strokeRect(p-2,p-2,294,30);
+    }
+    else if(tut.highlight==='controls'){
+      ctx.fillStyle=`rgba(0,0,0,0.6)`;ctx.fillRect(canvas.width-200,canvas.height-220,190,200);
+      ctx.fillStyle=C.orange;ctx.font=`bold 14px ${FONT}`;ctx.textAlign='left';
+      ctx.fillText('🎮 CONTROLS',canvas.width-190,canvas.height-198);
+      ctx.fillStyle=C.white;ctx.font=`13px ${FONT}`;
+      ['WASD — Move','E — Interact','R — Use item','I — Inventory','B — Shop','O — Objectives','H — Harvest','K — Skills','? — All controls'].forEach((c,i)=>ctx.fillText(c,canvas.width-190,canvas.height-175+i*20));
+    }
   }
   
   // Dialogue
@@ -1594,12 +1666,29 @@ function drawHUD(){
     wrapText(dlg.text,dx+16,dy+44,dw-32,16);ctx.fillStyle=C.gray;ctx.font=`12px ${FONT}`;ctx.textAlign='right';ctx.fillText('[E] Close',dx+dw-12,dy+dh-8);}
   
   // Objectives panel
-  if(showObjectives){const ow=350,oh=30+objectives.length*22,ox=(canvas.width-ow)/2,oy=(canvas.height-oh)/2;
-    panel(ox,oy,ow,oh);ctx.fillStyle=C.hud;ctx.font=`bold 15px ${FONT}`;ctx.textAlign='center';
-    ctx.fillText('📋 Objectives',canvas.width/2,oy+22);
-    objectives.forEach((o,i)=>{ctx.fillStyle=o.done?C.green:'#AAA';ctx.font=`12px ${FONT}`;ctx.textAlign='left';
-      ctx.fillText(`${o.done?'✅':'⬜'} ${o.text}`,ox+20,oy+42+i*22);});
-    ctx.fillStyle=C.gray;ctx.font=`12px ${FONT}`;ctx.textAlign='center';ctx.fillText('[O] or [Esc] to close',canvas.width/2,oy+oh-8);}
+  if(showObjectives){
+    let lineCount = objectives.length;
+    objectives.forEach(o=>{if(o.chapter)lineCount++;});
+    const ow=400,oh=50+lineCount*24,ox=(canvas.width-ow)/2,oy=(canvas.height-oh)/2;
+    panel(ox,oy,ow,oh);ctx.fillStyle=C.hud;ctx.font=`bold 18px ${FONT}`;ctx.textAlign='center';
+    ctx.fillText('📋 Quest Log',canvas.width/2,oy+26);
+    
+    // Progress
+    const done = objectives.filter(o=>o.done).length;
+    ctx.fillStyle=C.gray;ctx.font=`13px ${FONT}`;
+    ctx.fillText(`${done}/${objectives.length} complete`,canvas.width/2,oy+42);
+    
+    let cy = oy + 58;
+    objectives.forEach((o)=>{
+      if(o.chapter){
+        ctx.fillStyle=C.orange;ctx.font=`bold 14px ${FONT}`;ctx.textAlign='left';
+        ctx.fillText(o.chapter,ox+16,cy);cy+=22;
+      }
+      ctx.fillStyle=o.done?'#5A8A5A':'#CCC';ctx.font=`13px ${FONT}`;ctx.textAlign='left';
+      ctx.fillText(`${o.done?'✅':'⬜'} ${o.text}`,ox+28,cy);cy+=22;
+    });
+    ctx.fillStyle=C.gray;ctx.font=`12px ${FONT}`;ctx.textAlign='center';ctx.fillText('[O] or [Esc] to close',canvas.width/2,oy+oh-10);
+  }
   
   // Shop
   if(shopOpen) drawShop();
@@ -1661,6 +1750,15 @@ function drawInv(){
 }
 
 function panel(x,y,w,h){ctx.fillStyle=C.hudBg;rr(x,y,w,h,6);ctx.strokeStyle=C.hudBorder;ctx.lineWidth=1.5;ctx.stroke();}
+function drawTutArrow(x,y,dir){
+  const t=performance.now()/1000;const pulse=Math.sin(t*4)*6;
+  ctx.fillStyle=C.orange;ctx.beginPath();
+  if(dir==='left'){ctx.moveTo(x-pulse,y);ctx.lineTo(x+16,y-10);ctx.lineTo(x+16,y+10);}
+  else if(dir==='down'){ctx.moveTo(x,y+pulse);ctx.lineTo(x-10,y-16);ctx.lineTo(x+10,y-16);}
+  else if(dir==='right'){ctx.moveTo(x+pulse,y);ctx.lineTo(x-16,y-10);ctx.lineTo(x-16,y+10);}
+  else{ctx.moveTo(x,y-pulse);ctx.lineTo(x-10,y+16);ctx.lineTo(x+10,y+16);}
+  ctx.closePath();ctx.fill();
+}
 function wrapText(text,x,y,mw,lh){const w=text.split(' ');let l='';for(const word of w){const t=l+word+' ';if(ctx.measureText(t).width>mw&&l){ctx.fillText(l.trim(),x,y);l=word+' ';y+=lh;}else l=t;}if(l.trim())ctx.fillText(l.trim(),x,y);}
 function rr(x,y,w,h,r){ctx.beginPath();ctx.moveTo(x+r,y);ctx.lineTo(x+w-r,y);ctx.quadraticCurveTo(x+w,y,x+w,y+r);ctx.lineTo(x+w,y+h-r);ctx.quadraticCurveTo(x+w,y+h,x+w-r,y+h);ctx.lineTo(x+r,y+h);ctx.quadraticCurveTo(x,y+h,x,y+h-r);ctx.lineTo(x,y+r);ctx.quadraticCurveTo(x,y,x+r,y);ctx.closePath();ctx.fill();}
 function fmt(n){return n.toString().replace(/\B(?=(\d{3})+(?!\d))/g,',');}
