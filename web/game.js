@@ -764,7 +764,7 @@ function createInterior(type, w, h, furniture) {
   for (const f of furniture) {
     if (f.item !== 'chair') tileMap[f.y][f.x] = T.WALL;
   }
-  return {type, map: tileMap, w, h, furniture, doorX, spawnX: doorX*TILE+8, spawnY: (h-2)*TILE+8};
+  return {type, map: tileMap, w, h, furniture, doorX, spawnX: doorX*TILE+8, spawnY: (h-3)*TILE+8};
 }
 
 function generateInteriors() {
@@ -1675,8 +1675,8 @@ function update(dt) {
   // ---- BUILDING EXIT (interior) ----
   if (interior && !transition) {
     const pty = Math.floor(player.y / TILE);
-    // Exit when player walks into the bottom wall area (door zone)
-    if (pty >= interior.h - 2 && player.y >= (interior.h - 2) * TILE) {
+    // Exit when player walks into the door at the very bottom
+    if (player.y >= (interior.h - 2) * TILE + TILE/2) {
       const rx = interior.returnX, ry = interior.returnY;
       startTransition('fadeOut', 0.4, () => {
         interior = null;
