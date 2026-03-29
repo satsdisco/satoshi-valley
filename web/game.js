@@ -164,14 +164,15 @@ let showObjectives = false;
 let showSkills = false;
 
 const INTRO_SLIDES = [
-  { text: "The year is 2140.", sub: "The last bitcoin has been mined.", dur: 3.5 },
-  { text: "But that's not where our story begins.", sub: "", dur: 3 },
-  { text: "You were a wage slave in Fiatropolis.", sub: "Paying 500 FiatBucks for a loaf of bread.", dur: 4 },
-  { text: "Then a letter arrived.", sub: "", dur: 2.5 },
-  { text: '"I\'ve been running the last node in this valley\nfor 15 years. Someone has to keep the chain alive."', sub: "— Uncle Toshi", dur: 5 },
-  { text: '"The seed is split into 24 pieces.\nFind them all, and you\'ll understand everything."', sub: "", dur: 5 },
-  { text: "He left you everything.", sub: "A run-down homestead. Old mining rigs. And a purpose.", dur: 4.5 },
-  { text: "SATOSHI VALLEY", sub: "Press ENTER to begin", dur: 999 },
+  { text: '"Chancellor on brink of second bailout for banks."', sub: "— The Times, January 3, 2009", dur: 4 },
+  { text: "One person saw this headline\nand decided to change everything.", sub: "", dur: 3.5 },
+  { text: "They gave the world a gift:\n21 million coins. No more. No less. Forever.", sub: "", dur: 4 },
+  { text: "Decades passed. Fiatropolis printed and printed.\nBread costs 500 FiatBucks. Rent is a joke.", sub: "You were a wage slave. Like everyone else.", dur: 5 },
+  { text: "Then a letter arrived from a valley\nyou'd never heard of.", sub: "", dur: 3 },
+  { text: '"I\'ve been running the last node in this valley\nfor 15 years. Not your keys, not your coins.\nNot your node, not your rules."', sub: "— Uncle Toshi", dur: 6 },
+  { text: '"The seed is split into 24 pieces, hidden in the\nplaces where Bitcoin history was made.\nFind them all. Verify, don\'t trust."', sub: "", dur: 6 },
+  { text: "He left you everything.", sub: "A homestead. Mining rigs. A node. And the most important thing: sovereignty.", dur: 5 },
+  { text: "⛏️ SATOSHI VALLEY ⛏️", sub: "Stack sats. Build your citadel. Fix the money, fix the world.", dur: 999 },
 ];
 
 const TUTORIAL_STEPS = [
@@ -347,9 +348,18 @@ function generateMap() {
   }
   
   // Signs
-  decor.push({ x: homeX-1, y: homeY+3, type: 'sign', text: 'Home' });
+  decor.push({ x: homeX-1, y: homeY+3, type: 'sign', text: 'The Homestead' });
   decor.push({ x: homeX-12, y: homeY+3, type: 'sign', text: 'Mining Shed' });
-  decor.push({ x: homeX+5, y: homeY+9, type: 'sign', text: "Ruby's Shop" });
+  decor.push({ x: homeX+5, y: homeY+9, type: 'sign', text: "Ruby's Hardware" });
+  decor.push({ x: homeX+14, y: homeY+7, type: 'sign', text: "The Hodl Tavern" });
+  decor.push({ x: homeX+10, y: homeY-6, type: 'sign', text: "Town Hall" });
+  decor.push({ x: homeX, y: homeY-15, type: 'sign', text: "← Forest  Mountains →" });
+  decor.push({ x: 15, y: 30, type: 'sign', text: "Cypherpunk Woods" });
+  
+  // Bitcoin graffiti / easter eggs
+  decor.push({ x: homeX+20, y: homeY+5, type: 'sign', text: "21M" });
+  decor.push({ x: homeX-8, y: homeY-8, type: 'sign', text: "HODL" });
+  decor.push({ x: 30, y: 25, type: 'sign', text: "In code we trust" });
   
   // Seed fragments hidden in the world
   const fragLocations = [
@@ -445,20 +455,95 @@ const placed = []; // solar, battery, fan
 const homeX=55, homeY=45;
 const npcs = [
   { name:'Hodl Hannah',x:(homeX+8)*TILE+8,y:(homeY)*TILE+8,col:'#FF69B4',hair:'#FFD700',role:'friend',
-    dlg:['"The garden grows slow, but it grows forever."','"Your uncle taught me everything."','"Just stack. Ignore the noise."','"Have you found any seed fragments yet?"','"Durability matters. Don\'t let your rigs break down."'],
+    dlg:[
+      '"The garden grows slow, but it grows forever. Just like the timechain."',
+      '"Your uncle ran this node for 15 years straight. 99.98% uptime. Legend."',
+      '"I bought my first sats when everyone said it was dead. Again."',
+      '"Don\'t listen to Larry. Low time preference is the way."',
+      '"My cold storage is backed up in three locations. You should do the same."',
+      '"Have you read The Bitcoin Standard? Your uncle had a signed copy somewhere."',
+      '"21 million. That\'s it. That\'s the whole point."',
+      '"They called your uncle crazy for stacking at $100. Who\'s crazy now?"',
+      '"Every sat you earn is a sat they can\'t print."',
+      '"I remember the first time I ran my own node. Felt like freedom."',
+    ],
     wp:[{x:homeX+8,y:homeY},{x:homeX+11,y:homeY},{x:homeX+11,y:homeY+2},{x:homeX+8,y:homeY+2}],pi:0,mt:0,mi:3 },
   { name:'Leverage Larry',x:(homeX+14)*TILE+8,y:(homeY+10)*TILE+8,col:'#4455FF',hair:'#222',role:'friend',
-    dlg:['"100x long. Can\'t go tits up."','"Lambo or couch. No in between."','"This time is different."','"Down 90%. Still bullish."','"Put ALL your sats into ASICs. Trust me bro."'],
+    dlg:[
+      '"100x long, funded. Can\'t go tits up."',
+      '"I\'m either getting a lambo or sleeping on your couch again."',
+      '"Bro this altcoin is doing a 50x, you gotta — wait, wrong valley."',
+      '"Down 90% but my conviction is UP. That\'s what matters."',
+      '"I got liquidated at 3am. Market makers are out to get me."',
+      '"Just need one more trade to make it all back."',
+      '"My portfolio is 50% BTC, 50% regret."',
+      '"The chart is forming a reverse head and shoulders if you squint."',
+      '"I\'m not gambling, it\'s called risk management."',
+      '"When I make it, I\'m buying this whole valley. Mark my words."',
+    ],
     wp:[{x:homeX+14,y:homeY+10},{x:homeX+17,y:homeY+10},{x:homeX+17,y:homeY+12},{x:homeX+14,y:homeY+12}],pi:0,mt:0,mi:2 },
   { name:'Mayor Keynesian',x:(homeX+10)*TILE+8,y:(homeY-3)*TILE+8,col:'#888',hair:'#AAA',role:'friend',
-    dlg:['"More stimulus! That\'s the answer!"','"A little inflation never hurt anyone."','"Your uncle was... eccentric."','"The Fiat Bank protects everyone!"','"We should print more FiatBucks."'],
+    dlg:[
+      '"We need more stimulus for the village economy!"',
+      '"A little inflation is GOOD for the economy. Trust the experts."',
+      '"Your uncle refused FiatBucks. Very unpatriotic."',
+      '"The Central Bank has our best interests at heart."',
+      '"We\'re printing — I mean, providing liquidity to help everyone."',
+      '"Deflation is dangerous! People would stop buying bread!"',
+      '"Gold bugs, bitcoin bugs... why can\'t people just trust the system?"',
+      '"I\'ve raised village taxes 3% to fund... important infrastructure."',
+      '"The village debt is an investment in our future!"',
+      '"We\'re not bankrupt, we\'re strategically leveraged."',
+    ],
     wp:[{x:homeX+10,y:homeY-3},{x:homeX+13,y:homeY-3},{x:homeX+13,y:homeY-1},{x:homeX+10,y:homeY-1}],pi:0,mt:0,mi:4 },
   { name:'Ruby',x:(homeX+5)*TILE+8,y:(homeY+13)*TILE+8,col:'#CC4444',hair:'#FF6644',role:'shop',
-    dlg:['"Welcome! Press B to browse my shop."','"CPUs to ASICs — I\'ve got it all."','"Need a wrench? Rigs won\'t fix themselves."','"Solar is the way. Off-grid freedom!"'],
+    dlg:[
+      '"Press B to browse! Everything priced in sats — no fiat here."',
+      '"These ASICs came off the boat from Shenzhen last week."',
+      '"Your uncle was my best customer. Bought three S9s on launch day."',
+      '"Solar + mining = proof of work powered by proof of sunshine."',
+      '"I only accept Bitcoin. Mayor tried paying in FiatBucks once. Once."',
+      '"Pro tip: immersion cooling is endgame. I\'m working on it."',
+      '"Every miner I sell makes the network stronger. That\'s the real product."',
+    ],
     wp:[{x:homeX+5,y:homeY+13},{x:homeX+7,y:homeY+13}],pi:0,mt:0,mi:5 },
   { name:'The Hermit',x:12*TILE+8,y:35*TILE+8,col:'#363',hair:'#555',role:'friend',
-    dlg:['"Your uncle was the last true cypherpunk."','"Privacy is not secrecy."','"The seed fragments... be careful who you tell."','"Running a node is about verification, not profit."','"I\'ve been in these woods since the Block Size Wars."'],
+    dlg:[
+      '"Your uncle understood: cypherpunks write code."',
+      '"Privacy is not secrecy. A private matter is something one doesn\'t want the whole world to know."',
+      '"I was there for the Block Size Wars. You weren\'t. Be grateful."',
+      '"Running a node isn\'t about profit. It\'s about not trusting anyone else to verify."',
+      '"Don\'t trust. Verify. That\'s not just a slogan."',
+      '"I knew Hal... before. He would have loved what this became."',
+      '"The seed phrase fragments your uncle left — each one is a piece of history."',
+      '"UASF. Four letters that saved Bitcoin. Ask me sometime."',
+      '"In the early days, you could mine on a laptop. I still have mine."',
+      '"The Chancellor was on the brink of a second bailout for the banks. That\'s how it started."',
+    ],
     wp:[{x:12,y:35},{x:10,y:35},{x:10,y:38},{x:12,y:38}],pi:0,mt:0,mi:6 },
+  { name:'Saylor',x:(homeX+14)*TILE+8,y:(homeY-4)*TILE+8,col:'#1A1A6B',hair:'#333',role:'friend',
+    dlg:[
+      '"Bitcoin is a swarm of cyber hornets serving the goddess of wisdom."',
+      '"I bought the top. Then I bought more. The top is just the beginning."',
+      '"There is no second best. There is Bitcoin, and there are shitcoins."',
+      '"Your uncle understood monetary energy before most people understood money."',
+      '"MicroStrategy — I mean, my previous venture — we went all in."',
+      '"Every day you don\'t stack is a day you chose inflation."',
+      '"Laser eyes aren\'t a meme. They\'re a lifestyle."',
+      '"I sold my house to buy bitcoin. Then I bought a better house."',
+    ],
+    wp:[{x:homeX+14,y:homeY-4},{x:homeX+16,y:homeY-4},{x:homeX+16,y:homeY-2},{x:homeX+14,y:homeY-2}],pi:0,mt:0,mi:5 },
+  { name:'Pizza Pete',x:(homeX-5)*TILE+8,y:(homeY+12)*TILE+8,col:'#CC8800',hair:'#664400',role:'friend',
+    dlg:[
+      '"I once traded 10,000 BTC for two pizzas. Don\'t look at me like that."',
+      '"May 22nd, 2010. The most expensive lunch in history. My lunch."',
+      '"Laszlo was right about one thing — the pizza was pretty good."',
+      '"Every time BTC hits a new ATH, someone sends me a pizza emoji."',
+      '"I\'m not bitter. I bootstrapped the first real BTC transaction. History."',
+      '"Your uncle always ordered two pizzas on Pizza Day. Tradition."',
+      '"At least I proved Bitcoin had real-world value. You\'re welcome."',
+    ],
+    wp:[{x:homeX-5,y:homeY+12},{x:homeX-3,y:homeY+12},{x:homeX-3,y:homeY+14},{x:homeX-5,y:homeY+14}],pi:0,mt:0,mi:4 },
 ];
 
 // ============================================================
@@ -617,6 +702,99 @@ function startMusic() {
   if (!music) music = new MusicEngine();
   music.start();
 }
+// ============================================================
+// BITCOIN CULTURE EVENTS — Random daily events
+// ============================================================
+const BTC_EVENTS = [
+  // FUD events (Capitulation phase more likely)
+  { text: '📰 BREAKING: China bans Bitcoin for the 47th time!', effect: 'fud', phase: [3], chance: 0.15 },
+  { text: '📰 Senator proposes "Digital Asset Compliance Act"', effect: 'fud', phase: [2,3], chance: 0.1 },
+  { text: '📰 Famous economist declares Bitcoin dead (obituary #892)', effect: 'fud', phase: [3], chance: 0.12 },
+  { text: '📰 Major exchange suffers "temporary" withdrawal freeze', effect: 'fud', phase: [2,3], chance: 0.08 },
+  { text: '📰 Tether FUD resurfaces again', effect: 'fud', phase: [2,3], chance: 0.1 },
+  { text: '💥 FTX 2.0 collapses! "Your keys, your coins" validated again', effect: 'fud', phase: [3], chance: 0.06 },
+  
+  // Bullish events (Hype/Euphoria more likely)
+  { text: '🚀 Nation-state adds Bitcoin to treasury reserves!', effect: 'bull', phase: [1,2], chance: 0.08 },
+  { text: '🚀 Major corporation announces Bitcoin salary option', effect: 'bull', phase: [1,2], chance: 0.1 },
+  { text: '🚀 Lightning Network capacity hits new ATH!', effect: 'bull', phase: [1], chance: 0.12 },
+  { text: '🟢 Hash rate reaches all-time high!', effect: 'bull', phase: [0,1], chance: 0.15 },
+  { text: '🎉 Bitcoin Pizza Day! Community celebrates the OG transaction', effect: 'bull', phase: [0,1,2,3], chance: 0.05 },
+  { text: '📈 Wall Street FOMO: Another ETF application filed', effect: 'bull', phase: [1,2], chance: 0.1 },
+  { text: '🏛️ "Bitcoin is freedom money" trends worldwide', effect: 'bull', phase: [2], chance: 0.08 },
+  
+  // Neutral / cultural events
+  { text: '🐻 Bear spotted near the valley. Not that kind of bear.', effect: 'none', phase: [0,1,2,3], chance: 0.05 },
+  { text: '🐋 A whale moved 10,000 BTC. Mempool is sweating.', effect: 'none', phase: [0,1,2,3], chance: 0.08 },
+  { text: '⚡ Lightning payment broke the speed record: 0.003 seconds!', effect: 'none', phase: [0,1], chance: 0.06 },
+  { text: '📻 Podcast: "What Bitcoin Did" interviews the village hermit', effect: 'none', phase: [0,1,2,3], chance: 0.04 },
+  { text: '🔮 Astrologer predicts BTC to $1M. Charts confirm, obviously.', effect: 'none', phase: [1,2], chance: 0.06 },
+  { text: '🐦 "Few understand" trends on Nostr', effect: 'none', phase: [0,1,2,3], chance: 0.07 },
+  { text: '📖 Saifedean releases a new chapter. The village reads it overnight.', effect: 'none', phase: [0,1,2,3], chance: 0.04 },
+  { text: '🏔️ Difficulty adjustment incoming — your rigs feel it', effect: 'diff', phase: [0,1,2,3], chance: 0.1 },
+  { text: '⏰ Tick tock, next block. The timechain never stops.', effect: 'none', phase: [0,1,2,3], chance: 0.08 },
+  { text: '🧡 "We\'re all gonna make it" — the village motto today', effect: 'none', phase: [1,2], chance: 0.06 },
+  { text: '💀 "Have fun staying poor" — graffiti appears on the Fiat Bank', effect: 'none', phase: [0,1,2,3], chance: 0.05 },
+  { text: '🌋 Volcano mining facility comes online in neighboring region!', effect: 'bull', phase: [0,1], chance: 0.04 },
+  { text: '🗓️ Today is Proof of Keys Day! Not your keys, not your coins.', effect: 'none', phase: [0,1,2,3], chance: 0.03 },
+  { text: '🎯 Block 21,000,000 mined. Oh wait, that\'s not how it works.', effect: 'none', phase: [0,1,2,3], chance: 0.02 },
+];
+
+function triggerRandomEvent() {
+  const eligible = BTC_EVENTS.filter(e => e.phase.includes(econ.phase) && Math.random() < e.chance);
+  if (eligible.length === 0) return;
+  const event = eligible[Math.floor(Math.random() * eligible.length)];
+  
+  notify(event.text, 5, true);
+  
+  switch (event.effect) {
+    case 'fud':
+      // FUD slows mining temporarily, shakes weak hands
+      for (const r of rigs) r.temp += 5; // Stress on rigs
+      break;
+    case 'bull':
+      // Bullish: small sat bonus
+      const bonus = Math.floor(50 + Math.random() * 200);
+      player.wallet += bonus;
+      player.totalEarned += bonus;
+      break;
+    case 'diff':
+      // Difficulty adjustment
+      econ.diff *= (0.9 + Math.random() * 0.2);
+      break;
+  }
+}
+
+// ============================================================
+// BITCOIN LOADING TIPS (shown during intro)
+// ============================================================
+const BTC_TIPS = [
+  "Not your keys, not your coins.",
+  "Bitcoin fixes this.",
+  "Stack sats. Stay humble.",
+  "In a world of infinite money, be finite.",
+  "The best time to buy bitcoin was yesterday. The second best time is now.",
+  "Proof of work > Proof of stake.",
+  "1 BTC = 100,000,000 satoshis.",
+  "Running a node means trusting no one but the math.",
+  "The halvening reduces the block reward every 210,000 blocks.",
+  "Satoshi Nakamoto's identity remains unknown to this day.",
+  "The Genesis Block contains: 'Chancellor on brink of second bailout for banks'.",
+  "There will only ever be 21 million bitcoin.",
+  "Bitcoin has been declared dead 474+ times. It's still here.",
+  "HODL originated from a drunk forum post in 2013.",
+  "The Lightning Network enables instant micropayments.",
+  "Bitcoin's difficulty adjusts every 2,016 blocks (~2 weeks).",
+  "Len Sassaman and Hal Finney: legends of cryptography.",
+  "UASF: when users took back control from miners.",
+  "Fix the money, fix the world.",
+  "Low time preference is a superpower.",
+  "Fiat currency has a 100% failure rate over a long enough timeline.",
+  "The cantillon effect: those closest to the money printer benefit most.",
+  "Number go up technology™",
+  "Hyperbitcoinization is inevitable.",
+];
+
 function toggleMusic() {
   if (!music) { startMusic(); return; }
   if (musicOn) { music.stop(); musicOn = false; notify('🔇 Music off', 1.5); }
@@ -731,6 +909,12 @@ function drawIntro() {
       ctx.fillText(slide.sub, canvas.width/2, canvas.height * 0.55);
     }
     
+    // Bitcoin tip
+    ctx.globalAlpha = 0.4;
+    ctx.fillStyle = C.orange;
+    ctx.font = `italic ${Math.floor(canvas.width * 0.009)}px ${FONT}`;
+    ctx.fillText('💡 ' + BTC_TIPS[introStep % BTC_TIPS.length], canvas.width/2, canvas.height * 0.82);
+    
     // Skip hint
     ctx.globalAlpha = 0.3;
     ctx.fillStyle = '#555';
@@ -755,6 +939,7 @@ function update(dt) {
   time.cur += (dt*time.spd)/time.dl;
   if (time.cur>=1){time.cur-=1;time.day++;time.td++;econ.pd++;
     updateCrops(); // Grow crops each day
+    triggerRandomEvent(); // Bitcoin culture events
     createDaySummary(); // Show daily recap
     // Reset NPC talk flags
     for (const name in relationships) { relationships[name].talked = false; relationships[name].gifted = false; }
