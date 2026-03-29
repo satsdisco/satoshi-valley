@@ -82,6 +82,7 @@ canvas.addEventListener('mousemove', e => {
   if (e.clientX>=hbXc&&e.clientX<=hbXc+480&&e.clientY>=hbYc&&e.clientY<=hbYc+44) { canvas.style.cursor='pointer'; return; }
   const wx=(e.clientX+cam.x)/SCALE, wy=(e.clientY+cam.y)/SCALE;
   for (const n of npcs) { if (Math.hypot(n.x-wx,n.y-wy)<40) { canvas.style.cursor='pointer'; return; } }
+  for (const a of animals) { if (Math.hypot(a.x-wx,a.y-wy)<32) { canvas.style.cursor='pointer'; return; } }
   for (const r of rigs) { if (Math.hypot(r.x-wx,r.y-wy)<32) { canvas.style.cursor='pointer'; return; } }
   for (const crop of crops) { if (crop.dayAge>=CROP_TYPES[crop.type].grow&&Math.hypot(crop.x*TILE+8-wx,crop.y*TILE+8-wy)<24) { canvas.style.cursor='pointer'; return; } }
   canvas.style.cursor = 'crosshair';
@@ -142,6 +143,25 @@ canvas.addEventListener('click', e => {
       if(n.name==='The Hermit')completeObjective('find_hermit');
       initRelationships();
       if(!relationships[n.name].talked){relationships[n.name].talked=true;addHearts(n.name,0.2);addXP('social',3);}
+      return;
+    }
+  }
+  // Animal
+  for (const a of animals) {
+    if (Math.hypot(a.x-wx,a.y-wy)<28) {
+      const info=ANIMAL_TYPES[a.type];
+      if(a.prodReady){
+        if(addItem(info.product,info.prodQty)){
+          a.prodReady=false;a.daysSinceProd=0;
+          sfx.coin();notify(info.icon+' Collected '+info.productName+'!',2);addXP('farming',5);
+          satPart(a.x,a.y,info.sellPrice);
+        }else{notify('Inventory full!',1.5);sfx.error();}
+      }else{
+        const daysLeft=info.produceTime-a.daysSinceProd;
+        const mood=a.happiness>=70?'😊 Happy':a.happiness>=30?'😐 OK':'😞 Unhappy';
+        dlg={name:info.name,text:mood+' | Fed: '+(a.fed?'Yes ✅':'No ❌')+' | '+(daysLeft>0?daysLeft+' days until '+info.productName:info.productName+' ready!'),role:'animal'};
+        sfx.interact();
+      }
       return;
     }
   }
@@ -255,6 +275,12 @@ const ITEMS = {
   goat:{name:'Goat',desc:'Produces milk daily. Every citadel needs goats.',icon:'🐐',type:'animal',buy:2000,sell:800,stack:false},
   cow:{name:'Cow',desc:'Raise for beef — premium sats at the meat market',icon:'🐄',type:'animal',buy:5000,sell:2000,stack:false},
   bee_hive:{name:'Bee Hive',desc:'Place near flowers — produces honey over time',icon:'🐝',type:'animal',buy:1500,sell:600,stack:false},
+  chicken:{name:'Chicken',desc:'Produces eggs daily. Clucks included.',icon:'🐔',type:'animal',buy:800,sell:300,stack:false},
+  beef:{name:'Beef Steak',desc:'Premium grass-fed beef. Carnivore approved.',icon:'🥩',type:'food',buy:0,sell:500,stack:true},
+  milk:{name:'Fresh Milk',desc:'Straight from the goat. Rich and creamy.',icon:'🥛',type:'food',buy:0,sell:200,stack:true},
+  egg:{name:'Farm Eggs',desc:'Free-range eggs. Two per chicken per day.',icon:'🥚',type:'food',buy:0,sell:80,stack:true},
+  honey:{name:'Raw Honey',desc:'Local wildflower honey. Nature\'s gold.',icon:'🍯',type:'food',buy:0,sell:350,stack:true},
+  feed:{name:'Animal Feed',desc:'Keeps your animals happy and productive.',icon:'🌾',type:'supply',buy:30,sell:10,stack:true},
 };
 
 // ============================================================
@@ -646,6 +672,19 @@ class Rig {
   statusCol(){if(this.dur<=0)return C.red;if(this.oh)return C.ledOrange;if(!this.powered)return C.gray;return C.ledGreen;}
 }
 const placed = []; // solar, battery, fan
+const animals = [];
+class Animal {
+  constructor(x, y, type) {
+    this.x = x; this.y = y; this.type = type;
+    this.homeX = x; this.homeY = y;
+    this.happiness = 80; this.fed = true;
+    this.daysSinceProd = 0; this.prodReady = false;
+    this.dir = Math.random() < 0.5 ? -1 : 1;
+    this.moveTimer = Math.random() * 3; this.moving = false;
+    this.targetX = x; this.targetY = y;
+    this.animFrame = 0; this.animTimer = 0;
+  }
+}
 
 // ============================================================
 // NPCs
@@ -757,7 +796,7 @@ const npcs = [
 // ============================================================
 // SHOP
 // ============================================================
-const SHOP_LIST = ['wrench','pickaxe','axe','hoe','shovel','cpu_miner','gpu_rig','asic_s21','solar_panel','battery','cooling_fan','bread','coffee','potato_seed','tomato_seed','corn_seed','immersion_tank','mesh_antenna','bitcoin_sign','goat','cow','bee_hive'];
+const SHOP_LIST = ['wrench','pickaxe','axe','hoe','shovel','cpu_miner','gpu_rig','asic_s21','solar_panel','battery','cooling_fan','bread','coffee','potato_seed','tomato_seed','corn_seed','immersion_tank','mesh_antenna','bitcoin_sign','goat','cow','bee_hive','chicken','feed'];
 
 // Map item IDs to sprite cache names
 const ITEM_SPRITES = {
@@ -803,6 +842,16 @@ function addXP(skill, amount) {
     sfx.buy();
   }
 }
+
+// ============================================================
+// ANIMAL TYPES
+// ============================================================
+const ANIMAL_TYPES = {
+  cow:    { name:'Cow',     sprite:'animal_cow',     product:'beef',    productName:'Beef',    icon:'🥩', produceTime:7, prodQty:1, feedCost:2, sellPrice:500 },
+  goat:   { name:'Goat',    sprite:'animal_goat',    product:'milk',    productName:'Milk',    icon:'🥛', produceTime:3, prodQty:1, feedCost:1, sellPrice:200 },
+  chicken:{ name:'Chicken', sprite:'animal_chicken', product:'egg',     productName:'Eggs',    icon:'🥚', produceTime:1, prodQty:2, feedCost:1, sellPrice:80  },
+  bee:    { name:'Bee Hive',sprite:'animal_bee',     product:'honey',   productName:'Honey',   icon:'🍯', produceTime:5, prodQty:1, feedCost:0, sellPrice:350 },
+};
 
 // ============================================================
 // CROP SYSTEM — "Something finishing soon" mechanic
@@ -1047,12 +1096,13 @@ const cam = {x:0,y:0};
 // ============================================================
 // SAVE / LOAD
 // ============================================================
-function saveGame(){try{localStorage.setItem('sv_save',JSON.stringify({v:6,p:{x:player.x,y:player.y,w:player.wallet,te:player.totalEarned,e:player.energy},inv:inv.map(s=>s?{id:s.id,q:s.qty}:null),ss:selSlot,rigs:rigs.map(r=>({x:r.x,y:r.y,t:r.tier,p:r.powered,tp:r.temp,d:r.dur,m:r.mined})),placed:placed.map(i=>({x:i.x,y:i.y,t:i.type})),econ:{...econ},time:{...time},pwr:{p:pwr.panels,b:pwr.batts},obj:objectives.map(o=>o.done),tut:tutorialDone,skills,crops:crops.map(c=>({x:c.x,y:c.y,type:c.type,dayAge:c.dayAge,stage:c.stage})),rels:relationships,citadelTier}));notify('💾 Saved!',2);sfx.buy();}catch(e){notify('❌ Save failed!',2);}}
+function saveGame(){try{localStorage.setItem('sv_save',JSON.stringify({v:7,p:{x:player.x,y:player.y,w:player.wallet,te:player.totalEarned,e:player.energy},inv:inv.map(s=>s?{id:s.id,q:s.qty}:null),ss:selSlot,rigs:rigs.map(r=>({x:r.x,y:r.y,t:r.tier,p:r.powered,tp:r.temp,d:r.dur,m:r.mined})),placed:placed.map(i=>({x:i.x,y:i.y,t:i.type})),econ:{...econ},time:{...time},pwr:{p:pwr.panels,b:pwr.batts},obj:objectives.map(o=>o.done),tut:tutorialDone,skills,crops:crops.map(c=>({x:c.x,y:c.y,type:c.type,dayAge:c.dayAge,stage:c.stage})),rels:relationships,citadelTier,animals:animals.map(a=>({x:a.x,y:a.y,t:a.type,hx:a.homeX,hy:a.homeY,hp:a.happiness,fed:a.fed,dsp:a.daysSinceProd,pr:a.prodReady,dir:a.dir}))}));notify('💾 Saved!',2);sfx.buy();}catch(e){notify('❌ Save failed!',2);}}
 function loadGame(){try{const d=JSON.parse(localStorage.getItem('sv_save'));if(!d)return notify('No save found!',2),false;player.x=d.p.x;player.y=d.p.y;player.wallet=d.p.w;player.totalEarned=d.p.te;player.energy=d.p.e||100;inv.length=0;d.inv.forEach(s=>inv.push(s?{id:s.id,qty:s.q}:null));selSlot=d.ss||0;rigs.length=0;d.rigs.forEach(r=>{const ri=new Rig(r.x,r.y,r.t);ri.powered=r.p;ri.temp=r.tp;ri.dur=r.d;ri.mined=r.m;rigs.push(ri);});placed.length=0;(d.placed||[]).forEach(i=>placed.push(i));Object.assign(econ,d.econ);Object.assign(time,d.time);pwr.panels=d.pwr?.p||[];pwr.batts=d.pwr?.b||[];if(d.obj)d.obj.forEach((done,i)=>{if(objectives[i])objectives[i].done=done;});tutorialDone=d.tut||false;
     if(d.skills)Object.assign(skills,d.skills);
     crops.length=0;if(d.crops)d.crops.forEach(c=>crops.push(c));
     if(d.rels)Object.assign(relationships,d.rels);
     if(d.citadelTier!=null){citadelTier=d.citadelTier;rebuildCitadel();}
+    animals.length=0;(d.animals||[]).forEach(a=>{const an=new Animal(a.x,a.y,a.t);an.homeX=a.hx;an.homeY=a.hy;an.happiness=a.hp;an.fed=a.fed;an.daysSinceProd=a.dsp;an.prodReady=a.pr;an.dir=a.dir;animals.push(an);});
     gameState='playing';notify('📂 Loaded!',2);sfx.buy();return true;}catch(e){notify('❌ Load failed!',2);return false;}}
 
 // ============================================================
@@ -1189,6 +1239,19 @@ function update(dt) {
   time.cur += (dt*time.spd)/time.dl;
   if (time.cur>=1){time.cur-=1;time.day++;time.td++;econ.pd++;
     updateCrops(); // Grow crops each day
+    // Animal daily update
+    for(const a of animals){
+      const info=ANIMAL_TYPES[a.type];if(!info)continue;
+      if(info.feedCost>0){
+        const feedSlot=inv.find(s=>s&&s.id==='feed');
+        if(feedSlot&&feedSlot.qty>=info.feedCost){
+          feedSlot.qty-=info.feedCost;if(feedSlot.qty<=0){const idx=inv.indexOf(feedSlot);inv[idx]=null;}
+          a.fed=true;a.happiness=Math.min(100,a.happiness+5);
+        }else{a.fed=false;a.happiness=Math.max(0,a.happiness-15);}
+      }else{a.fed=true;}
+      a.daysSinceProd++;
+      if(a.fed&&a.daysSinceProd>=info.produceTime&&a.happiness>=30){a.prodReady=true;}
+    }
     triggerRandomEvent(); // Bitcoin culture events
     createDaySummary(); // Show daily recap
     // Reset NPC talk flags
@@ -1320,11 +1383,33 @@ function update(dt) {
         if(sel&&sel.id==='wrench'&&cr.dur<100){cr.dur=Math.min(100,cr.dur+25);removeItem('wrench');sfx.repair();notify(`🔧 Repaired! ${cr.dur.toFixed(0)}%`,2);completeObjective('repair_rig');}
         else{cr.powered=!cr.powered;sfx.interact();notify(`Rig ${cr.powered?'ON ⚡':'OFF 💤'}`,1.5);}
       }else{
-        for(const n of npcs){if(Math.hypot(n.x-ix,n.y-iy)<32){dlg={name:n.name,text:n.dlg[Math.floor(Math.random()*n.dlg.length)],role:n.role};sfx.interact();
-          if(n.name==='The Hermit')completeObjective('find_hermit');
-          initRelationships();
-          if(!relationships[n.name].talked){relationships[n.name].talked=true;addHearts(n.name,0.2);addXP('social',3);}
-          break;}}
+        // Check animals
+        let animalHandled=false;
+        for(const a of animals){
+          if(Math.hypot(a.x-ix,a.y-iy)<28){
+            const info=ANIMAL_TYPES[a.type];
+            if(a.prodReady){
+              if(addItem(info.product,info.prodQty)){
+                a.prodReady=false;a.daysSinceProd=0;
+                sfx.coin();notify(info.icon+' Collected '+info.productName+'!',2);addXP('farming',5);
+                satPart(a.x,a.y,info.sellPrice);
+              }else{notify('Inventory full!',1.5);sfx.error();}
+            }else{
+              const daysLeft=info.produceTime-a.daysSinceProd;
+              const mood=a.happiness>=70?'😊 Happy':a.happiness>=30?'😐 OK':'😞 Unhappy';
+              dlg={name:info.name,text:mood+' | Fed: '+(a.fed?'Yes ✅':'No ❌')+' | '+(daysLeft>0?daysLeft+' days until '+info.productName:info.productName+' ready!'),role:'animal'};
+              sfx.interact();
+            }
+            animalHandled=true;break;
+          }
+        }
+        if(!animalHandled){
+          for(const n of npcs){if(Math.hypot(n.x-ix,n.y-iy)<32){dlg={name:n.name,text:n.dlg[Math.floor(Math.random()*n.dlg.length)],role:n.role};sfx.interact();
+            if(n.name==='The Hermit')completeObjective('find_hermit');
+            initRelationships();
+            if(!relationships[n.name].talked){relationships[n.name].talked=true;addHearts(n.name,0.2);addXP('social',3);}
+            break;}}
+        }
       }
     }
   }
@@ -1355,8 +1440,19 @@ function update(dt) {
         if(!isSolid(ptx,pty)&&!placed.some(i=>Math.abs(i.x-px)<TILE&&Math.abs(i.y-py)<TILE)){
           removeItem('cooling_fan');placed.push({x:px,y:py,type:'cooling_fan'});sfx.place();notify('🌀 Fan placed!',2);
         }else{sfx.error();notify("Can't place here!",1.5);}
+      }else if(it.type==='animal'){
+        const animalType = sel.id === 'bee_hive' ? 'bee' : sel.id;
+        if(!isSolid(ptx,pty)&&!rigs.some(r=>Math.abs(r.x-px)<TILE&&Math.abs(r.y-py)<TILE)
+           &&!animals.some(a=>Math.abs(a.x-px)<TILE&&Math.abs(a.y-py)<TILE)){
+          removeItem(sel.id);animals.push(new Animal(px,py,animalType));sfx.place();
+          notify(ANIMAL_TYPES[animalType].icon+' '+ANIMAL_TYPES[animalType].name+' placed!',2);addXP('farming',10);
+        } else { sfx.error(); notify("Can't place here!",1.5); }
       }else if(sel.id==='bread'){removeItem('bread');player.energy=Math.min(player.maxEnergy,player.energy+30);sfx.coin();notify('🍞 +30 energy',1.5);}
       else if(sel.id==='coffee'){removeItem('coffee');player.boost=30;player.energy=Math.min(player.maxEnergy,player.energy+10);sfx.coin();notify('☕ Speed boost!',2);}
+      else if(sel.id==='beef'){removeItem('beef');player.energy=Math.min(player.maxEnergy,player.energy+60);player.boost=45;sfx.coin();notify('🥩 Beef steak! +60 energy, strength boost!',2.5);addXP('farming',2);}
+      else if(sel.id==='milk'){removeItem('milk');player.energy=Math.min(player.maxEnergy,player.energy+25);sfx.coin();notify('🥛 Fresh milk! +25 energy',1.5);}
+      else if(sel.id==='egg'){removeItem('egg');player.energy=Math.min(player.maxEnergy,player.energy+15);sfx.coin();notify('🥚 Farm fresh! +15 energy',1.5);}
+      else if(sel.id==='honey'){removeItem('honey');player.energy=Math.min(player.maxEnergy,player.energy+35);player.boost=20;sfx.coin();notify('🍯 Sweet honey! +35 energy, speed boost!',2);}
       else if(sel.id==='pickaxe'){
         const tx=Math.floor((player.x+player.facing.x*16)/TILE),ty=Math.floor((player.y+player.facing.y*16)/TILE);
         if(map[ty]&&(map[ty][tx]===T.STONE||map[ty][tx]===T.CLIFF)){
@@ -1437,6 +1533,15 @@ function update(dt) {
             }
           }
         }
+        if(!picked){
+          for(let i=animals.length-1;i>=0;i--){
+            if(Math.hypot(animals[i].x-ix,animals[i].y-iy)<24){
+              const a=animals[i];const itemId=a.type==='bee'?'bee_hive':a.type;
+              addItem(itemId);animals.splice(i,1);
+              sfx.interact();notify('⚒️ Picked up '+ANIMAL_TYPES[a.type].name,2);picked=true;break;
+            }
+          }
+        }
         if(!picked){notify('Nothing to pick up',1.5);sfx.error();}
       }
     }
@@ -1457,10 +1562,39 @@ function update(dt) {
   // Music sync
   if(music&&musicOn){music.setPhase(econ.phase);music.setTimeOfDay(getHour());}
   
+  // Animal AI
+  for(const a of animals){
+    if(a.type==='bee') continue;
+    a.moveTimer-=dt;
+    if(a.moveTimer<=0){
+      a.moveTimer=2+Math.random()*4;
+      if(Math.random()<0.6){
+        a.moving=true;
+        a.targetX=a.homeX+(Math.random()*6-3)*TILE;
+        a.targetY=a.homeY+(Math.random()*6-3)*TILE;
+        a.targetX=Math.max(TILE,Math.min(a.targetX,(MAP_W-2)*TILE));
+        a.targetY=Math.max(TILE,Math.min(a.targetY,(MAP_H-2)*TILE));
+      } else { a.moving=false; }
+    }
+    if(a.moving){
+      const dx=a.targetX-a.x,dy=a.targetY-a.y;
+      const dist=Math.sqrt(dx*dx+dy*dy);
+      if(dist<2){a.moving=false;}
+      else{
+        const spd=20*dt;
+        const nx=a.x+dx/dist*spd,ny=a.y+dy/dist*spd;
+        const ntx=Math.floor(nx/TILE),nty=Math.floor(ny/TILE);
+        if(!isSolid(ntx,nty)){a.x=nx;a.y=ny;}else{a.moving=false;}
+        if(dx>0)a.dir=1;else if(dx<0)a.dir=-1;
+      }
+    }
+    a.animTimer+=dt;if(a.animTimer>0.3){a.animTimer=0;a.animFrame=(a.animFrame+1)%2;}
+  }
+
   // Camera (smooth)
   cam.x+=(player.x*SCALE-canvas.width/2-cam.x)*3.5*dt;
   cam.y+=(player.y*SCALE-canvas.height/2-cam.y)*3.5*dt;
-  
+
   // Particles & notifs
   for(let i=particles.length-1;i>=0;i--){particles[i].life-=dt;particles[i].y+=particles[i].vy*dt;if(particles[i].life<=0)particles.splice(i,1);}
   if(clickIndicator){clickIndicator.life-=dt*1.5;if(clickIndicator.life<=0)clickIndicator=null;}
@@ -1740,6 +1874,32 @@ function drawPlayer(){
     // Item name above head
     ctx.fillStyle='rgba(0,0,0,.6)';ctx.font=`13px ${FONT}`;
     ctx.fillText(ITEMS[sel.id].name,sx,py-12);
+  }
+}
+
+function drawAnimal(a){
+  const info=ANIMAL_TYPES[a.type];if(!info)return;
+  const sx=a.x*SCALE-cam.x, sy=a.y*SCALE-cam.y;
+  if(sx<-60||sx>canvas.width+60||sy<-60||sy>canvas.height+60) return;
+  // Shadow
+  ctx.fillStyle='rgba(0,0,0,0.15)';ctx.beginPath();ctx.ellipse(sx,sy+22,14,6,0,0,Math.PI*2);ctx.fill();
+  // Sprite (flip based on direction)
+  ctx.save();
+  if(a.dir<0){ctx.translate(sx,sy-20);ctx.scale(-1,1);drawSprite(info.sprite,-24,-4,3);}
+  else{drawSprite(info.sprite,sx-24,sy-24,3);}
+  ctx.restore();
+  // Product ready indicator (bouncing icon)
+  if(a.prodReady){
+    const bounce=Math.sin(performance.now()/300)*4;
+    ctx.font='16px serif';ctx.textAlign='center';
+    ctx.fillText(info.icon,sx,sy-30+bounce);
+  }
+  // Happiness indicator when nearby
+  if(Math.hypot(a.x-player.x,a.y-player.y)<60){
+    const hp=a.happiness;
+    const emoji=hp>=70?'😊':hp>=30?'😐':'😞';
+    ctx.font='12px serif';ctx.textAlign='center';
+    ctx.fillText(emoji,sx+18,sy-22);
   }
 }
 
@@ -2401,6 +2561,7 @@ function draw(){
   for(const i of placed)entities.push({y:i.y,draw:()=>drawPlaced(i)});
   for(const r of rigs)entities.push({y:r.y,draw:()=>drawRig(r)});
   for(const n of npcs)entities.push({y:n.y,draw:()=>drawNPC(n)});
+  for(const a of animals)entities.push({y:a.y,draw:()=>drawAnimal(a)});
   entities.push({y:player.y,draw:drawPlayer});
   entities.sort((a,b)=>a.y-b.y);
   // Draw crops
