@@ -634,12 +634,22 @@ const npcs = [
       '"At least I proved Bitcoin had real-world value. You\'re welcome."',
     ],
     wp:[{x:homeX-5,y:homeY+12},{x:homeX-3,y:homeY+12},{x:homeX-3,y:homeY+14},{x:homeX-5,y:homeY+14}],pi:0,mt:0,mi:4 },
+  { name:'Farmer Pete',x:(homeX+9)*TILE+8,y:(homeY+4)*TILE+8,col:'#228822',hair:'#886633',role:'market',
+    dlg:[
+      '"Press B to sell your harvest! I pay in sats, naturally."',
+      '"Potatoes, tomatoes, corn — bring me what you\'ve got."',
+      '"Farm-to-table, no middlemen. The way Satoshi intended."',
+      '"Your uncle grew the best tomatoes in the valley."',
+      '"Low time preference applies to farming too. Be patient."',
+      '"Sell in Euphoria phase for max profit. Buy seeds in Capitulation."',
+    ],
+    wp:[{x:homeX+9,y:homeY+4},{x:homeX+11,y:homeY+4},{x:homeX+11,y:homeY+2},{x:homeX+9,y:homeY+2}],pi:0,mt:0,mi:4 },
 ];
 
 // ============================================================
 // SHOP
 // ============================================================
-const SHOP_LIST = ['wrench','pickaxe','cpu_miner','gpu_rig','asic_s21','solar_panel','battery','cooling_fan','bread','coffee','potato_seed','tomato_seed','corn_seed'];
+const SHOP_LIST = ['wrench','pickaxe','axe','hoe','shovel','cpu_miner','gpu_rig','asic_s21','solar_panel','battery','cooling_fan','bread','coffee','potato_seed','tomato_seed','corn_seed','immersion_tank','mesh_antenna','bitcoin_sign','goat','cow','bee_hive'];
 
 // Map item IDs to sprite cache names
 const ITEM_SPRITES = {
@@ -647,7 +657,7 @@ const ITEM_SPRITES = {
   cpu_miner: 'item_cpu', gpu_rig: 'item_gpu', asic_s21: 'item_asic',
   solar_panel: 'item_solar', battery: 'item_battery', cooling_fan: 'item_fan',
 };
-let shopOpen=false, shopCur=0, shopMode='buy';
+let shopOpen=false, shopCur=0, shopMode='buy', shopNpcRole='shop';
 
 // ============================================================
 // UI STATE
@@ -715,14 +725,19 @@ function harvestCrop(index) {
   const crop = crops[index];
   const info = CROP_TYPES[crop.type];
   if (crop.dayAge >= info.grow) {
-    const value = Math.ceil(info.sell * marketMult());
-    player.wallet += value;
-    player.totalEarned += value;
-    addXP('farming', 15 + info.grow * 2);
-    notify(`${info.icon} Harvested ${info.name}! +${fmt(value)} sats`, 3);
-    sfx.coin();
-    crops.splice(index, 1);
-    return true;
+    // Add crop to inventory (sell at Farmer Pete's market)
+    const cropItem = crop.type + '_crop';
+    if (addItem(cropItem)) {
+      addXP('farming', 15 + info.grow * 2);
+      notify(`${info.icon} Harvested ${info.name}! Sell at Farmer Pete's market.`, 3);
+      sfx.coin();
+      crops.splice(index, 1);
+      return true;
+    } else {
+      notify('Inventory full! Make room first.', 2);
+      sfx.error();
+      return false;
+    }
   }
   return false;
 }
@@ -947,6 +962,8 @@ addItem('bread', 5);
 addItem('cpu_miner', 1);
 addItem('potato_seed', 5);
 addItem('tomato_seed', 3);
+addItem('hoe', 1);
+addItem('axe', 1);
 
 // Clear old saves from different versions to avoid broken state
 const existingSave = localStorage.getItem('sv_save');
@@ -1118,7 +1135,15 @@ function update(dt) {
     }
   }
   if (showDaySummary && (jp['enter'] || jp['e'] || jp[' '])) { showDaySummary = false; }
-  if(jp['b']){const nr=npcs.find(n=>n.role==='shop'&&Math.hypot(n.x-player.x,n.y-player.y)<60);if(nr&&!shopOpen){shopOpen=true;shopCur=0;shopMode='buy';sfx.menuOpen();dlg=null;}else if(shopOpen){shopOpen=false;sfx.menuClose();}}
+  if(jp['b']){
+    const nr=npcs.find(n=>(n.role==='shop'||n.role==='market')&&Math.hypot(n.x-player.x,n.y-player.y)<60);
+    if(nr&&!shopOpen){
+      shopOpen=true;shopCur=0;
+      shopMode=nr.role==='market'?'sell':'buy'; // Market opens in sell mode
+      shopNpcRole=nr.role;
+      sfx.menuOpen();dlg=null;
+    }else if(shopOpen){shopOpen=false;sfx.menuClose();}
+  }
   if(jp['i']||jp['tab']){if(!shopOpen){invOpen=!invOpen;invOpen?sfx.menuOpen():sfx.menuClose();}}
   if(jp['escape']){if(shopOpen){shopOpen=false;sfx.menuClose();}else if(citadelMenuOpen){citadelMenuOpen=false;sfx.menuClose();}else if(invOpen){invOpen=false;sfx.menuClose();}else if(dlg)dlg=null;else if(showObjectives)showObjectives=false;}
   if(jp['p'])saveGame();if(jp['l'])loadGame();
@@ -1235,6 +1260,68 @@ function update(dt) {
           addXP('farming',5);
           completeObjective('plant_crop');
         } else { notify("Plant on empty dirt tiles!",1.5); sfx.error(); }
+      }
+      // AXE — chop trees, clear tall grass
+      else if(sel.id==='axe'){
+        const tx=Math.floor((player.x+player.facing.x*20)/TILE),ty=Math.floor((player.y+player.facing.y*20)/TILE);
+        // Check for trees in decor
+        let chopped = false;
+        for(let i=decor.length-1;i>=0;i--){
+          const d=decor[i];
+          if(d.type==='tree'&&Math.abs(d.x-tx)<=1&&Math.abs(d.y-ty)<=1){
+            decor.splice(i,1);
+            addItem('wood',2+Math.floor(Math.random()*3));
+            sfx.repair();notify('🪓 Chopped tree! +wood',2);addXP('foraging',8);chopped=true;break;
+          }
+          if(d.type==='bush'&&Math.abs(d.x-tx)<=1&&Math.abs(d.y-ty)<=1){
+            decor.splice(i,1);
+            addItem('fiber',1+Math.floor(Math.random()*2));
+            sfx.interact();notify('🪓 Cleared bush! +fiber',1.5);addXP('foraging',3);chopped=true;break;
+          }
+        }
+        if(!chopped&&map[ty]&&map[ty][tx]===T.TALLGRASS){
+          map[ty][tx]=T.GRASS;
+          addItem('fiber');sfx.interact();notify('🌿 Cleared grass! +fiber',1.5);addXP('foraging',2);
+        }
+        else if(!chopped){notify('Nothing to chop here',1);sfx.error();}
+      }
+      // HOE — convert grass to dirt
+      else if(sel.id==='hoe'){
+        const tx=Math.floor((player.x+player.facing.x*16)/TILE),ty=Math.floor((player.y+player.facing.y*16)/TILE);
+        if(map[ty]&&(map[ty][tx]===T.GRASS||map[ty][tx]===T.TALLGRASS||map[ty][tx]===T.FLOWERS)){
+          map[ty][tx]=T.DIRT;
+          sfx.place();notify('🌾 Tilled soil!',1.5);addXP('farming',2);
+        } else { notify("Can only till grass!",1.5);sfx.error(); }
+      }
+      // SHOVEL — pick up placed items and rigs
+      else if(sel.id==='shovel'){
+        const ix=player.x+player.facing.x*20,iy=player.y+player.facing.y*20;
+        // Check placed items first
+        let picked=false;
+        for(let i=placed.length-1;i>=0;i--){
+          if(Math.hypot(placed[i].x-ix,placed[i].y-iy)<24){
+            const p=placed[i];
+            const itemMap={solar_panel:'solar_panel',battery:'battery',cooling_fan:'cooling_fan'};
+            if(itemMap[p.type]){addItem(itemMap[p.type]);notify(`⚒️ Picked up ${p.type.replace('_',' ')}`,2);}
+            // Remove from power arrays too
+            if(p.type==='solar_panel') pwr.panels=pwr.panels.filter(pp=>pp.x!==p.x||pp.y!==p.y);
+            if(p.type==='battery') pwr.batts=pwr.batts.filter(pp=>pp.x!==p.x||pp.y!==p.y);
+            placed.splice(i,1);sfx.repair();addXP('engineering',5);picked=true;break;
+          }
+        }
+        // Check rigs
+        if(!picked){
+          for(let i=rigs.length-1;i>=0;i--){
+            if(Math.hypot(rigs[i].x-ix,rigs[i].y-iy)<24){
+              const r=rigs[i];
+              const rigItems=['cpu_miner','gpu_rig','asic_s21'];
+              addItem(rigItems[r.tier]);
+              notify(`⚒️ Picked up ${Rig.N[r.tier]}`,2);
+              rigs.splice(i,1);sfx.repair();addXP('engineering',5);picked=true;break;
+            }
+          }
+        }
+        if(!picked){notify('Nothing to pick up',1.5);sfx.error();}
       }
     }
   }
@@ -1552,7 +1639,7 @@ function drawNPC(n){
   if(dist<48){
     ctx.fillStyle=C.white;ctx.font=`bold 13px ${FONT}`;ctx.textAlign='center';ctx.fillText(n.name,sx,py-8);
     ctx.fillStyle=C.gray;ctx.font=`12px ${FONT}`;
-    ctx.fillText(n.role==='shop'?'[E] Talk  [B] Shop':'[E] Talk',sx,py-20);
+    ctx.fillText(n.role==='shop'?'[E] Talk  [B] Shop':n.role==='market'?'[E] Talk  [B] Sell Crops':'[E] Talk',sx,py-20);
   }
 }
 
@@ -1903,7 +1990,7 @@ function drawCitadelMenu(){
 function drawShop(){
   const w=560,h=460,x=(canvas.width-w)/2,y=(canvas.height-h)/2;panel(x,y,w,h);
   ctx.fillStyle=C.hud;ctx.font=`bold 18px ${FONT}`;ctx.textAlign='center';
-  ctx.fillText("⛏️ Ruby's Hardware Shop",x+w/2,y+28);
+  ctx.fillText(shopNpcRole==='market'?"🌾 Farmer Pete's Market":"⛏️ Ruby's Hardware Shop",x+w/2,y+28);
   
   // Tabs
   const tw=w/2-20;
