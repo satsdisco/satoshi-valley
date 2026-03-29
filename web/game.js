@@ -855,6 +855,7 @@ class Rig {
     this.powered=true;this.hr=[1,5,50][tier];this.ht=[.2,.8,2][tier];
     this.temp=20;this.dur=100;this.oh=false;this.mined=0;
     this.ma=0;this.ha=0;this.af=0;this.at=0;
+    this.interior=null; // null = overworld, or building type string
   }
   static N=['CPU Miner','GPU Rig','ASIC S21'];
   static C=['#556','#669','#975'];
@@ -1324,8 +1325,8 @@ const cam = {x:0,y:0};
 // ============================================================
 // SAVE / LOAD
 // ============================================================
-function saveGame(){try{localStorage.setItem('sv_save',JSON.stringify({v:7,p:{x:player.x,y:player.y,w:player.wallet,te:player.totalEarned,e:player.energy},inv:inv.map(s=>s?{id:s.id,q:s.qty}:null),ss:selSlot,rigs:rigs.map(r=>({x:r.x,y:r.y,t:r.tier,p:r.powered,tp:r.temp,d:r.dur,m:r.mined})),placed:placed.map(i=>({x:i.x,y:i.y,t:i.type})),econ:{...econ},time:{...time},pwr:{p:pwr.panels,b:pwr.batts},obj:objectives.map(o=>o.done),tut:tutorialDone,skills,crops:crops.map(c=>({x:c.x,y:c.y,type:c.type,dayAge:c.dayAge,stage:c.stage})),rels:relationships,citadelTier,animals:animals.map(a=>({x:a.x,y:a.y,t:a.type,hx:a.homeX,hy:a.homeY,hp:a.happiness,fed:a.fed,dsp:a.daysSinceProd,pr:a.prodReady,dir:a.dir})),weather:{c:weather.current},chest:chestInv.map(s=>s?{id:s.id,q:s.qty}:null),fw:foundWords}));notify('💾 Saved!',2);sfx.buy();}catch(e){notify('❌ Save failed!',2);}}
-function loadGame(){try{const d=JSON.parse(localStorage.getItem('sv_save'));if(!d)return notify('No save found!',2),false;player.x=d.p.x;player.y=d.p.y;player.wallet=d.p.w;player.totalEarned=d.p.te;player.energy=d.p.e||100;inv.length=0;d.inv.forEach(s=>inv.push(s?{id:s.id,qty:s.q}:null));selSlot=d.ss||0;rigs.length=0;d.rigs.forEach(r=>{const ri=new Rig(r.x,r.y,r.t);ri.powered=r.p;ri.temp=r.tp;ri.dur=r.d;ri.mined=r.m;rigs.push(ri);});placed.length=0;(d.placed||[]).forEach(i=>placed.push(i));Object.assign(econ,d.econ);Object.assign(time,d.time);pwr.panels=d.pwr?.p||[];pwr.batts=d.pwr?.b||[];if(d.obj)d.obj.forEach((done,i)=>{if(objectives[i])objectives[i].done=done;});tutorialDone=d.tut||false;
+function saveGame(){try{localStorage.setItem('sv_save',JSON.stringify({v:7,p:{x:player.x,y:player.y,w:player.wallet,te:player.totalEarned,e:player.energy},inv:inv.map(s=>s?{id:s.id,q:s.qty}:null),ss:selSlot,rigs:rigs.map(r=>({x:r.x,y:r.y,t:r.tier,p:r.powered,tp:r.temp,d:r.dur,m:r.mined,int:r.interior||null})),placed:placed.map(i=>({x:i.x,y:i.y,t:i.type})),econ:{...econ},time:{...time},pwr:{p:pwr.panels,b:pwr.batts},obj:objectives.map(o=>o.done),tut:tutorialDone,skills,crops:crops.map(c=>({x:c.x,y:c.y,type:c.type,dayAge:c.dayAge,stage:c.stage})),rels:relationships,citadelTier,animals:animals.map(a=>({x:a.x,y:a.y,t:a.type,hx:a.homeX,hy:a.homeY,hp:a.happiness,fed:a.fed,dsp:a.daysSinceProd,pr:a.prodReady,dir:a.dir})),weather:{c:weather.current},chest:chestInv.map(s=>s?{id:s.id,q:s.qty}:null),fw:foundWords}));notify('💾 Saved!',2);sfx.buy();}catch(e){notify('❌ Save failed!',2);}}
+function loadGame(){try{const d=JSON.parse(localStorage.getItem('sv_save'));if(!d)return notify('No save found!',2),false;player.x=d.p.x;player.y=d.p.y;player.wallet=d.p.w;player.totalEarned=d.p.te;player.energy=d.p.e||100;inv.length=0;d.inv.forEach(s=>inv.push(s?{id:s.id,qty:s.q}:null));selSlot=d.ss||0;rigs.length=0;d.rigs.forEach(r=>{const ri=new Rig(r.x,r.y,r.t);ri.powered=r.p;ri.temp=r.tp;ri.dur=r.d;ri.mined=r.m;ri.interior=r.int||null;rigs.push(ri);});placed.length=0;(d.placed||[]).forEach(i=>placed.push(i));Object.assign(econ,d.econ);Object.assign(time,d.time);pwr.panels=d.pwr?.p||[];pwr.batts=d.pwr?.b||[];if(d.obj)d.obj.forEach((done,i)=>{if(objectives[i])objectives[i].done=done;});tutorialDone=d.tut||false;
     if(d.skills)Object.assign(skills,d.skills);
     crops.length=0;if(d.crops)d.crops.forEach(c=>crops.push(c));
     if(d.rels)Object.assign(relationships,d.rels);
@@ -1342,10 +1343,10 @@ function loadGame(){try{const d=JSON.parse(localStorage.getItem('sv_save'));if(!
 initSprites();
 generateMap();
 generateInteriors();
-// Starter rigs in the mining shed — already mining!
-// Starter rigs outside the shed (visible and accessible)
-const rig1 = new Rig((homeX-17)*TILE+8, (homeY+0)*TILE+8, 0);
-const rig2 = new Rig((homeX-15)*TILE+8, (homeY+0)*TILE+8, 0);
+// Starter rigs inside the mining shed — already mining!
+const rig1 = new Rig(3*TILE+8, 3*TILE+8, 0);
+const rig2 = new Rig(5*TILE+8, 3*TILE+8, 0);
+rig1.interior = 'shed'; rig2.interior = 'shed';
 rig1.powered = true; rig2.powered = true;
 rigs.push(rig1); rigs.push(rig2);
 addItem('wrench', 3);
@@ -1772,14 +1773,14 @@ function update(dt) {
     else{
       const it=ITEMS[sel.id];
       // Block placing world items inside buildings (food consumption still works below)
-      if(interior && it.type!=='food'){notify("Can't place items indoors!",1.5);sfx.error();}
+      if(interior && it.type!=='food' && !(interior.type==='shed' && it.type==='rig')){notify("Can't place items indoors!",1.5);sfx.error();}
       else{
       const px=Math.round((player.x+player.facing.x*24)/TILE)*TILE+8;
       const py=Math.round((player.y+player.facing.y*24)/TILE)*TILE+8;
       const ptx=Math.floor(px/TILE),pty=Math.floor(py/TILE);
       if(it.type==='rig'){
         if(!isSolid(ptx,pty)&&!rigs.some(r=>Math.abs(r.x-px)<TILE&&Math.abs(r.y-py)<TILE)){
-          removeItem(sel.id);rigs.push(new Rig(px,py,it.tier));sfx.place();notify(`⛏️ ${it.name} placed!`,2);completeObjective('place_rig');
+          removeItem(sel.id);rigs.push(new Rig(px,py,it.tier));if(interior) rigs[rigs.length-1].interior=interior.type;sfx.place();notify(`⛏️ ${it.name} placed!`,2);completeObjective('place_rig');
         }else{sfx.error();notify("Can't place here!",1.5);}
       }else if(sel.id==='solar_panel'){
         if(!isSolid(ptx,pty)&&!placed.some(i=>Math.abs(i.x-px)<TILE&&Math.abs(i.y-py)<TILE)){
@@ -2048,27 +2049,37 @@ function drawTile(x,y,tile){
   
   switch(tile){
     case T.GRASS:{
-      // Base color with more variation
       const gi=(x*7+y*13)%5;
       ctx.fillStyle=C.grass[gi];ctx.fillRect(sx,sy,ST,ST);
-      // Softer inner variation (lighter patch)
-      if((x+y)%4===0){ctx.fillStyle=C.grass[(gi+2)%5];ctx.globalAlpha=0.3;ctx.fillRect(sx+6,sy+6,ST-12,ST-12);ctx.globalAlpha=1;}
-      // Small grass tufts (subtle)
-      const gSeed=(x*31+y*17)%23;
-      ctx.fillStyle=C.grass[4]; // lightest green
-      if(gSeed<5){ctx.fillRect(sx+8+gSeed*4,sy+10,2,8);}
-      if(gSeed<3){ctx.fillRect(sx+28-gSeed*6,sy+20,2,6);}
-      // Tiny flower dots (very sparse)
-      if(gSeed===0){ctx.fillStyle='#E8C840';ctx.fillRect(sx+20,sy+14,2,2);}
-      if(gSeed===7){ctx.fillStyle='#D0D0F0';ctx.fillRect(sx+12,sy+30,2,2);}
+      // Soft edge blending with neighbors (overlap slightly)
+      ctx.fillStyle=C.grass[(gi+1)%5];ctx.globalAlpha=0.15;
+      ctx.fillRect(sx,sy,ST/2,ST);ctx.globalAlpha=1;
+      // Organic noise patches (irregular shapes, not squares)
+      const gSeed=(x*31+y*17)%37;
+      if(gSeed<8){
+        ctx.fillStyle=C.grass[(gi+2)%5];ctx.globalAlpha=0.2;
+        ctx.beginPath();ctx.arc(sx+12+gSeed*3,sy+14+gSeed%4*5,8+gSeed%3*4,0,Math.PI*2);ctx.fill();ctx.globalAlpha=1;
+      }
+      // Grass tufts (thin blades)
+      ctx.fillStyle=C.grass[4];
+      if(gSeed%5===0){ctx.fillRect(sx+10,sy+8,1,7);ctx.fillRect(sx+13,sy+10,1,5);}
+      if(gSeed%7===0){ctx.fillRect(sx+30,sy+12,1,6);ctx.fillRect(sx+33,sy+15,1,4);}
+      // Tiny wildflower (very sparse)
+      if(gSeed===1){ctx.fillStyle='#E8C840';ctx.fillRect(sx+22,sy+18,2,2);}
+      if(gSeed===11){ctx.fillStyle='#D0D0F0';ctx.fillRect(sx+14,sy+28,2,2);}
       break;}
     case T.TALLGRASS:{
-      ctx.fillStyle=C.grass[v2%4];ctx.fillRect(sx,sy,ST,ST);
-      const sw=Math.sin(t*1.8+x*.7+y*.5)*4;
+      const gi2=(x*7+y*13)%5;
+      ctx.fillStyle=C.grass[gi2];ctx.fillRect(sx,sy,ST,ST);
+      // Soft base blend
+      ctx.fillStyle=C.grass[(gi2+1)%5];ctx.globalAlpha=0.12;ctx.fillRect(sx,sy,ST,ST/2);ctx.globalAlpha=1;
+      const sw=Math.sin(t*1.8+x*.7+y*.5)*3;
       ctx.fillStyle='#4A9030';
-      for(let i=0;i<4;i++){const ox=6+i*10+sw*(i%2?1:-1);ctx.fillRect(sx+ox,sy+2,3,ST-4);}
+      for(let i=0;i<5;i++){const ox=4+i*8+sw*(i%2?1:-1);ctx.fillRect(sx+ox,sy+4,1,ST-6);}
       ctx.fillStyle='#5AA040';
-      for(let i=0;i<3;i++){const ox=10+i*12+sw*1.2;ctx.fillRect(sx+ox,sy+6,2,ST-10);}
+      for(let i=0;i<4;i++){const ox=8+i*10+sw*1.1;ctx.fillRect(sx+ox,sy+8,1,ST-12);}
+      ctx.fillStyle='#3A8020';
+      for(let i=0;i<3;i++){const ox=6+i*12-sw*0.7;ctx.fillRect(sx+ox,sy+6,1,ST-8);}
       break;}
     case T.FLOWER:{
       ctx.fillStyle=C.grass[v2%4];ctx.fillRect(sx,sy,ST,ST);
@@ -3765,13 +3776,14 @@ function draw(){
       entities.push({y:sortY, draw:()=>drawDecor(d)});
     }
     for(const i of placed)entities.push({y:i.y,draw:()=>drawPlaced(i)});
-    for(const r of rigs)entities.push({y:r.y,draw:()=>drawRig(r)});
+    for(const r of rigs){ if(!r.interior) entities.push({y:r.y,draw:()=>drawRig(r)}); }
     for(const n of npcs)entities.push({y:n.y,draw:()=>drawNPC(n)});
     for(const a of animals)entities.push({y:a.y,draw:()=>drawAnimal(a)});
   } else {
     for(const f of interior.furniture) {
       entities.push({y:f.y*TILE+TILE, draw:()=>drawDecor({type:'furniture',item:f.item,x:f.x,y:f.y})});
     }
+    for(const r of rigs){ if(r.interior===interior.type) entities.push({y:r.y,draw:()=>drawRig(r)}); }
   }
   entities.push({y:player.y,draw:drawPlayer});
   entities.sort((a,b)=>a.y-b.y);
