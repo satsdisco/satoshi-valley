@@ -5,12 +5,10 @@
 const canvas = document.getElementById('game');
 const ctx = canvas.getContext('2d');
 
-// ---- TRUE FULLSCREEN ----
+// ---- TRUE FULLSCREEN (no DPR scaling — keeps text readable) ----
 function resize() {
-  canvas.width = window.innerWidth * (window.devicePixelRatio || 1);
-  canvas.height = window.innerHeight * (window.devicePixelRatio || 1);
-  canvas.style.width = window.innerWidth + 'px';
-  canvas.style.height = window.innerHeight + 'px';
+  canvas.width = window.innerWidth;
+  canvas.height = window.innerHeight;
 }
 window.addEventListener('resize', resize);
 resize();
@@ -387,7 +385,11 @@ function buildBuilding(bx, by, w, h, type) {
   // Door
   const doorX = bx + Math.floor(w/2);
   if (by+h-1 < MAP_H) map[by+h-1][doorX] = T.PATH;
-  if (w > 5 && by+h-1 < MAP_H) map[by+h-1][doorX+1] = T.PATH; // double door for shop
+  if (w > 5 && by+h-1 < MAP_H) map[by+h-1][doorX+1] = T.PATH;
+  
+  // Add roof decoration
+  const roofColors = { home:'#8B2020', shed:'#5A6A4A', shop:'#C47415', tavern:'#6A3A1A', hall:'#4A4A6A' };
+  decor.push({ x: bx, y: by-1, type: 'roof', w, h: 1, color: roofColors[type] || '#8B2020', label: type });
 }
 
 function drawPath(x1, y1, x2, y2, width) {
@@ -1192,10 +1194,34 @@ function drawTile(x,y,tile){
       if(v2%4===0){ctx.fillStyle=C.sand[(v+1)%3];ctx.fillRect(sx+10,sy+8,12,6);}break;
     case T.PATH:ctx.fillStyle=C.path[v];ctx.fillRect(sx,sy,ST,ST);
       if((x+y)%4===0){ctx.fillStyle=C.path[(v+1)%3];ctx.fillRect(sx+8,sy+8,8,8);}break;
-    case T.WALL:ctx.fillStyle=C.woodWall;ctx.fillRect(sx,sy,ST,ST);
-      ctx.fillStyle=C.woodDark;ctx.fillRect(sx+2,sy+ST/2-1,ST-4,2);ctx.fillRect(sx+ST/2-1,sy+2,2,ST-4);break;
-    case T.FLOOR:ctx.fillStyle=C.woodFloor;ctx.fillRect(sx,sy,ST,ST);
-      ctx.fillStyle=C.woodLight;for(let i=0;i<3;i++)ctx.fillRect(sx,sy+i*16,ST,1);break;
+    case T.WALL:{
+      // Detailed log cabin walls
+      ctx.fillStyle=C.woodWall;ctx.fillRect(sx,sy,ST,ST);
+      // Horizontal log lines
+      ctx.fillStyle=C.woodDark;
+      for(let i=0;i<4;i++) ctx.fillRect(sx+1,sy+i*12+5,ST-2,2);
+      // Wood grain
+      ctx.fillStyle='rgba(90,56,24,0.3)';
+      ctx.fillRect(sx+8,sy+2,3,ST-4);ctx.fillRect(sx+28,sy+2,3,ST-4);
+      // Corner beam
+      ctx.fillStyle='#4A2808';ctx.fillRect(sx,sy,4,ST);ctx.fillRect(sx+ST-4,sy,4,ST);
+      // Nail details
+      ctx.fillStyle='#888';ctx.fillRect(sx+6,sy+8,2,2);ctx.fillRect(sx+6,sy+32,2,2);
+      break;}
+    case T.FLOOR:{
+      // Detailed wooden floorboards
+      ctx.fillStyle=C.woodFloor;ctx.fillRect(sx,sy,ST,ST);
+      // Plank lines
+      ctx.fillStyle='#8A6838';
+      ctx.fillRect(sx,sy+15,ST,1);ctx.fillRect(sx,sy+31,ST,1);
+      // Plank variation
+      ctx.fillStyle='rgba(160,120,80,0.3)';
+      ctx.fillRect(sx+2,sy+2,20,12);ctx.fillRect(sx+24,sy+18,20,12);
+      // Knots
+      ctx.fillStyle='#7A5828';
+      ctx.beginPath();ctx.arc(sx+12,sy+8,3,0,Math.PI*2);ctx.fill();
+      ctx.beginPath();ctx.arc(sx+36,sy+24,2,0,Math.PI*2);ctx.fill();
+      break;}
     case T.SHOP:{ctx.fillStyle='#B09060';ctx.fillRect(sx,sy,ST,ST);
       ctx.fillStyle='#A08050';ctx.fillRect(sx,sy,ST/2,ST/2);ctx.fillRect(sx+ST/2,sy+ST/2,ST/2,ST/2);break;}
     case T.BRIDGE:{ctx.fillStyle='#7A5A30';ctx.fillRect(sx,sy,ST,ST);
@@ -1237,8 +1263,37 @@ function drawDecor(d) {
   else if(d.type==='sign'){
     ctx.fillStyle='#6A4A2A';ctx.fillRect(sx+ST/2-2,sy+ST/2,4,ST/2);
     ctx.fillStyle='#8A6A40';ctx.fillRect(sx+ST/2-16,sy+ST/2-8,32,16);
-    ctx.fillStyle=C.white;ctx.font=`bold 8px ${FONT}`;ctx.textAlign='center';
+    ctx.fillStyle=C.white;ctx.font=`bold 10px ${FONT}`;ctx.textAlign='center';
     ctx.fillText(d.text,sx+ST/2,sy+ST/2+2);
+  }
+  else if(d.type==='roof'){
+    // Building rooftop
+    const rw = d.w * ST, rh = ST;
+    const rx = sx, ry = sy;
+    if(sx+rw<0||sx>canvas.width||ry+rh<0||ry>canvas.height)return;
+    // Roof base
+    ctx.fillStyle=d.color;ctx.fillRect(rx-4,ry,rw+8,rh);
+    // Ridge line
+    ctx.fillStyle='rgba(0,0,0,0.2)';ctx.fillRect(rx-4,ry+rh/2-1,rw+8,3);
+    // Eaves shadow
+    ctx.fillStyle='rgba(0,0,0,0.15)';ctx.fillRect(rx-6,ry+rh-4,rw+12,6);
+    // Chimney (for home and tavern)
+    if(d.label==='home'||d.label==='tavern'){
+      ctx.fillStyle='#6A3A1A';ctx.fillRect(rx+rw-20,ry-12,12,16);
+      ctx.fillStyle='#5A2A0A';ctx.fillRect(rx+rw-22,ry-14,16,4);
+      // Smoke
+      const t=performance.now()/1000;
+      ctx.fillStyle='rgba(180,180,180,0.3)';
+      ctx.beginPath();ctx.arc(rx+rw-14+Math.sin(t)*4,ry-20-Math.sin(t*1.5)*6,4+Math.sin(t*2)*2,0,Math.PI*2);ctx.fill();
+      ctx.beginPath();ctx.arc(rx+rw-12+Math.sin(t+1)*5,ry-30-Math.sin(t*1.3)*8,3+Math.sin(t*2.5)*1.5,0,Math.PI*2);ctx.fill();
+    }
+    // Shop sign
+    if(d.label==='shop'){
+      ctx.fillStyle='#2A1A08';ctx.fillRect(rx+rw/2-20,ry-8,40,14);
+      ctx.fillStyle=C.orange;ctx.font=`bold 10px ${FONT}`;ctx.textAlign='center';
+      ctx.fillText("₿ RUBY'S",rx+rw/2+sx*0,ry+2);
+    }
+    return;
   }
   else if(d.type==='seed_fragment'){
     const glow=.5+Math.sin(t*3)*.3;
@@ -1259,23 +1314,83 @@ function drawPlaced(item){
 
 function drawPlayer(){
   const sx=player.x*SCALE-cam.x,sy=player.y*SCALE-cam.y;
-  const w=ST,h=ST+12,px=sx-w/2,py=sy-h/2;
+  const w=ST+4,h=ST+16,px=sx-w/2,py=sy-h/2;
   const bob=player.moving?Math.sin(player.wf*Math.PI/2)*2:0;
-  ctx.fillStyle='rgba(0,0,0,.2)';ctx.beginPath();ctx.ellipse(sx,sy+h/2+2,14,5,0,0,Math.PI*2);ctx.fill();
-  const lo=player.moving?Math.sin(player.wf*Math.PI)*4:0;
-  ctx.fillStyle=C.darkOrange;ctx.fillRect(px+10+lo,py+h-16,10,16);ctx.fillRect(px+w-20-lo,py+h-16,10,16);
-  ctx.fillStyle='#4A3520';ctx.fillRect(px+8+lo,py+h-6,14,6);ctx.fillRect(px+w-22-lo,py+h-6,14,6);
-  ctx.fillStyle=player.boost>0?'#FFB030':C.orange;ctx.fillRect(px+6,py+16+bob,w-12,h-34);
-  ctx.fillStyle='#FFF';ctx.font=`bold 14px ${FONT}`;ctx.textAlign='center';ctx.fillText('₿',sx,py+36+bob);
-  const as=player.moving?Math.sin(player.wf*Math.PI)*6:0;
-  ctx.fillStyle=C.skin;ctx.fillRect(px+1,py+18+bob-as,8,20);ctx.fillRect(px+w-9,py+18+bob+as,8,20);
-  ctx.fillStyle=C.skin;ctx.fillRect(px+10,py+2+bob,w-20,18);
-  ctx.fillStyle=C.hair;ctx.fillRect(px+8,py-2+bob,w-16,8);
+  const lo=player.moving?Math.sin(player.wf*Math.PI)*5:0;
+  const as=player.moving?Math.sin(player.wf*Math.PI)*7:0;
+  
+  // Shadow
+  ctx.fillStyle='rgba(0,0,0,.2)';ctx.beginPath();ctx.ellipse(sx,sy+h/2+3,16,6,0,0,Math.PI*2);ctx.fill();
+  
+  // Legs with jeans
+  ctx.fillStyle='#3A4A6A'; // jeans blue
+  ctx.fillRect(px+12+lo,py+h-20,10,16);ctx.fillRect(px+w-22-lo,py+h-20,10,16);
+  // Boots
+  ctx.fillStyle='#4A3018';
+  ctx.fillRect(px+10+lo,py+h-6,14,6);ctx.fillRect(px+w-24-lo,py+h-6,14,6);
+  // Boot detail
+  ctx.fillStyle='#5A4028';
+  ctx.fillRect(px+10+lo,py+h-6,14,2);ctx.fillRect(px+w-24-lo,py+h-6,14,2);
+  
+  // Body (orange Bitcoin hoodie)
+  ctx.fillStyle=player.boost>0?'#FFB030':C.orange;
+  ctx.fillRect(px+8,py+18+bob,w-16,h-38);
+  // Hoodie pocket
+  ctx.fillStyle=C.darkOrange;
+  ctx.fillRect(px+14,py+34+bob,w-28,8);
+  // Zipper line
+  ctx.fillStyle='#DDD';ctx.fillRect(sx-1,py+18+bob,2,h-38);
+  
+  // Bitcoin logo on chest
+  ctx.fillStyle='#FFF';ctx.font=`bold 16px ${FONT}`;ctx.textAlign='center';
+  ctx.fillText('₿',sx,py+32+bob);
+  
+  // Arms with skin + hoodie sleeve
+  ctx.fillStyle=C.orange;
+  ctx.fillRect(px+1,py+18+bob-as,10,14);ctx.fillRect(px+w-11,py+18+bob+as,10,14);
+  // Hands
+  ctx.fillStyle=C.skin;
+  ctx.fillRect(px+2,py+30+bob-as,8,8);ctx.fillRect(px+w-10,py+30+bob+as,8,8);
+  
+  // Head
+  ctx.fillStyle=C.skin;
+  ctx.fillRect(px+12,py+4+bob,w-24,16);
+  // Jaw
+  ctx.fillRect(px+14,py+18+bob,w-28,4);
+  
+  // Hair
+  ctx.fillStyle=C.hair;
+  ctx.fillRect(px+10,py+bob,w-20,8);
+  ctx.fillRect(px+10,py+2+bob,4,10); // sideburn left
+  ctx.fillRect(px+w-14,py+2+bob,4,10); // sideburn right
+  
+  // Eyes (direction-aware)
+  const eyeOff = player.facing.x > 0.3 ? 3 : player.facing.x < -0.3 ? -3 : 0;
+  ctx.fillStyle=C.white;
+  ctx.fillRect(px+16+eyeOff,py+10+bob,6,5);ctx.fillRect(px+w-22+eyeOff,py+10+bob,6,5);
   ctx.fillStyle=C.black;
-  if(player.facing.x<=0)ctx.fillRect(px+14,py+10+bob,4,4);
-  if(player.facing.x>=0)ctx.fillRect(px+w-18,py+10+bob,4,4);
+  ctx.fillRect(px+18+eyeOff,py+11+bob,3,3);ctx.fillRect(px+w-20+eyeOff,py+11+bob,3,3);
+  
+  // Mouth
+  ctx.fillStyle='#D09070';ctx.fillRect(px+20,py+16+bob,w-40,2);
+  
+  // Baseball cap (Bitcoin orange)
+  ctx.fillStyle=C.darkOrange;
+  ctx.fillRect(px+8,py-2+bob,w-16,6);
+  ctx.fillStyle=C.orange;
+  ctx.fillRect(px+6,py+2+bob,w-12,4); // brim
+  // Cap ₿
+  ctx.fillStyle='#FFF';ctx.font=`bold 8px ${FONT}`;ctx.fillText('₿',sx,py+3+bob);
+  
+  // Selected item in hand
   const sel=getSelected();
-  if(sel){ctx.fillStyle='rgba(0,0,0,.5)';ctx.font=`11px ${FONT}`;ctx.textAlign='center';ctx.fillText(`${ITEMS[sel.id].icon} ${ITEMS[sel.id].name}`,sx,py-8);}
+  if(sel){
+    ctx.font='14px serif';
+    ctx.fillText(ITEMS[sel.id].icon, sx + (player.facing.x>0?18:-18), py+32+bob);
+    // Item name above head
+    ctx.fillStyle='rgba(0,0,0,.6)';ctx.font=`13px ${FONT}`;
+    ctx.fillText(ITEMS[sel.id].name,sx,py-12);
+  }
 }
 
 function drawNPC(n){
@@ -1289,29 +1404,125 @@ function drawNPC(n){
   ctx.fillStyle=C.black;ctx.fillRect(px+16,py+8,3,3);ctx.fillRect(px+w-19,py+8,3,3);
   const dist=Math.hypot(n.x-player.x,n.y-player.y);
   if(dist<48){
-    ctx.fillStyle=C.white;ctx.font=`bold 11px ${FONT}`;ctx.textAlign='center';ctx.fillText(n.name,sx,py-8);
-    ctx.fillStyle=C.gray;ctx.font=`10px ${FONT}`;
+    ctx.fillStyle=C.white;ctx.font=`bold 13px ${FONT}`;ctx.textAlign='center';ctx.fillText(n.name,sx,py-8);
+    ctx.fillStyle=C.gray;ctx.font=`12px ${FONT}`;
     ctx.fillText(n.role==='shop'?'[E] Talk  [B] Shop':'[E] Talk',sx,py-20);
   }
 }
 
 function drawRig(r){
   const sx=r.x*SCALE-cam.x,sy=r.y*SCALE-cam.y;
-  const w=ST,h=ST,rx=sx-w/2,ry=sy-h/2;
+  const w=ST+8,h=ST+4,rx=sx-w/2,ry=sy-h/2;
   if(sx>canvas.width+w||sy>canvas.height+h||sx<-w||sy<-h)return;
-  if(r.temp>60){const i=(r.temp-60)/40;ctx.fillStyle=`rgba(255,${Math.floor(80-i*80)},0,${i*.2})`;ctx.fillRect(rx-6,ry-6,w+12,h+12);}
-  ctx.fillStyle=C.rigDark;ctx.fillRect(rx,ry,w,6);
-  ctx.fillStyle=Rig.C[r.tier];ctx.fillRect(rx,ry+6,w,h-6);
-  ctx.fillStyle=C.rigLight;ctx.fillRect(rx+2,ry+8,w-4,2);
-  ctx.fillStyle='#444';for(let i=0;i<3;i++)ctx.fillRect(rx+6,ry+16+i*10,w-12,2);
-  const led=r.powered&&r.dur>0;ctx.fillStyle=led?C.ledGreen:'#440000';if(led&&r.af%2===0)ctx.fillStyle='#0C0';ctx.fillRect(rx+4,ry+2,6,3);
-  ctx.fillStyle=r.oh?C.red:(r.powered?C.ledOrange:'#420');ctx.fillRect(rx+w-10,ry+2,6,3);
-  ctx.fillStyle=C.white;ctx.font=`bold 8px ${FONT}`;ctx.textAlign='center';ctx.fillText(['CPU','GPU','ASIC'][r.tier],sx,ry+h-4);
-  ctx.fillStyle=r.statusCol();ctx.font=`bold 10px ${FONT}`;ctx.fillText(r.status(),sx,ry-4);
+  
+  const t = performance.now()/1000;
+  const active = r.powered && r.dur > 0 && !r.oh;
+  
+  // Heat glow
+  if(r.temp>60){const i=(r.temp-60)/40;ctx.fillStyle=`rgba(255,${Math.floor(80-i*80)},0,${i*.25})`;
+    ctx.beginPath();ctx.ellipse(sx,sy,w*.8,h*.7,0,0,Math.PI*2);ctx.fill();}
+  
+  // Shadow
+  ctx.fillStyle='rgba(0,0,0,0.2)';ctx.beginPath();ctx.ellipse(sx,sy+h/2+3,w*.4,5,0,0,Math.PI*2);ctx.fill();
+  
+  if(r.tier===0){
+    // CPU MINER — looks like a desktop tower
+    ctx.fillStyle='#4A4A50';ctx.fillRect(rx+4,ry+4,w-8,h-8); // body
+    ctx.fillStyle='#3A3A40';ctx.fillRect(rx+4,ry+4,w-8,6); // top
+    ctx.fillStyle='#555560';ctx.fillRect(rx+6,ry+12,w-12,2); // seam
+    // Vent holes
+    ctx.fillStyle='#333338';
+    for(let i=0;i<5;i++) ctx.fillRect(rx+10+i*7,ry+18,4,16);
+    // Power supply
+    ctx.fillStyle='#2A2A30';ctx.fillRect(rx+6,ry+h-14,18,8);
+    // Front panel
+    ctx.fillStyle='#555';ctx.fillRect(rx+w-16,ry+14,8,20);
+    // LED
+    ctx.fillStyle=active?(r.af%2?'#0F0':'#0C0'):'#300';
+    ctx.fillRect(rx+w-14,ry+16,4,3);
+    // Orange power LED
+    ctx.fillStyle=r.powered?C.orange:'#330';ctx.fillRect(rx+w-14,ry+22,4,3);
+  }
+  else if(r.tier===1){
+    // GPU RIG — open frame with multiple cards
+    // Frame
+    ctx.fillStyle='#444450';ctx.fillRect(rx+2,ry+h-10,w-4,8); // base
+    ctx.fillStyle='#3A3A44';ctx.fillRect(rx+4,ry+4,4,h-14); // left post
+    ctx.fillStyle='#3A3A44';ctx.fillRect(rx+w-8,ry+4,4,h-14); // right post
+    ctx.fillStyle='#3A3A44';ctx.fillRect(rx+2,ry+2,w-4,4); // top bar
+    // GPU cards (vertical)
+    const cardColors = ['#556688','#558866','#665588','#886655'];
+    for(let i=0;i<4;i++){
+      const cx=rx+10+i*10;
+      ctx.fillStyle=cardColors[i];ctx.fillRect(cx,ry+8,8,h-20);
+      // Fan on card
+      ctx.fillStyle='#333';ctx.beginPath();ctx.arc(cx+4,ry+20,3,0,Math.PI*2);ctx.fill();
+      if(active){ctx.strokeStyle='#555';ctx.lineWidth=1;ctx.beginPath();
+        ctx.arc(cx+4,ry+20,3,t*8+i,t*8+i+2);ctx.stroke();}
+    }
+    // LEDs
+    ctx.fillStyle=active?'#0F0':'#300';ctx.fillRect(rx+6,ry+6,3,3);
+    ctx.fillStyle=r.oh?'#F00':(r.powered?C.orange:'#330');ctx.fillRect(rx+w-10,ry+6,3,3);
+  }
+  else{
+    // ASIC S21 — sleek black box with front/back fans
+    ctx.fillStyle='#1A1A1E';ctx.fillRect(rx+2,ry+4,w-4,h-8); // main body
+    ctx.fillStyle='#222226';ctx.fillRect(rx+2,ry+4,w-4,5); // top lip
+    // Gold accent stripe (Bitcoin orange)
+    ctx.fillStyle=C.orange;ctx.fillRect(rx+2,ry+h/2-1,w-4,3);
+    // Front fan grille
+    ctx.fillStyle='#111';ctx.fillRect(rx+4,ry+10,14,h-22);
+    if(active){
+      ctx.strokeStyle='#333';ctx.lineWidth=1;
+      ctx.beginPath();ctx.arc(rx+11,ry+h/2-2,6,t*12,t*12+4);ctx.stroke();
+      ctx.beginPath();ctx.arc(rx+11,ry+h/2-2,6,t*12+2,t*12+6);ctx.stroke();
+    }
+    // Back fan grille
+    ctx.fillStyle='#111';ctx.fillRect(rx+w-18,ry+10,14,h-22);
+    if(active){
+      ctx.strokeStyle='#333';ctx.lineWidth=1;
+      ctx.beginPath();ctx.arc(rx+w-11,ry+h/2-2,6,t*10,t*10+4);ctx.stroke();
+    }
+    // Hash board indicators
+    for(let i=0;i<3;i++){
+      ctx.fillStyle=active?(i<2?'#0A0':'#0F0'):'#200';
+      ctx.fillRect(rx+22+i*6,ry+8,4,3);
+    }
+    // Model text
+    ctx.fillStyle='#444';ctx.font=`bold 8px ${FONT}`;ctx.textAlign='center';
+    ctx.fillText('S21',sx,ry+h-6);
+    // Power connectors
+    ctx.fillStyle='#333';ctx.fillRect(rx+w-8,ry+h-12,6,4);ctx.fillRect(rx+w-8,ry+h-18,6,4);
+  }
+  
+  // Mining particles when active
+  if(active && Math.random()<0.05){
+    ctx.fillStyle=`rgba(247,147,26,${0.3+Math.random()*0.3})`;
+    ctx.beginPath();ctx.arc(sx-8+Math.random()*16,ry-2-Math.random()*8,1+Math.random()*2,0,Math.PI*2);ctx.fill();
+  }
+  
+  // Tier label
+  ctx.fillStyle=C.white;ctx.font=`bold 12px ${FONT}`;ctx.textAlign='center';
+  ctx.fillText(['CPU','GPU','ASIC'][r.tier],sx,ry-6);
+  
+  // Status
+  ctx.fillStyle=r.statusCol();ctx.font=`bold 13px ${FONT}`;
+  ctx.fillText(r.status(),sx,ry-20);
+  
+  // Proximity details
   const dist=Math.hypot(r.x-player.x,r.y-player.y);
-  if(dist<48){const bw=w-4,pct=(r.temp-15)/85;ctx.fillStyle='#222';ctx.fillRect(rx+2,ry+h+2,bw,4);
-    ctx.fillStyle=pct>.8?C.red:pct>.5?C.ledOrange:C.green;ctx.fillRect(rx+2,ry+h+2,bw*pct,4);
-    ctx.fillStyle=C.gray;ctx.font=`10px ${FONT}`;ctx.fillText(hasItem('wrench')&&r.dur<100?'[E] Repair':'[E] Toggle',sx,ry-16);}
+  if(dist<48){
+    // Temp bar
+    const bw=w-4,pct=(r.temp-15)/85;
+    ctx.fillStyle='#1A1A1A';ctx.fillRect(rx+2,ry+h+4,bw,5);
+    ctx.fillStyle=pct>.8?C.red:pct>.5?C.ledOrange:C.green;
+    ctx.fillRect(rx+2,ry+h+4,bw*pct,5);
+    ctx.fillStyle='#888';ctx.font=`11px ${FONT}`;
+    ctx.fillText(`${r.temp.toFixed(0)}°C`,sx,ry+h+16);
+    // Action prompt
+    ctx.fillStyle=C.gray;ctx.font=`13px ${FONT}`;
+    ctx.fillText(hasItem('wrench')&&r.dur<100?'[E] Repair':'[E] Toggle',sx,ry-32);
+  }
 }
 
 // ============================================================
@@ -1320,10 +1531,10 @@ function drawRig(r){
 function drawHUD(){
   const p=14;
   // Main panel
-  panel(p,p,260,185);
-  let y=p+18;ctx.fillStyle=C.hud;ctx.font=`bold 16px ${FONT}`;ctx.textAlign='left';
+  panel(p,p,290,210);
+  let y=p+18;ctx.fillStyle=C.hud;ctx.font=`bold 18px ${FONT}`;ctx.textAlign='left';
   ctx.fillText(`₿ ${fmt(player.wallet)} sats`,p+12,y);y+=20;
-  ctx.font=`13px ${FONT}`;ctx.fillStyle='#CCC';
+  ctx.font=`15px ${FONT}`;ctx.fillStyle='#CCC';
   ctx.fillText(`${getTimeStr()}${time.spd>1?' ⏩':''}`,p+12,y);y+=16;
   ctx.fillText(`Day ${time.day} — ${getPeriod()}`,p+12,y);y+=18;
   const th=rigs.reduce((s,r)=>s+(r.powered&&!r.oh&&r.dur>0?r.hr:0),0);
@@ -1331,8 +1542,8 @@ function drawHUD(){
   ctx.fillStyle=pwr.gen>=pwr.use?C.green:C.red;
   ctx.fillText(`Power: ${pwr.gen.toFixed(1)}/${pwr.use.toFixed(1)} kW`,p+12,y);
   if(pwr.maxStore>0){ctx.fillStyle='#CCC';ctx.fillText(`🔋${pwr.stored.toFixed(0)}/${pwr.maxStore}`,p+160,y);}y+=18;
-  ctx.fillStyle=C.phaseCol[econ.phase];ctx.font=`bold 13px ${FONT}`;ctx.fillText(econ.phaseN[econ.phase],p+12,y);y+=14;
-  ctx.fillStyle=C.gray;ctx.font=`11px ${FONT}`;
+  ctx.fillStyle=C.phaseCol[econ.phase];ctx.font=`bold 15px ${FONT}`;ctx.fillText(econ.phaseN[econ.phase],p+12,y);y+=14;
+  ctx.fillStyle=C.gray;ctx.font=`13px ${FONT}`;
   ctx.fillText(`Day ${econ.pd+1}/28 | Cycle ${econ.cycle+1} | ₿${econ.halvings}`,p+12,y);y+=14;
   ctx.fillText(`Rigs: ${rigs.length} | Earned: ${fmt(player.totalEarned)}`,p+12,y);
   
@@ -1344,26 +1555,26 @@ function drawHUD(){
     const x=hbX+i*(hbW+hbGap);
     ctx.fillStyle=i===selSlot?'rgba(247,147,26,.25)':'rgba(20,20,25,.8)';ctx.fillRect(x,hbY,hbW,hbH);
     ctx.strokeStyle=i===selSlot?C.hud:'#333';ctx.lineWidth=i===selSlot?2:1;ctx.strokeRect(x,hbY,hbW,hbH);
-    ctx.fillStyle='#444';ctx.font=`9px ${FONT}`;ctx.textAlign='left';ctx.fillText(`${(i+1)%10}`,x+3,hbY+10);
+    ctx.fillStyle='#444';ctx.font=`11px ${FONT}`;ctx.textAlign='left';ctx.fillText(`${(i+1)%10}`,x+3,hbY+10);
     const sl=inv[i];if(sl){ctx.font='20px serif';ctx.textAlign='center';ctx.fillText(ITEMS[sl.id].icon,x+hbW/2,hbY+hbH/2+6);
-      if(sl.qty>1){ctx.fillStyle=C.white;ctx.font=`bold 10px ${FONT}`;ctx.fillText(sl.qty,x+hbW-8,hbY+hbH-4);}}
+      if(sl.qty>1){ctx.fillStyle=C.white;ctx.font=`bold 12px ${FONT}`;ctx.fillText(sl.qty,x+hbW-8,hbY+hbH-4);}}
   }
   
   // Controls hint
-  ctx.fillStyle='#333';ctx.font=`9px ${FONT}`;ctx.textAlign='center';
+  ctx.fillStyle='#333';ctx.font=`11px ${FONT}`;ctx.textAlign='center';
   ctx.fillText('WASD:Move  E:Interact  R:Use/Plant  H:Harvest  I:Inventory  B:Shop  O:Objectives  K:Skills  M:Music  ?:Help',canvas.width/2,canvas.height-6);
   
   // Energy
   const ebW=100,ebX=canvas.width-ebW-p-10,ebY=hbY-18;
   ctx.fillStyle='#1A1A20';ctx.fillRect(ebX,ebY,ebW,8);ctx.fillStyle=player.energy>30?C.green:C.red;
   ctx.fillRect(ebX,ebY,ebW*(player.energy/player.maxEnergy),8);
-  ctx.fillStyle='#AAA';ctx.font=`9px ${FONT}`;ctx.textAlign='right';ctx.fillText(`Energy: ${Math.floor(player.energy)}`,ebX+ebW,ebY-2);
+  ctx.fillStyle='#AAA';ctx.font=`11px ${FONT}`;ctx.textAlign='right';ctx.fillText(`Energy: ${Math.floor(player.energy)}`,ebX+ebW,ebY-2);
   
   // Rig detail
   let nr=null,nd=60;for(const r of rigs){const d=Math.hypot(r.x-player.x,r.y-player.y);if(d<nd){nr=r;nd=d;}}
   if(nr){const rw=220,rh=110,rx=canvas.width-rw-p;panel(rx,p,rw,rh);
-    ctx.fillStyle=C.hud;ctx.font=`bold 13px ${FONT}`;ctx.textAlign='left';ctx.fillText(Rig.N[nr.tier],rx+10,p+18);
-    ctx.font=`11px ${FONT}`;ctx.fillStyle='#CCC';
+    ctx.fillStyle=C.hud;ctx.font=`bold 15px ${FONT}`;ctx.textAlign='left';ctx.fillText(Rig.N[nr.tier],rx+10,p+18);
+    ctx.font=`13px ${FONT}`;ctx.fillStyle='#CCC';
     ctx.fillText(`Temp: ${nr.temp.toFixed(0)}°C`,rx+10,p+36);ctx.fillText(`Hash: ${nr.hr.toFixed(1)} TH/s`,rx+10,p+52);
     ctx.fillText(`Durability: ${nr.dur.toFixed(0)}%`,rx+10,p+68);ctx.fillText(`Mined: ${fmt(nr.mined)} sats`,rx+10,p+84);
     ctx.fillStyle=nr.statusCol();ctx.fillText(`Status: ${nr.status()}`,rx+10,p+100);}
@@ -1379,8 +1590,8 @@ function drawHUD(){
   // Dialogue
   if(dlg){const dw=Math.min(600,canvas.width-40),dh=80,dx=(canvas.width-dw)/2,dy=hbY-dh-20;
     panel(dx,dy,dw,dh);ctx.fillStyle=C.hud;ctx.font=`bold 14px ${FONT}`;ctx.textAlign='left';
-    ctx.fillText(dlg.name,dx+16,dy+24);ctx.fillStyle=C.white;ctx.font=`13px ${FONT}`;
-    wrapText(dlg.text,dx+16,dy+44,dw-32,16);ctx.fillStyle=C.gray;ctx.font=`10px ${FONT}`;ctx.textAlign='right';ctx.fillText('[E] Close',dx+dw-12,dy+dh-8);}
+    ctx.fillText(dlg.name,dx+16,dy+24);ctx.fillStyle=C.white;ctx.font=`15px ${FONT}`;
+    wrapText(dlg.text,dx+16,dy+44,dw-32,16);ctx.fillStyle=C.gray;ctx.font=`12px ${FONT}`;ctx.textAlign='right';ctx.fillText('[E] Close',dx+dw-12,dy+dh-8);}
   
   // Objectives panel
   if(showObjectives){const ow=350,oh=30+objectives.length*22,ox=(canvas.width-ow)/2,oy=(canvas.height-oh)/2;
@@ -1388,7 +1599,7 @@ function drawHUD(){
     ctx.fillText('📋 Objectives',canvas.width/2,oy+22);
     objectives.forEach((o,i)=>{ctx.fillStyle=o.done?C.green:'#AAA';ctx.font=`12px ${FONT}`;ctx.textAlign='left';
       ctx.fillText(`${o.done?'✅':'⬜'} ${o.text}`,ox+20,oy+42+i*22);});
-    ctx.fillStyle=C.gray;ctx.font=`10px ${FONT}`;ctx.textAlign='center';ctx.fillText('[O] or [Esc] to close',canvas.width/2,oy+oh-8);}
+    ctx.fillStyle=C.gray;ctx.font=`12px ${FONT}`;ctx.textAlign='center';ctx.fillText('[O] or [Esc] to close',canvas.width/2,oy+oh-8);}
   
   // Shop
   if(shopOpen) drawShop();
@@ -1413,40 +1624,40 @@ function drawShop(){
   ctx.fillStyle=C.hud;ctx.font=`bold 18px ${FONT}`;ctx.textAlign='center';ctx.fillText("⛏️ Ruby's Hardware Shop",x+w/2,y+28);
   const tw=w/2-20;ctx.fillStyle=shopMode==='buy'?'rgba(247,147,26,.15)':'rgba(30,30,30,.5)';ctx.fillRect(x+10,y+38,tw,24);
   ctx.fillStyle=shopMode==='sell'?'rgba(247,147,26,.15)':'rgba(30,30,30,.5)';ctx.fillRect(x+w/2+10,y+38,tw,24);
-  ctx.fillStyle=shopMode==='buy'?C.hud:C.gray;ctx.font=`bold 13px ${FONT}`;ctx.textAlign='center';ctx.fillText('BUY (←→)',x+10+tw/2,y+54);
+  ctx.fillStyle=shopMode==='buy'?C.hud:C.gray;ctx.font=`bold 15px ${FONT}`;ctx.textAlign='center';ctx.fillText('BUY (←→)',x+10+tw/2,y+54);
   ctx.fillStyle=shopMode==='sell'?C.hud:C.gray;ctx.fillText('SELL (←→)',x+w/2+10+tw/2,y+54);
-  ctx.fillStyle=C.hud;ctx.font=`13px ${FONT}`;ctx.fillText(`Balance: ${fmt(player.wallet)} sats`,x+w/2,y+78);
-  const mult=marketMult();ctx.fillStyle=mult>1?C.red:C.green;ctx.font=`11px ${FONT}`;ctx.fillText(`Market: ${mult>1?'▲':'▼'} ${Math.round(mult*100)}%`,x+w/2,y+92);
+  ctx.fillStyle=C.hud;ctx.font=`15px ${FONT}`;ctx.fillText(`Balance: ${fmt(player.wallet)} sats`,x+w/2,y+78);
+  const mult=marketMult();ctx.fillStyle=mult>1?C.red:C.green;ctx.font=`13px ${FONT}`;ctx.fillText(`Market: ${mult>1?'▲':'▼'} ${Math.round(mult*100)}%`,x+w/2,y+92);
   ctx.textAlign='left';const ly=y+108;
   if(shopMode==='buy'){SHOP_LIST.forEach((id,i)=>{const it=ITEMS[id],pr=Math.ceil(it.buy*mult),iy=ly+i*28;if(iy>y+h-30)return;
     if(i===shopCur){ctx.fillStyle='rgba(247,147,26,.12)';ctx.fillRect(x+8,iy-8,w-16,26);}
     ctx.font='16px serif';ctx.fillStyle=C.white;ctx.fillText(it.icon,x+16,iy+8);ctx.font=`12px ${FONT}`;
-    ctx.fillStyle=i===shopCur?C.hud:C.white;ctx.fillText(it.name,x+42,iy+4);ctx.fillStyle=C.gray;ctx.font=`10px ${FONT}`;ctx.fillText(it.desc,x+42,iy+16);
+    ctx.fillStyle=i===shopCur?C.hud:C.white;ctx.fillText(it.name,x+42,iy+4);ctx.fillStyle=C.gray;ctx.font=`12px ${FONT}`;ctx.fillText(it.desc,x+42,iy+16);
     ctx.fillStyle=player.wallet>=pr?C.green:C.red;ctx.font=`bold 12px ${FONT}`;ctx.textAlign='right';ctx.fillText(`${fmt(pr)}`,x+w-16,iy+8);ctx.textAlign='left';});}
-  else{const sl=inv.filter(s=>s&&ITEMS[s.id].sell>0);if(!sl.length){ctx.fillStyle=C.gray;ctx.font=`13px ${FONT}`;ctx.textAlign='center';ctx.fillText('Nothing to sell!',x+w/2,ly+30);ctx.textAlign='left';}
+  else{const sl=inv.filter(s=>s&&ITEMS[s.id].sell>0);if(!sl.length){ctx.fillStyle=C.gray;ctx.font=`15px ${FONT}`;ctx.textAlign='center';ctx.fillText('Nothing to sell!',x+w/2,ly+30);ctx.textAlign='left';}
     sl.forEach((s,i)=>{const it=ITEMS[s.id],pr=Math.ceil(it.sell*mult),iy=ly+i*28;if(iy>y+h-30)return;
       if(i===shopCur){ctx.fillStyle='rgba(247,147,26,.12)';ctx.fillRect(x+8,iy-8,w-16,26);}
       ctx.font='16px serif';ctx.fillStyle=C.white;ctx.fillText(it.icon,x+16,iy+8);ctx.font=`12px ${FONT}`;ctx.fillStyle=i===shopCur?C.hud:C.white;ctx.fillText(`${it.name} x${s.qty}`,x+42,iy+8);
       ctx.fillStyle=C.green;ctx.font=`bold 12px ${FONT}`;ctx.textAlign='right';ctx.fillText(`+${fmt(pr)}`,x+w-16,iy+8);ctx.textAlign='left';});}
-  ctx.fillStyle=C.gray;ctx.font=`10px ${FONT}`;ctx.textAlign='center';ctx.fillText('↑↓:Nav  Enter/E:Buy/Sell  ←→:Tab  B/Esc:Close',x+w/2,y+h-10);
+  ctx.fillStyle=C.gray;ctx.font=`12px ${FONT}`;ctx.textAlign='center';ctx.fillText('↑↓:Nav  Enter/E:Buy/Sell  ←→:Tab  B/Esc:Close',x+w/2,y+h-10);
 }
 
 function drawInv(){
   const cols=5,rows=4,ss=56,gap=6;const w=cols*(ss+gap)+gap+180,h=rows*(ss+gap)+gap+60;
   const x=(canvas.width-w)/2,y=(canvas.height-h)/2;panel(x,y,w,h);
-  ctx.fillStyle=C.hud;ctx.font=`bold 16px ${FONT}`;ctx.textAlign='center';ctx.fillText('📦 Inventory',x+w/2,y+24);
+  ctx.fillStyle=C.hud;ctx.font=`bold 18px ${FONT}`;ctx.textAlign='center';ctx.fillText('📦 Inventory',x+w/2,y+24);
   for(let r=0;r<rows;r++)for(let c=0;c<cols;c++){
     const i=r*cols+c,sx=x+gap+c*(ss+gap),sy=y+36+r*(ss+gap);
     ctx.fillStyle=i===selSlot?'rgba(247,147,26,.2)':'rgba(20,20,25,.8)';ctx.fillRect(sx,sy,ss,ss);
     ctx.strokeStyle=i===selSlot?C.hud:'#333';ctx.lineWidth=i===selSlot?2:1;ctx.strokeRect(sx,sy,ss,ss);
-    ctx.fillStyle='#444';ctx.font=`9px ${FONT}`;ctx.textAlign='left';ctx.fillText(i<10?`${(i+1)%10}`:'',sx+3,sy+11);
+    ctx.fillStyle='#444';ctx.font=`11px ${FONT}`;ctx.textAlign='left';ctx.fillText(i<10?`${(i+1)%10}`:'',sx+3,sy+11);
     const sl=inv[i];if(sl){ctx.font='28px serif';ctx.textAlign='center';ctx.fillText(ITEMS[sl.id].icon,sx+ss/2,sy+ss/2+8);
-      if(sl.qty>1){ctx.fillStyle=C.white;ctx.font=`bold 11px ${FONT}`;ctx.fillText(sl.qty,sx+ss-10,sy+ss-6);}}}
+      if(sl.qty>1){ctx.fillStyle=C.white;ctx.font=`bold 13px ${FONT}`;ctx.fillText(sl.qty,sx+ss-10,sy+ss-6);}}}
   const sel=inv[selSlot],dx=x+cols*(ss+gap)+gap+10,dy=y+36;
   if(sel){const it=ITEMS[sel.id];ctx.fillStyle=C.hud;ctx.font=`bold 14px ${FONT}`;ctx.textAlign='left';
-    ctx.fillText(`${it.icon} ${it.name}`,dx,dy+16);ctx.fillStyle='#CCC';ctx.font=`11px ${FONT}`;wrapText(it.desc,dx,dy+36,160,14);
+    ctx.fillText(`${it.icon} ${it.name}`,dx,dy+16);ctx.fillStyle='#CCC';ctx.font=`13px ${FONT}`;wrapText(it.desc,dx,dy+36,160,14);
     ctx.fillStyle=C.gray;if(it.buy>0)ctx.fillText(`Buy: ${fmt(it.buy)}`,dx,dy+80);if(it.sell>0)ctx.fillText(`Sell: ${fmt(it.sell)}`,dx,dy+94);ctx.fillText(`Qty: ${sel.qty}`,dx,dy+108);}
-  ctx.fillStyle=C.gray;ctx.font=`10px ${FONT}`;ctx.textAlign='center';ctx.fillText('1-9,0:Select  I/Tab/Esc:Close',x+w/2,y+h-10);
+  ctx.fillStyle=C.gray;ctx.font=`12px ${FONT}`;ctx.textAlign='center';ctx.fillText('1-9,0:Select  I/Tab/Esc:Close',x+w/2,y+h-10);
 }
 
 function panel(x,y,w,h){ctx.fillStyle=C.hudBg;rr(x,y,w,h,6);ctx.strokeStyle=C.hudBorder;ctx.lineWidth=1.5;ctx.stroke();}
