@@ -894,6 +894,15 @@ function satPart(x,y,n){particles.push({x:x*SCALE,y:y*SCALE,text:'+'+fmt(n)+' �
 // ============================================================
 const econ = {diff:1,phase:0,phaseN:['Accumulation','Hype','Euphoria','Capitulation'],pd:0,cycle:0,inf:1,halvings:0};
 
+const weather = {current:'sunny',timer:0,duration:0,particles:[],lightning:0,windX:0};
+const WEATHER_TYPES = {
+  sunny:  {weight:40,minDur:60,maxDur:180,overlay:null},
+  cloudy: {weight:30,minDur:40,maxDur:120,overlay:'rgba(40,40,60,0.08)'},
+  rain:   {weight:20,minDur:30,maxDur:90, overlay:'rgba(30,40,70,0.12)'},
+  storm:  {weight:10,minDur:20,maxDur:60, overlay:'rgba(20,25,50,0.2)'},
+};
+const ambient = []; // {x,y,type,vx,vy,life,maxLife,size,color,phase}
+
 // ============================================================
 // SKILLS SYSTEM — Visible progression
 // ============================================================
@@ -1170,13 +1179,14 @@ const cam = {x:0,y:0};
 // ============================================================
 // SAVE / LOAD
 // ============================================================
-function saveGame(){try{localStorage.setItem('sv_save',JSON.stringify({v:7,p:{x:player.x,y:player.y,w:player.wallet,te:player.totalEarned,e:player.energy},inv:inv.map(s=>s?{id:s.id,q:s.qty}:null),ss:selSlot,rigs:rigs.map(r=>({x:r.x,y:r.y,t:r.tier,p:r.powered,tp:r.temp,d:r.dur,m:r.mined})),placed:placed.map(i=>({x:i.x,y:i.y,t:i.type})),econ:{...econ},time:{...time},pwr:{p:pwr.panels,b:pwr.batts},obj:objectives.map(o=>o.done),tut:tutorialDone,skills,crops:crops.map(c=>({x:c.x,y:c.y,type:c.type,dayAge:c.dayAge,stage:c.stage})),rels:relationships,citadelTier,animals:animals.map(a=>({x:a.x,y:a.y,t:a.type,hx:a.homeX,hy:a.homeY,hp:a.happiness,fed:a.fed,dsp:a.daysSinceProd,pr:a.prodReady,dir:a.dir}))}));notify('💾 Saved!',2);sfx.buy();}catch(e){notify('❌ Save failed!',2);}}
+function saveGame(){try{localStorage.setItem('sv_save',JSON.stringify({v:7,p:{x:player.x,y:player.y,w:player.wallet,te:player.totalEarned,e:player.energy},inv:inv.map(s=>s?{id:s.id,q:s.qty}:null),ss:selSlot,rigs:rigs.map(r=>({x:r.x,y:r.y,t:r.tier,p:r.powered,tp:r.temp,d:r.dur,m:r.mined})),placed:placed.map(i=>({x:i.x,y:i.y,t:i.type})),econ:{...econ},time:{...time},pwr:{p:pwr.panels,b:pwr.batts},obj:objectives.map(o=>o.done),tut:tutorialDone,skills,crops:crops.map(c=>({x:c.x,y:c.y,type:c.type,dayAge:c.dayAge,stage:c.stage})),rels:relationships,citadelTier,animals:animals.map(a=>({x:a.x,y:a.y,t:a.type,hx:a.homeX,hy:a.homeY,hp:a.happiness,fed:a.fed,dsp:a.daysSinceProd,pr:a.prodReady,dir:a.dir})),weather:{c:weather.current}}));notify('💾 Saved!',2);sfx.buy();}catch(e){notify('❌ Save failed!',2);}}
 function loadGame(){try{const d=JSON.parse(localStorage.getItem('sv_save'));if(!d)return notify('No save found!',2),false;player.x=d.p.x;player.y=d.p.y;player.wallet=d.p.w;player.totalEarned=d.p.te;player.energy=d.p.e||100;inv.length=0;d.inv.forEach(s=>inv.push(s?{id:s.id,qty:s.q}:null));selSlot=d.ss||0;rigs.length=0;d.rigs.forEach(r=>{const ri=new Rig(r.x,r.y,r.t);ri.powered=r.p;ri.temp=r.tp;ri.dur=r.d;ri.mined=r.m;rigs.push(ri);});placed.length=0;(d.placed||[]).forEach(i=>placed.push(i));Object.assign(econ,d.econ);Object.assign(time,d.time);pwr.panels=d.pwr?.p||[];pwr.batts=d.pwr?.b||[];if(d.obj)d.obj.forEach((done,i)=>{if(objectives[i])objectives[i].done=done;});tutorialDone=d.tut||false;
     if(d.skills)Object.assign(skills,d.skills);
     crops.length=0;if(d.crops)d.crops.forEach(c=>crops.push(c));
     if(d.rels)Object.assign(relationships,d.rels);
     if(d.citadelTier!=null){citadelTier=d.citadelTier;rebuildCitadel();}
     animals.length=0;(d.animals||[]).forEach(a=>{const an=new Animal(a.x,a.y,a.t);an.homeX=a.hx;an.homeY=a.hy;an.happiness=a.hp;an.fed=a.fed;an.daysSinceProd=a.dsp;an.prodReady=a.pr;an.dir=a.dir;animals.push(an);});
+    if(d.weather)weather.current=d.weather.c;
     gameState='playing';notify('📂 Loaded!',2);sfx.buy();return true;}catch(e){notify('❌ Load failed!',2);return false;}}
 
 // ============================================================
@@ -1313,6 +1323,11 @@ function update(dt) {
   time.cur += (dt*time.spd)/time.dl;
   if (time.cur>=1){time.cur-=1;time.day++;time.td++;econ.pd++;
     updateCrops(); // Grow crops each day
+    // Rain bonus: crops grow 1 extra day in rain/storm
+    if(weather.current==='rain'||weather.current==='storm'){
+      for(const c of crops){c.dayAge+=0.5;}
+      notify('🌧️ Rain helped your crops grow faster!',2);
+    }
     // Animal daily update
     for(const a of animals){
       const info=ANIMAL_TYPES[a.type];if(!info)continue;
@@ -1339,6 +1354,19 @@ function update(dt) {
       notify(`📈 ${econ.phaseN[econ.phase]} phase`,3);
     }
   }
+  // Weather update
+  weather.timer -= dt;
+  if (weather.timer <= 0) {
+    const types = Object.entries(WEATHER_TYPES);
+    const total = types.reduce((s,[,v]) => s + v.weight, 0);
+    let r = Math.random() * total;
+    for (const [name, info] of types) {
+      r -= info.weight;
+      if (r <= 0) { weather.current = name; weather.duration = info.minDur + Math.random() * (info.maxDur - info.minDur); weather.timer = weather.duration; break; }
+    }
+    weather.windX = (Math.random() - 0.3) * 2;
+  }
+
   time.spd = keys[' '] ? 15 : 1;
   if(player.boost>0){player.boost-=dt;if(player.boost<=0)notify('☕ Coffee wore off',1.5);}
   const spd = player.speed*(player.boost>0?1.5:1);
@@ -1687,6 +1715,74 @@ function update(dt) {
   if(clickIndicator){clickIndicator.life-=dt*1.5;if(clickIndicator.life<=0)clickIndicator=null;}
   for(let i=notifs.length-1;i>=0;i--){notifs[i].t-=dt;if(notifs[i].t<=0)notifs.splice(i,1);}
   
+  // Weather particles
+  if (weather.current === 'rain' || weather.current === 'storm') {
+    const rate = weather.current === 'storm' ? 8 : 4;
+    for (let i = 0; i < rate; i++) {
+      weather.particles.push({
+        x: Math.random() * canvas.width,
+        y: -10,
+        vy: 400 + Math.random() * 200 + (weather.current === 'storm' ? 200 : 0),
+        vx: weather.windX * 100 + (weather.current === 'storm' ? Math.random() * 100 - 50 : 0),
+        life: 1.5,
+        len: weather.current === 'storm' ? 16 : 10,
+      });
+    }
+  }
+  for (let i = weather.particles.length - 1; i >= 0; i--) {
+    const p = weather.particles[i];
+    p.x += p.vx * dt; p.y += p.vy * dt; p.life -= dt;
+    if (p.life <= 0 || p.y > canvas.height) weather.particles.splice(i, 1);
+  }
+  // Storm lightning
+  if (weather.current === 'storm' && Math.random() < 0.002) weather.lightning = 0.3;
+  if (weather.lightning > 0) weather.lightning -= dt;
+
+  // Ambient life particles
+  const hour = getHour();
+  const isNight = hour < 6 || hour > 20;
+  // Butterflies (daytime, sunny/cloudy)
+  if (!isNight && weather.current !== 'storm' && ambient.length < 30 && Math.random() < 0.02) {
+    const bx = (player.x + (Math.random()-0.5)*600) * SCALE - cam.x;
+    const by = (player.y + (Math.random()-0.5)*400) * SCALE - cam.y;
+    ambient.push({x:bx,y:by,type:'butterfly',vx:(Math.random()-0.5)*30,vy:Math.sin(Math.random()*6)*15,life:8+Math.random()*10,maxLife:18,size:3,color:['#E8C840','#E870B0','#7070E0','#FF6644','#70D0A0'][Math.floor(Math.random()*5)],phase:Math.random()*6});
+  }
+  // Fireflies (night)
+  if (isNight && ambient.length < 40 && Math.random() < 0.03) {
+    const fx = (player.x + (Math.random()-0.5)*500) * SCALE - cam.x;
+    const fy = (player.y + (Math.random()-0.5)*300) * SCALE - cam.y;
+    ambient.push({x:fx,y:fy,type:'firefly',vx:(Math.random()-0.5)*15,vy:(Math.random()-0.5)*15,life:5+Math.random()*8,maxLife:13,size:2,color:'#CCFF66',phase:Math.random()*6});
+  }
+  // Dust motes (when player runs, daytime)
+  if (player.moving && !isNight && Math.random() < 0.15) {
+    ambient.push({x:player.x*SCALE-cam.x+(Math.random()-0.5)*10,y:player.y*SCALE-cam.y+15,type:'dust',vx:(Math.random()-0.5)*20+weather.windX*10,vy:-10-Math.random()*15,life:0.8+Math.random()*0.5,maxLife:1.3,size:2,color:'#B0A080'});
+  }
+  // Leaves (windy/storm)
+  if ((weather.current === 'storm' || weather.windX > 0.5) && ambient.length < 20 && Math.random() < 0.01) {
+    ambient.push({x:-20,y:Math.random()*canvas.height,type:'leaf',vx:60+Math.random()*40,vy:20+Math.random()*30,life:6+Math.random()*4,maxLife:10,size:4,color:['#8A6A20','#AA8830','#6A8A20','#CC8833'][Math.floor(Math.random()*4)],phase:Math.random()*6});
+  }
+  // Update ambient
+  for (let i = ambient.length - 1; i >= 0; i--) {
+    const p = ambient[i];
+    p.life -= dt;
+    if (p.life <= 0) { ambient.splice(i, 1); continue; }
+    if (p.type === 'butterfly') {
+      p.phase += dt * 3;
+      p.x += (Math.sin(p.phase) * 25 + p.vx) * dt;
+      p.y += (Math.cos(p.phase * 0.7) * 18 + p.vy) * dt;
+    } else if (p.type === 'firefly') {
+      p.phase += dt * 2;
+      p.x += (Math.sin(p.phase) * 12 + p.vx) * dt;
+      p.y += (Math.cos(p.phase * 1.3) * 10 + p.vy) * dt;
+    } else if (p.type === 'leaf') {
+      p.phase += dt * 4;
+      p.x += p.vx * dt;
+      p.y += (p.vy + Math.sin(p.phase) * 20) * dt;
+    } else {
+      p.x += p.vx * dt; p.y += p.vy * dt;
+    }
+  }
+
   for(const k in jp)jp[k]=false;
 }
 
@@ -2196,7 +2292,7 @@ function drawRig(r){
 function drawHUD(){
   const p=14;
   // Main panel
-  panel(p,p,290,240);
+  panel(p,p,290,256);
   let y=p+18;
   // Sats counter with earning indicator
   const isEarning = rigs.some(r=>r.powered&&!r.oh&&r.dur>0);
@@ -2207,7 +2303,9 @@ function drawHUD(){
   y+=22;
   ctx.font=`15px ${FONT}`;ctx.fillStyle='#CCC';
   ctx.fillText(`${getTimeStr()}${time.spd>1?' ⏩':''}`,p+12,y);y+=16;
-  ctx.fillText(`Day ${time.day} — ${getPeriod()}`,p+12,y);y+=18;
+  ctx.fillText(`Day ${time.day} — ${getPeriod()}`,p+12,y);y+=16;
+  const weatherEmoji = {sunny:'☀️',cloudy:'☁️',rain:'🌧️',storm:'⛈️'}[weather.current];
+  ctx.fillText(weatherEmoji + ' ' + weather.current.charAt(0).toUpperCase() + weather.current.slice(1), p+12, y); y+=18;
   const th=rigs.reduce((s,r)=>s+(r.powered&&!r.oh&&r.dur>0?r.hr:0),0);
   ctx.fillText(`⚡ ${th.toFixed(1)} TH/s | Diff ${econ.diff.toFixed(1)}`,p+12,y);y+=16;
   ctx.fillStyle=pwr.gen>=pwr.use?C.green:C.red;
@@ -2831,7 +2929,58 @@ function draw(){
   // Day/night
   const dn=getDayOv();
   if(dn.a>0){ctx.fillStyle=`rgba(${dn.r},${dn.g},${dn.b},${dn.a})`;ctx.fillRect(0,0,canvas.width,canvas.height);}
-  
+
+  // Weather overlay
+  const wInfo = WEATHER_TYPES[weather.current];
+  if (wInfo.overlay) { ctx.fillStyle = wInfo.overlay; ctx.fillRect(0, 0, canvas.width, canvas.height); }
+  // Lightning flash
+  if (weather.lightning > 0) { ctx.fillStyle = 'rgba(255,255,255,' + (weather.lightning * 0.6) + ')'; ctx.fillRect(0, 0, canvas.width, canvas.height); }
+  // Rain drops
+  if (weather.current === 'rain' || weather.current === 'storm') {
+    ctx.strokeStyle = weather.current === 'storm' ? 'rgba(180,200,255,0.5)' : 'rgba(160,190,255,0.35)';
+    ctx.lineWidth = weather.current === 'storm' ? 2 : 1;
+    ctx.beginPath();
+    for (const p of weather.particles) {
+      ctx.moveTo(p.x, p.y);
+      ctx.lineTo(p.x + p.vx * 0.015, p.y + p.len);
+    }
+    ctx.stroke();
+  }
+
+  // Ambient particles
+  for (const p of ambient) {
+    const a = Math.min(1, p.life / (p.maxLife * 0.3), (p.maxLife - (p.maxLife - p.life)) / p.maxLife);
+    const alpha = Math.min(1, Math.max(0.05, a));
+    if (p.type === 'butterfly') {
+      const wing = Math.sin(p.phase * 6) * 4;
+      ctx.fillStyle = p.color;
+      ctx.globalAlpha = alpha * 0.8;
+      ctx.fillRect(p.x - wing, p.y - 1, wing * 2, 3);
+      ctx.fillRect(p.x - 1, p.y - 2, 2, 4);
+      ctx.globalAlpha = 1;
+    } else if (p.type === 'firefly') {
+      const glow = 0.3 + Math.sin(p.phase * 3) * 0.4;
+      ctx.fillStyle = 'rgba(200,255,100,' + (glow * alpha) + ')';
+      ctx.beginPath(); ctx.arc(p.x, p.y, 4, 0, Math.PI * 2); ctx.fill();
+      ctx.fillStyle = 'rgba(220,255,130,' + (glow * alpha * 0.5) + ')';
+      ctx.beginPath(); ctx.arc(p.x, p.y, 8, 0, Math.PI * 2); ctx.fill();
+    } else if (p.type === 'leaf') {
+      ctx.save();
+      ctx.translate(p.x, p.y);
+      ctx.rotate(p.phase);
+      ctx.fillStyle = p.color;
+      ctx.globalAlpha = alpha * 0.7;
+      ctx.fillRect(-p.size/2, -p.size/4, p.size, p.size/2);
+      ctx.globalAlpha = 1;
+      ctx.restore();
+    } else { // dust
+      ctx.fillStyle = p.color;
+      ctx.globalAlpha = alpha * 0.4;
+      ctx.fillRect(p.x, p.y, p.size, p.size);
+      ctx.globalAlpha = 1;
+    }
+  }
+
   drawHUD();
 }
 
