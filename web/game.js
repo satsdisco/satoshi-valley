@@ -448,8 +448,8 @@ function generateMap() {
   // ---- BUILDINGS ----
   // Home (citadel) — size determined by citadelTier
   buildBuilding(homeX-Math.floor(CITADEL_TIERS[citadelTier].w/2), homeY-Math.floor(CITADEL_TIERS[citadelTier].h/2), CITADEL_TIERS[citadelTier].w, CITADEL_TIERS[citadelTier].h, 'home');
-  // Mining Shed
-  buildBuilding(homeX-18, homeY-2, 6, 5, 'shed');
+  // Mining Shed (northwest of town — room to expand)
+  buildBuilding(homeX-18, homeY-6, 6, 5, 'shed');
   // Ruby's Shop
   buildBuilding(homeX+4, homeY+16, 8, 6, 'shop');
   // Tavern
@@ -462,8 +462,8 @@ function generateMap() {
   drawPath(homeX-20, homeY+3, homeX+25, homeY+3, 3);
   // Path to cabin
   drawPath(homeX, homeY+3, homeX, homeY+2, 1);
-  // Path from shed door to main road
-  drawPath(homeX-15, homeY+2, homeX-15, homeY+3, 1);
+  // Path from shed door down to main road
+  drawPath(homeX-15, homeY-1, homeX-15, homeY+3, 1);
   // Path south to shop
   drawPath(homeX+8, homeY+3, homeX+8, homeY+21, 2);
   // Path to tavern
@@ -477,15 +477,16 @@ function generateMap() {
   // Village plaza (4x4 path tiles where south paths diverge)
   for(let py=homeY+4;py<=homeY+7;py++) for(let px=homeX+4;px<=homeX+7;px++) setT(px,py,T.PATH);
   
-  // ---- GARDEN (well east of home — room for max citadel 15w centered at homeX) ----
-  // Max citadel spans homeX-7 to homeX+8, so garden starts at homeX+12
-  const gardenX = homeX+12;
-  for (let y = homeY-2; y <= homeY+2; y++) for (let x = gardenX; x <= gardenX+7; x++) {
+  // ---- GARDEN (behind/north of home — clear of max citadel) ----
+  // Max citadel top edge: homeY - 5. Garden starts at homeY-10
+  const gardenX = homeX-3, gardenY = homeY-12;
+  for (let y = gardenY; y <= gardenY+4; y++) for (let x = gardenX; x <= gardenX+7; x++) {
     if (y >= 0 && y < MAP_H && x >= 0 && x < MAP_W) map[y][x] = T.DIRT;
   }
-  for (let x = gardenX-1; x <= gardenX+8; x++) { setT(x, homeY-3, T.FENCE); setT(x, homeY+3, T.FENCE); }
-  for (let y = homeY-3; y <= homeY+3; y++) { setT(gardenX-1, y, T.FENCE); setT(gardenX+8, y, T.FENCE); }
-  setT(gardenX+3, homeY+3, T.PATH); // gate
+  for (let x = gardenX-1; x <= gardenX+8; x++) { setT(x, gardenY-1, T.FENCE); setT(x, gardenY+5, T.FENCE); }
+  for (let y = gardenY-1; y <= gardenY+5; y++) { setT(gardenX-1, y, T.FENCE); setT(gardenX+8, y, T.FENCE); }
+  setT(gardenX+3, gardenY+5, T.PATH); // gate at south side
+  decor.push({ x: gardenX+3, y: gardenY+6, type: 'sign', text: 'The Garden' });
   
   // ---- BRIDGE over water ----
   // Find water crossing near the north path
@@ -525,7 +526,7 @@ function generateMap() {
   
   // Signs
   decor.push({ x: homeX-1, y: homeY+3, type: 'sign', text: 'The Homestead' });
-  decor.push({ x: homeX-16, y: homeY+3, type: 'sign', text: 'Mining Shed' });
+  decor.push({ x: homeX-16, y: homeY-1, type: 'sign', text: 'Mining Shed' });
   decor.push({ x: homeX+7, y: homeY+15, type: 'sign', text: "Ruby's Hardware" });
   decor.push({ x: homeX+22, y: homeY+11, type: 'sign', text: 'The Hodl Tavern' });
   decor.push({ x: homeX+14, y: homeY-11, type: 'sign', text: 'Town Hall' });
@@ -562,12 +563,12 @@ function generateMap() {
   decor.push({x:hallX+4,y:hallY+3,type:'furniture',item:'chair'});
 
   // Shed interior
-  decor.push({x:homeX-17,y:homeY-1,type:'furniture',item:'workbench'});
-  decor.push({x:homeX-14,y:homeY-1,type:'furniture',item:'crate'});
+  decor.push({x:homeX-17,y:homeY-5,type:'furniture',item:'workbench'});
+  decor.push({x:homeX-14,y:homeY-5,type:'furniture',item:'crate'});
 
   // Seed fragments hidden in the world
   const fragLocations = [
-    { x: homeX-16, y: homeY-1 }, // In mining shed
+    { x: homeX-16, y: homeY-5 }, // In mining shed
     { x: 15, y: 20 }, // Deep forest
     { x: 90, y: 15 }, // Mountain cave
     { x: homeX+30, y: homeY+20 }, // Near lake
@@ -814,7 +815,7 @@ const npcs = [
       '"At least I proved Bitcoin had real-world value. You\'re welcome."',
     ],
     wp:[{x:homeX+1,y:homeY+21},{x:homeX+4,y:homeY+21},{x:homeX+4,y:homeY+23},{x:homeX+1,y:homeY+23}],pi:0,mt:0,mi:4 },
-  { name:'Farmer Pete',x:(homeX+15)*TILE+8,y:(homeY+4)*TILE+8,col:'#228822',hair:'#886633',role:'market',
+  { name:'Farmer Pete',x:(homeX)*TILE+8,y:(homeY-7)*TILE+8,col:'#228822',hair:'#886633',role:'market',
     dlg:[
       '"Press B to sell your harvest! I pay in sats, naturally."',
       '"Potatoes, tomatoes, corn — bring me what you\'ve got."',
@@ -823,7 +824,7 @@ const npcs = [
       '"Low time preference applies to farming too. Be patient."',
       '"Sell in Euphoria phase for max profit. Buy seeds in Capitulation."',
     ],
-    wp:[{x:homeX+14,y:homeY+4},{x:homeX+18,y:homeY+4},{x:homeX+18,y:homeY+2},{x:homeX+14,y:homeY+2}],pi:0,mt:0,mi:4 },
+    wp:[{x:homeX-2,y:homeY-7},{x:homeX+3,y:homeY-7},{x:homeX+3,y:homeY-8},{x:homeX-2,y:homeY-8}],pi:0,mt:0,mi:4 },
 ];
 
 // ============================================================
@@ -1146,8 +1147,8 @@ function loadGame(){try{const d=JSON.parse(localStorage.getItem('sv_save'));if(!
 initSprites();
 generateMap();
 // Starter rigs in the mining shed — already mining!
-const rig1 = new Rig((homeX-12)*TILE+8, (homeY)*TILE+8, 0);
-const rig2 = new Rig((homeX-10)*TILE+8, (homeY)*TILE+8, 0);
+const rig1 = new Rig((homeX-16)*TILE+8, (homeY-4)*TILE+8, 0);
+const rig2 = new Rig((homeX-14)*TILE+8, (homeY-4)*TILE+8, 0);
 rig1.powered = true; rig2.powered = true;
 rigs.push(rig1); rigs.push(rig2);
 addItem('wrench', 3);
