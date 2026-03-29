@@ -68,15 +68,103 @@ document.addEventListener('keydown', e => {
 });
 document.addEventListener('keyup', e => { keys[e.key.toLowerCase()] = false; });
 
-// ---- MOUSE CLICK-TO-MOVE ----
+// ---- MOUSE CLICK-TO-MOVE & INTERACTION ----
 let mouseTarget = null; // {x, y} in world pixel coords
 let clickIndicator = null; // {x, y, life} for visual feedback
+let mouseX = 0, mouseY = 0;
+let lastShopClickTime = 0;
+
+canvas.addEventListener('mousemove', e => {
+  mouseX = e.clientX; mouseY = e.clientY;
+  if (gameState !== 'playing') { canvas.style.cursor = 'default'; return; }
+  if (shopOpen || invOpen) { canvas.style.cursor = 'pointer'; return; }
+  const hbXc=(canvas.width-480)/2, hbYc=canvas.height-64;
+  if (e.clientX>=hbXc&&e.clientX<=hbXc+480&&e.clientY>=hbYc&&e.clientY<=hbYc+44) { canvas.style.cursor='pointer'; return; }
+  const wx=(e.clientX+cam.x)/SCALE, wy=(e.clientY+cam.y)/SCALE;
+  for (const n of npcs) { if (Math.hypot(n.x-wx,n.y-wy)<40) { canvas.style.cursor='pointer'; return; } }
+  for (const r of rigs) { if (Math.hypot(r.x-wx,r.y-wy)<32) { canvas.style.cursor='pointer'; return; } }
+  for (const crop of crops) { if (crop.dayAge>=CROP_TYPES[crop.type].grow&&Math.hypot(crop.x*TILE+8-wx,crop.y*TILE+8-wy)<24) { canvas.style.cursor='pointer'; return; } }
+  canvas.style.cursor = 'crosshair';
+});
+
 canvas.addEventListener('click', e => {
-  if (shopOpen||invOpen||dlg||citadelMenuOpen||showObjectives||showDaySummary||showSkills||showControls) return;
-  const wx = (e.clientX + cam.x) / SCALE;
-  const wy = (e.clientY + cam.y) / SCALE;
-  mouseTarget = {x: wx, y: wy};
-  clickIndicator = {x: wx, y: wy, life: 1.0};
+  if (gameState !== 'playing') return;
+  if (dlg||citadelMenuOpen||showObjectives||showDaySummary||showSkills||showControls) return;
+  // Shop layer
+  if (shopOpen) {
+    const sw=560,sh=460,sx=(canvas.width-sw)/2,sy=(canvas.height-sh)/2;
+    if (e.clientX<sx||e.clientX>sx+sw||e.clientY<sy||e.clientY>sy+sh) { shopOpen=false; sfx.menuClose(); return; }
+    if (e.clientY>=sy+40&&e.clientY<=sy+66) { shopMode=e.clientX<sx+sw/2?'buy':'sell'; shopCur=0; return; }
+    const ly=sy+112, rowH=32;
+    if (e.clientY>=ly) {
+      const row=Math.floor((e.clientY-ly)/rowH);
+      const listLen=shopMode==='buy'?SHOP_LIST.length:inv.filter(s=>s&&ITEMS[s.id].sell>0).length;
+      if (row>=0&&row<listLen&&ly+row*rowH<sy+sh-35) {
+        const wasSelected=shopCur===row, now=performance.now(); shopCur=row;
+        if (wasSelected||now-lastShopClickTime<400) {
+          if (shopMode==='buy') {
+            const id=SHOP_LIST[shopCur],it=ITEMS[id];
+            if(!it){sfx.error();}else{const pr=Math.ceil(it.buy*marketMult());if(player.wallet>=pr){if(addItem(id)){player.wallet-=pr;sfx.buy();notify(`Bought ${it.icon} ${it.name} (${fmt(pr)})`,2);if(id==='gpu_rig')completeObjective('buy_gpu');}else{notify('Inventory full!',1.5);sfx.error();}}else{notify(`Need ${fmt(pr)} sats!`,1.5);sfx.error();}}
+          } else {
+            const sell=inv.filter(s=>s&&ITEMS[s.id].sell>0);
+            if(shopCur<sell.length){const s=sell[shopCur],it=ITEMS[s.id],pr=Math.ceil(it.sell*marketMult());removeItem(s.id);player.wallet+=pr;sfx.coin();notify(`Sold ${it.icon} ${it.name} (+${fmt(pr)})`,2);}
+          }
+        }
+        lastShopClickTime=now;
+      }
+    }
+    return;
+  }
+  // Inventory layer
+  if (invOpen) {
+    const cols=5,rows=4,ss=56,gap=6;
+    const iw=cols*(ss+gap)+gap+180, ih=rows*(ss+gap)+gap+60;
+    const ix=(canvas.width-iw)/2, iy=(canvas.height-ih)/2;
+    if (e.clientX<ix||e.clientX>ix+iw||e.clientY<iy||e.clientY>iy+ih) { invOpen=false; sfx.menuClose(); return; }
+    for (let r=0;r<rows;r++) for (let c=0;c<cols;c++) {
+      const cx2=ix+gap+c*(ss+gap), cy2=iy+36+r*(ss+gap);
+      if (e.clientX>=cx2&&e.clientX<=cx2+ss&&e.clientY>=cy2&&e.clientY<=cy2+ss) { selSlot=r*cols+c; sfx.interact(); return; }
+    }
+    return;
+  }
+  // Hotbar (always visible)
+  const hbXh=(canvas.width-480)/2, hbYh=canvas.height-64;
+  if (e.clientY>=hbYh&&e.clientY<=hbYh+44) {
+    const rel=e.clientX-hbXh;
+    if (rel>=0&&rel<480) { const slot=Math.floor(rel/48); if(slot>=0&&slot<10&&rel%48<44){selSlot=slot;sfx.interact();return;} }
+  }
+  // World entities
+  const wx=(e.clientX+cam.x)/SCALE, wy=(e.clientY+cam.y)/SCALE;
+  // NPC
+  for (const n of npcs) {
+    if (Math.hypot(n.x-wx,n.y-wy)<32) {
+      dlg={name:n.name,text:n.dlg[Math.floor(Math.random()*n.dlg.length)],role:n.role}; sfx.interact();
+      if(n.name==='The Hermit')completeObjective('find_hermit');
+      initRelationships();
+      if(!relationships[n.name].talked){relationships[n.name].talked=true;addHearts(n.name,0.2);addXP('social',3);}
+      return;
+    }
+  }
+  // Rig
+  for (const r of rigs) {
+    if (Math.hypot(r.x-wx,r.y-wy)<28) {
+      const sel=getSelected();
+      if(sel&&sel.id==='wrench'&&r.dur<100){r.dur=Math.min(100,r.dur+25);removeItem('wrench');sfx.repair();notify(`🔧 Repaired! ${r.dur.toFixed(0)}%`,2);completeObjective('repair_rig');}
+      else{r.powered=!r.powered;sfx.interact();notify(`Rig ${r.powered?'ON ⚡':'OFF 💤'}`,1.5);}
+      return;
+    }
+  }
+  // Crop
+  for (let i=crops.length-1;i>=0;i--) {
+    if (Math.hypot(crops[i].x*TILE+8-wx,crops[i].y*TILE+8-wy)<20) {
+      const info=CROP_TYPES[crops[i].type];
+      if(crops[i].dayAge>=info.grow){harvestCrop(i);}else{notify('Not ready yet! '+(info.grow-crops[i].dayAge)+' days left',2);}
+      return;
+    }
+  }
+  // Click-to-move
+  mouseTarget={x:wx,y:wy};
+  clickIndicator={x:wx,y:wy,life:1.0};
 });
 
 // ---- RNG ----
@@ -2098,7 +2186,7 @@ function drawShop(){
   
   // Footer
   ctx.fillStyle=C.gray;ctx.font=`12px ${FONT}`;ctx.textAlign='center';
-  ctx.fillText('↑↓ Navigate | Enter/E Buy/Sell | ←→ Switch Tab | B/Esc Close',x+w/2,y+h-12);
+  ctx.fillText('↑↓ Navigate | Click:Select | Enter/E:Buy/Sell | ←→:Tab | B/Esc:Close',x+w/2,y+h-12);
 }
 
 function drawInv(){
@@ -2116,7 +2204,7 @@ function drawInv(){
   if(sel){const it=ITEMS[sel.id];ctx.fillStyle=C.hud;ctx.font=`bold 14px ${FONT}`;ctx.textAlign='left';
     ctx.fillText(`${it.icon} ${it.name}`,dx,dy+16);ctx.fillStyle='#CCC';ctx.font=`12px ${FONT}`;ctx.textAlign='left';wrapText(it.desc,dx,dy+36,155,15);
     ctx.fillStyle=C.gray;if(it.buy>0)ctx.fillText(`Buy: ${fmt(it.buy)}`,dx,dy+80);if(it.sell>0)ctx.fillText(`Sell: ${fmt(it.sell)}`,dx,dy+94);ctx.fillText(`Qty: ${sel.qty}`,dx,dy+108);}
-  ctx.fillStyle=C.gray;ctx.font=`12px ${FONT}`;ctx.textAlign='center';ctx.fillText('1-9,0:Select  I/Tab/Esc:Close',x+w/2,y+h-10);
+  ctx.fillStyle=C.gray;ctx.font=`12px ${FONT}`;ctx.textAlign='center';ctx.fillText('1-9,0:Select | Click:Select | I/Tab/Esc:Close',x+w/2,y+h-10);
 }
 
 function panel(x,y,w,h){ctx.fillStyle=C.hudBg;rr(x,y,w,h,6);ctx.strokeStyle=C.hudBorder;ctx.lineWidth=1.5;ctx.stroke();}
