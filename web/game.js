@@ -68,6 +68,17 @@ document.addEventListener('keydown', e => {
 });
 document.addEventListener('keyup', e => { keys[e.key.toLowerCase()] = false; });
 
+// ---- MOUSE CLICK-TO-MOVE ----
+let mouseTarget = null; // {x, y} in world pixel coords
+let clickIndicator = null; // {x, y, life} for visual feedback
+canvas.addEventListener('click', e => {
+  if (shopOpen||invOpen||dlg||citadelMenuOpen||showObjectives||showDaySummary||showSkills||showControls) return;
+  const wx = (e.clientX + cam.x) / SCALE;
+  const wy = (e.clientY + cam.y) / SCALE;
+  mouseTarget = {x: wx, y: wy};
+  clickIndicator = {x: wx, y: wy, life: 1.0};
+});
+
 // ---- RNG ----
 function rng32(a) { return()=>{a|=0;a=a+0x6D2B79F5|0;var t=Math.imul(a^a>>>15,1|a);t=t+Math.imul(t^t>>>7,61|t)^t;return((t^t>>>14)>>>0)/4294967296;}; }
 
@@ -1182,6 +1193,14 @@ function update(dt) {
     let dx=0,dy=0;
     if(keys['w']||keys['arrowup'])dy-=1;if(keys['s']||keys['arrowdown'])dy+=1;
     if(keys['a']||keys['arrowleft'])dx-=1;if(keys['d']||keys['arrowright'])dx+=1;
+    if(dx!==0||dy!==0) mouseTarget=null; // keyboard cancels mouse target
+    // Mouse click-to-move: inject direction from target if no keyboard input
+    if(!dx&&!dy&&mouseTarget){
+      const mdx=mouseTarget.x-player.x,mdy=mouseTarget.y-player.y;
+      const md=Math.sqrt(mdx*mdx+mdy*mdy);
+      if(md<4){mouseTarget=null;}
+      else{dx=mdx/md;dy=mdy/md;}
+    }
     player.moving=dx!==0||dy!==0;
     if(player.moving){
       const len=Math.sqrt(dx*dx+dy*dy);dx/=len;dy/=len;player.facing={x:dx,y:dy};
@@ -1356,6 +1375,7 @@ function update(dt) {
   
   // Particles & notifs
   for(let i=particles.length-1;i>=0;i--){particles[i].life-=dt;particles[i].y+=particles[i].vy*dt;if(particles[i].life<=0)particles.splice(i,1);}
+  if(clickIndicator){clickIndicator.life-=dt*1.5;if(clickIndicator.life<=0)clickIndicator=null;}
   for(let i=notifs.length-1;i>=0;i--){notifs[i].t-=dt;if(notifs[i].t<=0)notifs.splice(i,1);}
   
   for(const k in jp)jp[k]=false;
@@ -1940,6 +1960,16 @@ function drawHUD(){
     ctx.fillStyle=n.big?`rgba(255,215,0,${a})`:`rgba(247,147,26,${a})`;
     ctx.font=`bold ${n.big?18:14}px ${FONT}`;ctx.fillText(n.text,canvas.width/2,hbY-30-i*24);}
   
+  // Click-to-move indicator
+  if(clickIndicator){
+    const ci=clickIndicator,sx=ci.x*SCALE-cam.x,sy=ci.y*SCALE-cam.y;
+    const a=ci.life;
+    ctx.strokeStyle=`rgba(247,147,26,${a})`;ctx.lineWidth=2;
+    ctx.beginPath();ctx.arc(sx,sy,6+4*(1-a),0,Math.PI*2);ctx.stroke();
+    ctx.strokeStyle=`rgba(247,147,26,${a*0.4})`;ctx.lineWidth=1;
+    ctx.beginPath();ctx.arc(sx,sy,10+6*(1-a),0,Math.PI*2);ctx.stroke();
+  }
+
   // Particles
   for(const pt of particles){
     const a=Math.min(1,pt.life);
