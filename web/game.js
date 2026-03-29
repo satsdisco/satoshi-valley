@@ -92,6 +92,13 @@ canvas.addEventListener('click', e => {
   if (gameState !== 'playing') return;
   if (dlg){if(!dlg.done){dlg.displayedChars=dlg.fullText.length;dlg.done=true;}else{dlg=null;}return;}
   if (citadelMenuOpen||showObjectives||showDaySummary||showSkills||showControls) return;
+  // Minimap click — consume the click so it doesn't trigger movement
+  if(minimapOpen){
+    const mmW=160,mmH=120,mmX=canvas.width-mmW-12,mmY=12;
+    if(e.clientX>=mmX-4&&e.clientX<=mmX+mmW+4&&e.clientY>=mmY-4&&e.clientY<=mmY+mmH+4){
+      return;
+    }
+  }
   // Tutorial skip button + press-to-advance
   if (!tutorialDone && tutorialStep < TUTORIAL_STEPS.length) {
     const tw2=Math.min(650,canvas.width-60), th2=58;
@@ -109,13 +116,14 @@ canvas.addEventListener('click', e => {
     if (e.clientY>=sy+40&&e.clientY<=sy+66) { shopMode=e.clientX<sx+sw/2?'buy':'sell'; shopCur=0; shopScroll=0; return; }
     const ly=sy+112, rowH=32;
     if (e.clientY>=ly) {
+      const activeList=shopNpcRole==='seeds'?SEED_SHOP_LIST:SHOP_LIST;
       const row=Math.floor((e.clientY-ly)/rowH)+shopScroll;
-      const listLen=shopMode==='buy'?SHOP_LIST.length:inv.filter(s=>s&&ITEMS[s.id].sell>0).length;
+      const listLen=shopMode==='buy'?activeList.length:inv.filter(s=>s&&ITEMS[s.id].sell>0).length;
       if (row>=0&&row<listLen) {
         const wasSelected=shopCur===row, now=performance.now(); shopCur=row;
         if (wasSelected||now-lastShopClickTime<400) {
           if (shopMode==='buy') {
-            const id=SHOP_LIST[shopCur],it=ITEMS[id];
+            const id=activeList[shopCur],it=ITEMS[id];
             if(!it){sfx.error();}else{const pr=Math.ceil(it.buy*marketMult());if(player.wallet>=pr){if(addItem(id)){player.wallet-=pr;sfx.buy();notify(`Bought ${it.icon} ${it.name} (${fmt(pr)})`,2);if(id==='gpu_rig')completeObjective('buy_gpu');}else{notify('Inventory full!',1.5);sfx.error();}}else{notify(`Need ${fmt(pr)} sats!`,1.5);sfx.error();}}
           } else {
             const sell=inv.filter(s=>s&&ITEMS[s.id].sell>0);
@@ -305,6 +313,7 @@ let tutorialStep = 0;
 let tutorialDone = false;
 let showObjectives = false;
 let showSkills = false;
+let minimapOpen = true;
 
 const INTRO_SLIDES = [
   { text: '"Chancellor on brink of second bailout for banks."', sub: "— The Times, January 3, 2009", dur: 4 },
@@ -566,6 +575,23 @@ function generateMap() {
   decor.push({x:homeX-17,y:homeY-5,type:'furniture',item:'workbench'});
   decor.push({x:homeX-14,y:homeY-5,type:'furniture',item:'crate'});
 
+  // ---- FARMER'S MARKET (south of main road) ----
+  const mktX=homeX+2, mktY=homeY+8;
+  // Market ground (path tiles)
+  for(let y=mktY;y<=mktY+5;y++) for(let x=mktX;x<=mktX+8;x++) setT(x,y,T.PATH);
+  // Path connecting market to main road
+  drawPath(mktX+4, homeY+3, mktX+4, mktY, 2);
+  // Market stall decorations
+  decor.push({x:mktX+1,y:mktY+1,type:'furniture',item:'market_stall'});
+  decor.push({x:mktX+3,y:mktY+1,type:'furniture',item:'market_stall'});
+  decor.push({x:mktX+5,y:mktY+1,type:'furniture',item:'market_stall'});
+  decor.push({x:mktX+7,y:mktY+1,type:'furniture',item:'market_stall'});
+  decor.push({x:mktX+1,y:mktY+4,type:'furniture',item:'market_stall'});
+  decor.push({x:mktX+3,y:mktY+4,type:'furniture',item:'market_stall'});
+  decor.push({x:mktX+5,y:mktY+4,type:'furniture',item:'market_stall'});
+  decor.push({x:mktX+7,y:mktY+4,type:'furniture',item:'market_stall'});
+  decor.push({x:mktX+4,y:mktY-1,type:'sign',text:'Farmer\'s Market'});
+
   // Seed fragments hidden in the world
   const fragLocations = [
     { x: homeX-16, y: homeY-5 }, // In mining shed
@@ -815,7 +841,7 @@ const npcs = [
       '"At least I proved Bitcoin had real-world value. You\'re welcome."',
     ],
     wp:[{x:homeX+1,y:homeY+21},{x:homeX+4,y:homeY+21},{x:homeX+4,y:homeY+23},{x:homeX+1,y:homeY+23}],pi:0,mt:0,mi:4 },
-  { name:'Farmer Pete',x:(homeX)*TILE+8,y:(homeY-7)*TILE+8,col:'#228822',hair:'#886633',role:'market',
+  { name:'Farmer Pete',x:(homeX+6)*TILE+8,y:(homeY+10)*TILE+8,col:'#228822',hair:'#886633',role:'market',
     dlg:[
       '"Press B to sell your harvest! I pay in sats, naturally."',
       '"Potatoes, tomatoes, corn — bring me what you\'ve got."',
@@ -824,13 +850,24 @@ const npcs = [
       '"Low time preference applies to farming too. Be patient."',
       '"Sell in Euphoria phase for max profit. Buy seeds in Capitulation."',
     ],
-    wp:[{x:homeX-2,y:homeY-7},{x:homeX+3,y:homeY-7},{x:homeX+3,y:homeY-8},{x:homeX-2,y:homeY-8}],pi:0,mt:0,mi:4 },
+    wp:[{x:homeX+3,y:homeY+10},{x:homeX+8,y:homeY+10},{x:homeX+8,y:homeY+12},{x:homeX+3,y:homeY+12}],pi:0,mt:0,mi:4 },
+  { name:'Seed Sally',x:(homeX+4)*TILE+8,y:(homeY+12)*TILE+8,col:'#44AA44',hair:'#886633',role:'seeds',
+    dlg:[
+      '"Fresh seeds, straight from the valley! Everything organic."',
+      '"Plant potatoes first — they grow fastest. 4 days and you\'re harvesting."',
+      '"Corn takes 8 days but sells for the most. Patience pays."',
+      '"Your uncle always said: the best time to plant was yesterday."',
+      '"Buy seeds from me, grow them, sell the harvest to Pete. Circle of life!"',
+      '"I\'ve got tomato seeds on special today. Well, every day actually."',
+    ],
+    wp:[{x:homeX+3,y:homeY+12},{x:homeX+6,y:homeY+12},{x:homeX+6,y:homeY+11},{x:homeX+3,y:homeY+11}],pi:0,mt:0,mi:5 },
 ];
 
 // ============================================================
 // SHOP
 // ============================================================
 const SHOP_LIST = ['wrench','pickaxe','axe','hoe','shovel','cpu_miner','gpu_rig','asic_s21','solar_panel','battery','cooling_fan','bread','coffee','potato_seed','tomato_seed','corn_seed','immersion_tank','mesh_antenna','bitcoin_sign','goat','cow','bee_hive','chicken','feed'];
+const SEED_SHOP_LIST = ['potato_seed','tomato_seed','corn_seed','feed','bread'];
 
 // Map item IDs to sprite cache names
 const ITEM_SPRITES = {
@@ -1007,6 +1044,7 @@ const CONTROLS_LIST = [
   ['P', 'Save game'],
   ['L', 'Load game'],
   ['M', 'Toggle music'],
+  ['N', 'Toggle minimap'],
   ['Space', 'Fast forward time'],
   ['F', 'Toggle fullscreen'],
   ['?', 'This controls screen'],
@@ -1330,6 +1368,7 @@ function update(dt) {
   if(jp['o']) showObjectives = !showObjectives;
   if(jp['k']) showSkills = !showSkills;
   if(jp['?']) showControls = !showControls;
+  if(jp['n']) minimapOpen = !minimapOpen;
   if(jp['m']) toggleMusic();
   if(jp['c']){if(isNearHome()){citadelMenuOpen=!citadelMenuOpen;citadelMenuOpen?sfx.menuOpen():sfx.menuClose();}else{notify('Get near your home to open the Citadel menu [C]',2);sfx.error();}}
   if(jp['h'] && !shopOpen && !invOpen) {
@@ -1344,7 +1383,7 @@ function update(dt) {
   }
   if (showDaySummary && (jp['enter'] || jp['e'] || jp[' '])) { showDaySummary = false; }
   if(jp['b']){
-    const nr=npcs.find(n=>(n.role==='shop'||n.role==='market')&&Math.hypot(n.x-player.x,n.y-player.y)<60);
+    const nr=npcs.find(n=>(n.role==='shop'||n.role==='market'||n.role==='seeds')&&Math.hypot(n.x-player.x,n.y-player.y)<60);
     if(nr&&!shopOpen){
       shopOpen=true;shopCur=0;
       shopMode=nr.role==='market'?'sell':'buy'; // Market opens in sell mode
@@ -1365,10 +1404,11 @@ function update(dt) {
   
   // ---- SHOP NAV ----
   if(shopOpen){
+    const activeList=shopNpcRole==='seeds'?SEED_SHOP_LIST:SHOP_LIST;
     if(jp['arrowup']||jp['w'])shopCur=Math.max(0,shopCur-1);
-    if(jp['arrowdown']||jp['s'])shopCur=Math.min((shopMode==='buy'?SHOP_LIST.length:inv.filter(s=>s).length)-1,shopCur+1);
+    if(jp['arrowdown']||jp['s'])shopCur=Math.min((shopMode==='buy'?activeList.length:inv.filter(s=>s).length)-1,shopCur+1);
     if(jp['enter']||jp['e']){
-      if(shopMode==='buy'){const id=SHOP_LIST[shopCur],it=ITEMS[id];if(!it){sfx.error();return;}const pr=Math.ceil(it.buy*marketMult());
+      if(shopMode==='buy'){const id=activeList[shopCur],it=ITEMS[id];if(!it){sfx.error();return;}const pr=Math.ceil(it.buy*marketMult());
         if(player.wallet>=pr){if(addItem(id)){player.wallet-=pr;sfx.buy();notify(`Bought ${it.icon} ${it.name} (${fmt(pr)})`,2);if(id==='gpu_rig')completeObjective('buy_gpu');}else{notify('Inventory full!',1.5);sfx.error();}}else{notify(`Need ${fmt(pr)} sats!`,1.5);sfx.error();}}
       else{const sell=inv.filter(s=>s&&ITEMS[s.id].sell>0);if(shopCur<sell.length){const s=sell[shopCur],it=ITEMS[s.id],pr=Math.ceil(it.sell*marketMult());removeItem(s.id);player.wallet+=pr;sfx.coin();notify(`Sold ${it.icon} ${it.name} (+${fmt(pr)})`,2);}}
     }
@@ -1844,6 +1884,15 @@ function drawDecor(d) {
       ctx.fillStyle='#8A6A30';ctx.fillRect(fx+8,fy+10,ST-16,ST-14);
       ctx.fillStyle='#6A4A20';ctx.fillRect(fx+10,fy+16,ST-20,2);ctx.fillRect(fx+ST/2-1,fy+10,2,ST-14);
     }
+    else if(d.item==='market_stall'){
+      ctx.fillStyle='#7A5A30';ctx.fillRect(fx+4,fy+20,ST-8,14);
+      ctx.fillStyle='#6A4A20';ctx.fillRect(fx+6,fy+34,4,8);ctx.fillRect(fx+ST-10,fy+34,4,8);
+      const canopyCol=['#CC4444','#CC8844','#44AA44','#4488CC'][(d.x+d.y)%4];
+      ctx.fillStyle=canopyCol;ctx.fillRect(fx+2,fy+12,ST-4,10);
+      ctx.fillStyle='#44AA44';ctx.fillRect(fx+8,fy+16,6,4);
+      ctx.fillStyle='#CC8844';ctx.fillRect(fx+18,fy+16,6,4);
+      ctx.fillStyle='#CCCC44';ctx.fillRect(fx+28,fy+17,5,3);
+    }
   }
   else if(d.type==='roof'){
     // Building rooftop
@@ -2022,7 +2071,7 @@ function drawNPC(n){
   if(dist<48){
     ctx.fillStyle=C.white;ctx.font=`bold 13px ${FONT}`;ctx.textAlign='center';ctx.fillText(n.name,sx,py-8);
     ctx.fillStyle=C.gray;ctx.font=`12px ${FONT}`;
-    ctx.fillText(n.role==='shop'?'[E] Talk  [B] Shop':n.role==='market'?'[E] Talk  [B] Sell Crops':'[E] Talk',sx,py-20);
+    ctx.fillText(n.role==='shop'||n.role==='seeds'?'[E] Talk  [B] Shop':n.role==='market'?'[E] Talk  [B] Sell Crops':'[E] Talk',sx,py-20);
   }
 }
 
@@ -2314,7 +2363,77 @@ function drawHUD(){
   if(showSkills) drawSkillsPanel();
   if(showControls) drawControlsPanel();
   if(showDaySummary && daySummary) drawDaySummary();
-  
+
+  // Minimap
+  if(minimapOpen){
+    const mmW=160, mmH=120, mmX=canvas.width-mmW-12, mmY=12;
+    const scaleX=mmW/MAP_W, scaleY=mmH/MAP_H;
+
+    // Background
+    ctx.fillStyle='rgba(8,8,12,0.85)';rr(mmX-4,mmY-4,mmW+8,mmH+8,4);
+    ctx.strokeStyle='#444';ctx.lineWidth=1;ctx.strokeRect(mmX-4,mmY-4,mmW+8,mmH+8);
+
+    // Terrain (sample every 2 tiles for performance)
+    for(let y=0;y<MAP_H;y+=2)for(let x=0;x<MAP_W;x+=2){
+      const tile=map[y][x];
+      if(tile===T.WATER||tile===T.DEEP) ctx.fillStyle='#2855A0';
+      else if(tile===T.STONE||tile===T.CLIFF) ctx.fillStyle='#666';
+      else if(tile===T.SAND) ctx.fillStyle='#C4A44A';
+      else if(tile===T.PATH||tile===T.BRIDGE) ctx.fillStyle='#8A7A5A';
+      else if(tile===T.WALL||tile===T.FLOOR||tile===T.SHOP) ctx.fillStyle='#7A5A30';
+      else if(tile===T.DIRT) ctx.fillStyle='#6A5030';
+      else ctx.fillStyle='#2A5A1A'; // grass/tallgrass/flowers
+      ctx.fillRect(mmX+x*scaleX,mmY+y*scaleY,scaleX*2+1,scaleY*2+1);
+    }
+
+    // Buildings (larger colored dots)
+    const buildings=[
+      {x:homeX,y:homeY,col:'#F7931A',label:'Home'},
+      {x:homeX-15,y:homeY-4,col:'#888',label:'Shed'},
+      {x:homeX+8,y:homeY+19,col:'#CC4444',label:'Shop'},
+      {x:homeX+23,y:homeY+15,col:'#6A3A1A',label:'Tavern'},
+      {x:homeX+16,y:homeY-7,col:'#4A4A6A',label:'Hall'},
+    ];
+    for(const b of buildings){
+      ctx.fillStyle=b.col;
+      ctx.fillRect(mmX+b.x*scaleX-2,mmY+b.y*scaleY-2,5,5);
+    }
+
+    // NPCs (tiny colored dots)
+    for(const n of npcs){
+      const nx=n.x/TILE, ny=n.y/TILE;
+      ctx.fillStyle=n.role==='shop'?'#CC4444':n.role==='market'?'#228822':'#AAA';
+      ctx.fillRect(mmX+nx*scaleX-1,mmY+ny*scaleY-1,3,3);
+    }
+
+    // Animals (tiny dots)
+    for(const a of animals){
+      const ax=a.x/TILE, ay=a.y/TILE;
+      ctx.fillStyle='#90EE90';
+      ctx.fillRect(mmX+ax*scaleX-1,mmY+ay*scaleY-1,2,2);
+    }
+
+    // Player (bright orange blinking dot)
+    const px=player.x/TILE, py=player.y/TILE;
+    const blink=Math.sin(performance.now()/300)>0;
+    if(blink){
+      ctx.fillStyle='#F7931A';
+      ctx.beginPath();ctx.arc(mmX+px*scaleX,mmY+py*scaleY,3,0,Math.PI*2);ctx.fill();
+    }
+    ctx.fillStyle='#FFF';
+    ctx.fillRect(mmX+px*scaleX-1,mmY+py*scaleY-1,2,2);
+
+    // Camera view rectangle
+    const cvx=(cam.x/SCALE)/TILE, cvy=(cam.y/SCALE)/TILE;
+    const cvw=(canvas.width/SCALE)/TILE, cvh=(canvas.height/SCALE)/TILE;
+    ctx.strokeStyle='rgba(247,147,26,0.4)';ctx.lineWidth=1;
+    ctx.strokeRect(mmX+cvx*scaleX,mmY+cvy*scaleY,cvw*scaleX,cvh*scaleY);
+
+    // Label
+    ctx.fillStyle='#888';ctx.font='9px '+FONT;ctx.textAlign='right';
+    ctx.fillText('[N] Map',mmX+mmW,mmY+mmH+10);
+  }
+
   // Notifications
   ctx.textAlign='center';
   for(let i=0;i<notifs.length;i++){const n=notifs[i],a=Math.min(1,n.t);
@@ -2390,7 +2509,8 @@ function drawCitadelMenu(){
 function drawShop(){
   const w=560,h=460,x=(canvas.width-w)/2,y=(canvas.height-h)/2;panel(x,y,w,h);
   ctx.fillStyle=C.hud;ctx.font=`bold 18px ${FONT}`;ctx.textAlign='center';
-  ctx.fillText(shopNpcRole==='market'?"🌾 Farmer Pete's Market":"⛏️ Ruby's Hardware Shop",x+w/2,y+28);
+  ctx.fillText(shopNpcRole==='market'?"🌾 Farmer Pete's Market":shopNpcRole==='seeds'?"🌱 Seed Sally's Garden Shop":"⛏️ Ruby's Hardware Shop",x+w/2,y+28);
+  const activeList=shopNpcRole==='seeds'?SEED_SHOP_LIST:SHOP_LIST;
   
   // Tabs
   const tw=w/2-20;
@@ -2419,28 +2539,28 @@ function drawShop(){
     if(shopCur<shopScroll)shopScroll=shopCur;
     if(shopCur>=shopScroll+visRows)shopScroll=shopCur-visRows+1;
     ctx.save();ctx.beginPath();ctx.rect(x,ly-6,w,h-112-25);ctx.clip();
-    SHOP_LIST.forEach((id,i)=>{
+    activeList.forEach((id,i)=>{
       const it=ITEMS[id];if(!it)return;
       const pr=Math.ceil(it.buy*mult);
       const iy=ly+(i-shopScroll)*rowH;
       if(iy<ly-rowH||iy>y+h-35)return;
-      
+
       // Selection highlight
       if(i===shopCur){ctx.fillStyle='rgba(247,147,26,.12)';ctx.fillRect(x+8,iy-4,w-16,rowH-2);}
-      
+
       // Icon
       ctx.font='18px serif';ctx.fillStyle=C.white;ctx.fillText(it.icon,x+14,iy+14);
-      
+
       // Name + short desc
       ctx.font=`bold 13px ${FONT}`;ctx.fillStyle=i===shopCur?C.hud:C.white;
       ctx.fillText(it.name,x+42,iy+10);
-      
+
       // Description (truncated to fit)
       ctx.fillStyle='#777';ctx.font=`11px ${FONT}`;
       let desc=it.desc;
       while(ctx.measureText(desc).width>w-200 && desc.length>10) desc=desc.slice(0,-4)+'...';
       ctx.fillText(desc,x+42,iy+24);
-      
+
       // Price (right aligned)
       ctx.fillStyle=player.wallet>=pr?C.green:C.red;
       ctx.font=`bold 13px ${FONT}`;ctx.textAlign='right';
@@ -2449,11 +2569,11 @@ function drawShop(){
     });
     ctx.restore();
     // Scroll indicator
-    if(SHOP_LIST.length>visRows){
+    if(activeList.length>visRows){
       ctx.fillStyle=C.gray;ctx.font=`11px ${FONT}`;ctx.textAlign='right';
-      ctx.fillText(`${shopCur+1}/${SHOP_LIST.length}`,x+w-14,y+100);
+      ctx.fillText(`${shopCur+1}/${activeList.length}`,x+w-14,y+100);
       if(shopScroll>0){ctx.fillStyle=C.hud;ctx.font=`12px ${FONT}`;ctx.textAlign='center';ctx.fillText('▲',x+w/2,ly-2);}
-      if(shopScroll+visRows<SHOP_LIST.length){ctx.fillStyle=C.hud;ctx.textAlign='center';ctx.fillText('▼',x+w/2,y+h-22);}
+      if(shopScroll+visRows<activeList.length){ctx.fillStyle=C.hud;ctx.textAlign='center';ctx.fillText('▼',x+w/2,y+h-22);}
     }
   } else {
     if(shopCur<shopScroll)shopScroll=shopCur;
