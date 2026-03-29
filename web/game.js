@@ -1591,8 +1591,11 @@ function drawHUD(){
   }
   
   // Controls hint
-  ctx.fillStyle='#333';ctx.font=`11px ${FONT}`;ctx.textAlign='center';
-  ctx.fillText('WASD:Move  E:Interact  R:Use/Plant  H:Harvest  I:Inventory  B:Shop  O:Objectives  K:Skills  M:Music  ?:Help',canvas.width/2,canvas.height-6);
+  // Controls bar (always visible, readable)
+  const cbY = canvas.height - 18;
+  ctx.fillStyle='rgba(0,0,0,0.6)';ctx.fillRect(0,cbY-4,canvas.width,22);
+  ctx.fillStyle='#999';ctx.font=`bold 12px ${FONT}`;ctx.textAlign='center';
+  ctx.fillText('WASD:Move  E:Interact  R:Use/Plant  H:Harvest  I:Inventory  B:Shop  O:Quests  K:Skills  M:Music  ?:Help  P:Save',canvas.width/2,cbY+8);
   
   // Energy
   const ebW=100,ebX=canvas.width-ebW-p-10,ebY=hbY-18;
@@ -1660,7 +1663,7 @@ function drawHUD(){
   }
   
   // Dialogue
-  if(dlg){const dw=Math.min(600,canvas.width-40),dh=80,dx=(canvas.width-dw)/2,dy=hbY-dh-20;
+  if(dlg){const dw=Math.min(650,canvas.width-40),dh=100,dx=(canvas.width-dw)/2,dy=hbY-dh-20;
     panel(dx,dy,dw,dh);ctx.fillStyle=C.hud;ctx.font=`bold 14px ${FONT}`;ctx.textAlign='left';
     ctx.fillText(dlg.name,dx+16,dy+24);ctx.fillStyle=C.white;ctx.font=`15px ${FONT}`;
     wrapText(dlg.text,dx+16,dy+44,dw-32,16);ctx.fillStyle=C.gray;ctx.font=`12px ${FONT}`;ctx.textAlign='right';ctx.fillText('[E] Close',dx+dw-12,dy+dh-8);}
