@@ -77,7 +77,7 @@ let lastShopClickTime = 0;
 canvas.addEventListener('mousemove', e => {
   mouseX = e.clientX; mouseY = e.clientY;
   if (gameState !== 'playing') { canvas.style.cursor = 'default'; return; }
-  if (shopOpen || invOpen) { canvas.style.cursor = 'pointer'; return; }
+  if (shopOpen || invOpen || chestOpen) { canvas.style.cursor = 'pointer'; return; }
   const hbXc=(canvas.width-480)/2, hbYc=canvas.height-64;
   if (e.clientX>=hbXc&&e.clientX<=hbXc+480&&e.clientY>=hbYc&&e.clientY<=hbYc+44) { canvas.style.cursor='pointer'; return; }
   const wx=(e.clientX+cam.x)/SCALE, wy=(e.clientY+cam.y)/SCALE;
@@ -144,6 +144,39 @@ canvas.addEventListener('click', e => {
     for (let r=0;r<rows;r++) for (let c=0;c<cols;c++) {
       const cx2=ix+gap+c*(ss+gap), cy2=iy+36+r*(ss+gap);
       if (e.clientX>=cx2&&e.clientX<=cx2+ss&&e.clientY>=cy2&&e.clientY<=cy2+ss) { selSlot=r*cols+c; sfx.interact(); return; }
+    }
+    return;
+  }
+  // Chest layer
+  if(chestOpen){
+    const cols=5,rows=4,ss=56,gap=6;
+    const totalW=cols*(ss+gap)+gap;
+    const w=totalW*2+40,h=rows*(ss+gap)+gap+60;
+    const cx=(canvas.width-w)/2,cy=(canvas.height-h)/2;
+    if(e.clientX<cx||e.clientX>cx+w||e.clientY<cy||e.clientY>cy+h){chestOpen=false;sfx.menuClose();return;}
+    // Left side (inventory) — click to move to chest
+    for(let r=0;r<rows;r++)for(let c=0;c<cols;c++){
+      const i=r*cols+c,sx2=cx+gap+c*(ss+gap)+10,sy2=cy+50+r*(ss+gap);
+      if(e.clientX>=sx2&&e.clientX<=sx2+ss&&e.clientY>=sy2&&e.clientY<=sy2+ss){
+        if(inv[i]){
+          const ce=chestInv.findIndex(s=>!s);
+          if(ce===-1&&chestInv.length>=CHEST_SIZE){notify('Chest full!',1);sfx.error();}
+          else{const item=inv[i];inv[i]=null;if(ce>=0)chestInv[ce]=item;else chestInv.push(item);sfx.interact();}
+        }
+        return;
+      }
+    }
+    // Right side (chest) — click to move to inventory
+    for(let r=0;r<rows;r++)for(let c=0;c<cols;c++){
+      const i=r*cols+c,sx2=cx+totalW+30+gap+c*(ss+gap),sy2=cy+50+r*(ss+gap);
+      if(e.clientX>=sx2&&e.clientX<=sx2+ss&&e.clientY>=sy2&&e.clientY<=sy2+ss){
+        if(chestInv[i]){
+          const ie=inv.findIndex(s=>!s);
+          if(ie===-1&&inv.length>=INV_SIZE){notify('Inventory full!',1);sfx.error();}
+          else{const item=chestInv[i];chestInv[i]=null;if(ie>=0)inv[ie]=item;else inv.push(item);sfx.interact();}
+        }
+        return;
+      }
     }
     return;
   }
@@ -281,7 +314,7 @@ const ITEMS = {
   coffee:{name:'Coffee',desc:'Speed boost for 30 seconds',icon:'☕',type:'food',buy:100,sell:40,stack:true},
   copper_ore:{name:'Copper Ore',desc:'Mined from mountains',icon:'🪨',type:'mat',buy:0,sell:50,stack:true},
   silicon:{name:'Silicon',desc:'Used in crafting',icon:'💎',type:'mat',buy:0,sell:100,stack:true},
-  seed_fragment:{name:'Seed Fragment',desc:"Part of Uncle Toshi's seed phrase",icon:'🧩',type:'quest',buy:0,sell:0,stack:false},
+  seed_fragment:{name:'Seed Word',desc:"A BIP39 seed word — part of Uncle Toshi's wallet",icon:'🧩',type:'quest',buy:0,sell:0,stack:false},
   potato_seed:{name:'Potato Seeds',desc:'Plant on dirt. Grows in 4 days.',icon:'🥔',type:'seed',buy:30,sell:10,stack:true},
   tomato_seed:{name:'Tomato Seeds',desc:'Plant on dirt. Grows in 6 days.',icon:'🍅',type:'seed',buy:60,sell:20,stack:true},
   corn_seed:{name:'Corn Seeds',desc:'Plant on dirt. Grows in 8 days.',icon:'🌽',type:'seed',buy:100,sell:35,stack:true},
@@ -291,6 +324,7 @@ const ITEMS = {
   immersion_tank:{name:'Immersion Tank',desc:'Advanced cooling — doubles rig lifespan',icon:'🛢️',type:'upgrade',buy:15000,sell:6000,stack:true},
   mesh_antenna:{name:'Mesh Antenna',desc:'Off-grid comms — boosts social XP gain',icon:'📡',type:'upgrade',buy:3000,sell:1200,stack:true},
   bitcoin_sign:{name:'Bitcoin Sign',desc:'Decorative ₿ sign for your citadel',icon:'🪧',type:'deco',buy:500,sell:200,stack:true},
+  chest:{name:'Storage Chest',desc:'Place near home for 20 extra item slots',icon:'📦',type:'placeable',buy:500,sell:200,stack:true},
   goat:{name:'Goat',desc:'Produces milk daily. Every citadel needs goats.',icon:'🐐',type:'animal',buy:2000,sell:800,stack:false},
   cow:{name:'Cow',desc:'Raise for beef — premium sats at the meat market',icon:'🐄',type:'animal',buy:5000,sell:2000,stack:false},
   bee_hive:{name:'Bee Hive',desc:'Place near flowers — produces honey over time',icon:'🐝',type:'animal',buy:1500,sell:600,stack:false},
@@ -301,6 +335,37 @@ const ITEMS = {
   honey:{name:'Raw Honey',desc:'Local wildflower honey. Nature\'s gold.',icon:'🍯',type:'food',buy:0,sell:350,stack:true},
   feed:{name:'Animal Feed',desc:'Keeps your animals happy and productive.',icon:'🌾',type:'supply',buy:30,sell:10,stack:true},
 };
+
+// ============================================================
+// BIP39 SEED WORDS — Bitcoin history lore
+// ============================================================
+const SEED_WORDS = [
+  {word:'abandon',hint:'Genesis Block — Jan 3, 2009. "Chancellor on brink of second bailout for banks."'},
+  {word:'ability',hint:'Hal Finney receives the first Bitcoin transaction — Jan 12, 2009.'},
+  {word:'liberty',hint:'10,000 BTC for two pizzas — May 22, 2010. The first real purchase.'},
+  {word:'satoshi',hint:'Satoshi Nakamoto disappears — April 2011. "I\'ve moved on to other things."'},
+  {word:'verify',hint:'Mt. Gox hack — 850,000 BTC lost. "Don\'t trust, verify."'},
+  {word:'network',hint:'Bitcoin network hits 1 EH/s — Jan 2016. Unstoppable.'},
+  {word:'digital',hint:'The DAO hack sparks the ETH fork debate — June 2016.'},
+  {word:'node',hint:'UASF — Users Activate Soft Fork. The nodes spoke. Aug 2017.'},
+  {word:'enforce',hint:'SegWit activates — Block 481,824. Aug 24, 2017.'},
+  {word:'million',hint:'Bitcoin crosses $10,000 for the first time — Dec 2017.'},
+  {word:'flash',hint:'Lightning Network goes live on mainnet — March 2018.'},
+  {word:'decline',hint:'China bans Bitcoin... again. For the 47th time.'},
+  {word:'legal',hint:'El Salvador makes Bitcoin legal tender — June 2021.'},
+  {word:'private',hint:'Taproot activates — Privacy upgrade. Nov 2021.'},
+  {word:'exchange',hint:'FTX collapses — Nov 2022. Not your keys, not your coins.'},
+  {word:'rare',hint:'Ordinals and inscriptions arrive — Jan 2023. Controversy erupts.'},
+  {word:'approve',hint:'Spot Bitcoin ETF approved — Jan 10, 2024.'},
+  {word:'country',hint:'Nation-states begin adding Bitcoin to reserves — 2024.'},
+  {word:'energy',hint:'Bitcoin mining goes majority renewable — the green revolution.'},
+  {word:'freedom',hint:'Bitcoin enables financial freedom for billions.'},
+  {word:'future',hint:'The future is being built, one block at a time.'},
+  {word:'wealth',hint:'21 million. Hard cap. Digital scarcity.'},
+  {word:'trust',hint:'"Don\'t trust, verify." The cypherpunk ethos.'},
+  {word:'valley',hint:'Welcome home. You\'ve found all 24 words. Check your wallet.'},
+];
+let foundWords = []; // indices of found words
 
 // ============================================================
 // GAME STATE
@@ -731,7 +796,10 @@ class Rig {
   status(){if(this.dur<=0)return'BROKEN';if(this.oh)return'OVERHEAT';if(!this.powered)return'OFF';return Math.floor(this.hr*(this.dur/100)/econ.diff*10)+' s/s';}
   statusCol(){if(this.dur<=0)return C.red;if(this.oh)return C.ledOrange;if(!this.powered)return C.gray;return C.ledGreen;}
 }
-const placed = []; // solar, battery, fan
+const placed = []; // solar, battery, fan, chest
+const chestInv = []; // extra storage, same format as inv
+const CHEST_SIZE = 20;
+let chestOpen = false;
 const animals = [];
 class Animal {
   constructor(x, y, type) {
@@ -866,7 +934,7 @@ const npcs = [
 // ============================================================
 // SHOP
 // ============================================================
-const SHOP_LIST = ['wrench','pickaxe','axe','hoe','shovel','cpu_miner','gpu_rig','asic_s21','solar_panel','battery','cooling_fan','bread','coffee','potato_seed','tomato_seed','corn_seed','immersion_tank','mesh_antenna','bitcoin_sign','goat','cow','bee_hive','chicken','feed'];
+const SHOP_LIST = ['wrench','pickaxe','axe','hoe','shovel','cpu_miner','gpu_rig','asic_s21','solar_panel','battery','cooling_fan','bread','coffee','potato_seed','tomato_seed','corn_seed','immersion_tank','mesh_antenna','bitcoin_sign','chest','goat','cow','bee_hive','chicken','feed'];
 const SEED_SHOP_LIST = ['potato_seed','tomato_seed','corn_seed','feed','bread'];
 
 // Map item IDs to sprite cache names
@@ -1179,7 +1247,7 @@ const cam = {x:0,y:0};
 // ============================================================
 // SAVE / LOAD
 // ============================================================
-function saveGame(){try{localStorage.setItem('sv_save',JSON.stringify({v:7,p:{x:player.x,y:player.y,w:player.wallet,te:player.totalEarned,e:player.energy},inv:inv.map(s=>s?{id:s.id,q:s.qty}:null),ss:selSlot,rigs:rigs.map(r=>({x:r.x,y:r.y,t:r.tier,p:r.powered,tp:r.temp,d:r.dur,m:r.mined})),placed:placed.map(i=>({x:i.x,y:i.y,t:i.type})),econ:{...econ},time:{...time},pwr:{p:pwr.panels,b:pwr.batts},obj:objectives.map(o=>o.done),tut:tutorialDone,skills,crops:crops.map(c=>({x:c.x,y:c.y,type:c.type,dayAge:c.dayAge,stage:c.stage})),rels:relationships,citadelTier,animals:animals.map(a=>({x:a.x,y:a.y,t:a.type,hx:a.homeX,hy:a.homeY,hp:a.happiness,fed:a.fed,dsp:a.daysSinceProd,pr:a.prodReady,dir:a.dir})),weather:{c:weather.current}}));notify('💾 Saved!',2);sfx.buy();}catch(e){notify('❌ Save failed!',2);}}
+function saveGame(){try{localStorage.setItem('sv_save',JSON.stringify({v:7,p:{x:player.x,y:player.y,w:player.wallet,te:player.totalEarned,e:player.energy},inv:inv.map(s=>s?{id:s.id,q:s.qty}:null),ss:selSlot,rigs:rigs.map(r=>({x:r.x,y:r.y,t:r.tier,p:r.powered,tp:r.temp,d:r.dur,m:r.mined})),placed:placed.map(i=>({x:i.x,y:i.y,t:i.type})),econ:{...econ},time:{...time},pwr:{p:pwr.panels,b:pwr.batts},obj:objectives.map(o=>o.done),tut:tutorialDone,skills,crops:crops.map(c=>({x:c.x,y:c.y,type:c.type,dayAge:c.dayAge,stage:c.stage})),rels:relationships,citadelTier,animals:animals.map(a=>({x:a.x,y:a.y,t:a.type,hx:a.homeX,hy:a.homeY,hp:a.happiness,fed:a.fed,dsp:a.daysSinceProd,pr:a.prodReady,dir:a.dir})),weather:{c:weather.current},chest:chestInv.map(s=>s?{id:s.id,q:s.qty}:null),fw:foundWords}));notify('💾 Saved!',2);sfx.buy();}catch(e){notify('❌ Save failed!',2);}}
 function loadGame(){try{const d=JSON.parse(localStorage.getItem('sv_save'));if(!d)return notify('No save found!',2),false;player.x=d.p.x;player.y=d.p.y;player.wallet=d.p.w;player.totalEarned=d.p.te;player.energy=d.p.e||100;inv.length=0;d.inv.forEach(s=>inv.push(s?{id:s.id,qty:s.q}:null));selSlot=d.ss||0;rigs.length=0;d.rigs.forEach(r=>{const ri=new Rig(r.x,r.y,r.t);ri.powered=r.p;ri.temp=r.tp;ri.dur=r.d;ri.mined=r.m;rigs.push(ri);});placed.length=0;(d.placed||[]).forEach(i=>placed.push(i));Object.assign(econ,d.econ);Object.assign(time,d.time);pwr.panels=d.pwr?.p||[];pwr.batts=d.pwr?.b||[];if(d.obj)d.obj.forEach((done,i)=>{if(objectives[i])objectives[i].done=done;});tutorialDone=d.tut||false;
     if(d.skills)Object.assign(skills,d.skills);
     crops.length=0;if(d.crops)d.crops.forEach(c=>crops.push(c));
@@ -1187,6 +1255,8 @@ function loadGame(){try{const d=JSON.parse(localStorage.getItem('sv_save'));if(!
     if(d.citadelTier!=null){citadelTier=d.citadelTier;rebuildCitadel();}
     animals.length=0;(d.animals||[]).forEach(a=>{const an=new Animal(a.x,a.y,a.t);an.homeX=a.hx;an.homeY=a.hy;an.happiness=a.hp;an.fed=a.fed;an.daysSinceProd=a.dsp;an.prodReady=a.pr;an.dir=a.dir;animals.push(an);});
     if(d.weather)weather.current=d.weather.c;
+    chestInv.length=0;(d.chest||[]).forEach(s=>chestInv.push(s?{id:s.id,qty:s.q}:null));
+    foundWords=(d.fw||[]);
     gameState='playing';notify('📂 Loaded!',2);sfx.buy();return true;}catch(e){notify('❌ Load failed!',2);return false;}}
 
 // ============================================================
@@ -1420,7 +1490,7 @@ function update(dt) {
     }else if(shopOpen){shopOpen=false;sfx.menuClose();}
   }
   if(jp['i']||jp['tab']){if(!shopOpen){invOpen=!invOpen;invOpen?sfx.menuOpen():sfx.menuClose();}}
-  if(jp['escape']){if(shopOpen){shopOpen=false;sfx.menuClose();}else if(citadelMenuOpen){citadelMenuOpen=false;sfx.menuClose();}else if(invOpen){invOpen=false;sfx.menuClose();}else if(dlg){if(!dlg.done){dlg.displayedChars=dlg.fullText.length;dlg.done=true;}else{dlg=null;}}else if(showObjectives)showObjectives=false;}
+  if(jp['escape']){if(chestOpen){chestOpen=false;sfx.menuClose();}else if(shopOpen){shopOpen=false;sfx.menuClose();}else if(citadelMenuOpen){citadelMenuOpen=false;sfx.menuClose();}else if(invOpen){invOpen=false;sfx.menuClose();}else if(dlg){if(!dlg.done){dlg.displayedChars=dlg.fullText.length;dlg.done=true;}else{dlg=null;}}else if(showObjectives)showObjectives=false;}
   if(jp['p'])saveGame();if(jp['l'])loadGame();
   for(let n=0;n<=9;n++)if(jp[n.toString()])selSlot=n===0?9:n-1;
   
@@ -1445,7 +1515,7 @@ function update(dt) {
   }
   
   // ---- MOVEMENT ----
-  if(!dlg&&!invOpen&&!showObjectives){
+  if(!dlg&&!invOpen&&!showObjectives&&!chestOpen){
     let dx=0,dy=0;
     if(keys['w']||keys['arrowup'])dy-=1;if(keys['s']||keys['arrowdown'])dy+=1;
     if(keys['a']||keys['arrowleft'])dx-=1;if(keys['d']||keys['arrowright'])dx+=1;
@@ -1470,7 +1540,15 @@ function update(dt) {
       // Check seed fragments
       for(let i=decor.length-1;i>=0;i--){
         if(decor[i].type==='seed_fragment'&&Math.hypot(decor[i].x*TILE+8-player.x,decor[i].y*TILE+8-player.y)<20){
-          addItem('seed_fragment');notify('🧩 Found a seed phrase fragment!',4,true);sfx.block();decor.splice(i,1);completeObjective('find_seed');
+          const wordIdx=foundWords.length;
+          if(wordIdx<SEED_WORDS.length){
+            const sw=SEED_WORDS[wordIdx];
+            foundWords.push(wordIdx);
+            notify('🧩 Seed word #'+(wordIdx+1)+': "'+sw.word+'"',4,true);
+            dlg={name:"Uncle Toshi's Journal",text:sw.hint,role:'lore',fullText:sw.hint,displayedChars:0,done:false};
+            sfx.block();
+          }
+          decor.splice(i,1);completeObjective('find_seed');
         }
       }
     }
@@ -1478,7 +1556,7 @@ function update(dt) {
   
   // ---- INTERACT ----
   intCd-=dt;
-  if(jp['e']&&intCd<=0&&!shopOpen&&!invOpen){
+  if(jp['e']&&intCd<=0&&!shopOpen&&!invOpen&&!chestOpen){
     intCd=.25;
     if(dlg){if(!dlg.done){dlg.displayedChars=dlg.fullText.length;dlg.done=true;}else{dlg=null;}}
     else{
@@ -1509,7 +1587,13 @@ function update(dt) {
           }
         }
         if(!animalHandled){
-          for(const n of npcs){if(Math.hypot(n.x-ix,n.y-iy)<32){const _nd2=n.dlg[Math.floor(Math.random()*n.dlg.length)];dlg={name:n.name,text:_nd2,role:n.role,fullText:_nd2,displayedChars:0,done:false};dlgCharTimer=0;sfx.interact();
+          // Check placed chests
+          for(const p of placed){
+            if(p.type==='chest'&&Math.hypot(p.x-ix,p.y-iy)<24){
+              chestOpen=true;sfx.menuOpen();break;
+            }
+          }
+          if(!chestOpen)for(const n of npcs){if(Math.hypot(n.x-ix,n.y-iy)<32){const _nd2=n.dlg[Math.floor(Math.random()*n.dlg.length)];dlg={name:n.name,text:_nd2,role:n.role,fullText:_nd2,displayedChars:0,done:false};dlgCharTimer=0;sfx.interact();
             if(n.name==='The Hermit')completeObjective('find_hermit');
             initRelationships();
             if(!relationships[n.name].talked){relationships[n.name].talked=true;addHearts(n.name,0.2);addXP('social',3);}
@@ -1554,6 +1638,10 @@ function update(dt) {
       }else if(sel.id==='cooling_fan'){
         if(!isSolid(ptx,pty)&&!placed.some(i=>Math.abs(i.x-px)<TILE&&Math.abs(i.y-py)<TILE)){
           removeItem('cooling_fan');placed.push({x:px,y:py,type:'cooling_fan'});sfx.place();notify('🌀 Fan placed!',2);
+        }else{sfx.error();notify("Can't place here!",1.5);}
+      }else if(sel.id==='chest'){
+        if(!isSolid(ptx,pty)&&!placed.some(i=>Math.abs(i.x-px)<TILE&&Math.abs(i.y-py)<TILE)){
+          removeItem('chest');placed.push({x:px,y:py,type:'chest'});sfx.place();notify('📦 Storage chest placed!',2);
         }else{sfx.error();notify("Can't place here!",1.5);}
       }else if(it.type==='animal'){
         const animalType = sel.id === 'bee_hive' ? 'bee' : sel.id;
@@ -1628,7 +1716,7 @@ function update(dt) {
         for(let i=placed.length-1;i>=0;i--){
           if(Math.hypot(placed[i].x-ix,placed[i].y-iy)<24){
             const p=placed[i];
-            const itemMap={solar_panel:'solar_panel',battery:'battery',cooling_fan:'cooling_fan'};
+            const itemMap={solar_panel:'solar_panel',battery:'battery',cooling_fan:'cooling_fan',chest:'chest'};
             if(itemMap[p.type]){addItem(itemMap[p.type]);notify(`⚒️ Picked up ${p.type.replace('_',' ')}`,2);}
             // Remove from power arrays too
             if(p.type==='solar_panel') pwr.panels=pwr.panels.filter(pp=>pp.x!==p.x||pp.y!==p.y);
@@ -2045,6 +2133,12 @@ function drawPlaced(item){
     const sun=getHour()>=6&&getHour()<=20?.3:0;if(sun>0){ctx.fillStyle=`rgba(255,255,200,${sun*(0.4+Math.sin(performance.now()/300)*.2)})`;ctx.fillRect(rx+8,ry+4,10,6);}}
   else if(item.type==='battery'){ctx.fillStyle='#333';ctx.fillRect(rx,ry,w,h);const pct=pwr.maxStore>0?pwr.stored/pwr.maxStore:0;ctx.fillStyle=pct>.5?C.green:pct>.2?C.ledOrange:C.red;ctx.fillRect(rx+4,ry+h-8,(w-8)*pct,4);}
   else if(item.type==='cooling_fan'){ctx.fillStyle='#445566';ctx.fillRect(rx,ry,w,h);ctx.save();ctx.translate(sx,sy);const t=performance.now()/150;for(let i=0;i<4;i++){ctx.rotate(Math.PI/2+t);ctx.fillStyle='#778899';ctx.fillRect(-2,-12,4,12);}ctx.restore();}
+  else if(item.type==='chest'){
+    ctx.fillStyle='#7A5A20';ctx.fillRect(sx-ST/2+6,sy-ST/2+12,ST-12,ST-16);
+    ctx.fillStyle='#8A6A30';ctx.fillRect(sx-ST/2+4,sy-ST/2+10,ST-8,6);
+    ctx.fillStyle='#5A3A10';ctx.fillRect(sx-3,sy-ST/2+12,6,4);
+    ctx.fillStyle='#AA8A40';ctx.fillRect(sx-2,sy-ST/2+13,4,2);
+  }
 }
 
 function drawPlayer(){
@@ -2433,15 +2527,15 @@ function drawHUD(){
   if(showObjectives){
     let lineCount = objectives.length;
     objectives.forEach(o=>{if(o.chapter)lineCount++;});
-    const ow=400,oh=50+lineCount*24,ox=(canvas.width-ow)/2,oy=(canvas.height-oh)/2;
+    const ow=400,oh=50+lineCount*24+230,ox=(canvas.width-ow)/2,oy=(canvas.height-oh)/2;
     panel(ox,oy,ow,oh);ctx.fillStyle=C.hud;ctx.font=`bold 18px ${FONT}`;ctx.textAlign='center';
     ctx.fillText('📋 Quest Log',canvas.width/2,oy+26);
-    
+
     // Progress
     const done = objectives.filter(o=>o.done).length;
     ctx.fillStyle=C.gray;ctx.font=`13px ${FONT}`;
     ctx.fillText(`${done}/${objectives.length} complete`,canvas.width/2,oy+42);
-    
+
     let cy = oy + 58;
     objectives.forEach((o)=>{
       if(o.chapter){
@@ -2451,6 +2545,18 @@ function drawHUD(){
       ctx.fillStyle=o.done?'#5A8A5A':'#CCC';ctx.font=`13px ${FONT}`;ctx.textAlign='left';
       ctx.fillText(`${o.done?'✅':'⬜'} ${o.text}`,ox+28,cy);cy+=22;
     });
+    // Seed phrase progress
+    cy+=10;
+    ctx.fillStyle=C.hud;ctx.font=`bold 14px ${FONT}`;ctx.textAlign='left';
+    ctx.fillText('🧩 Seed Phrase ('+foundWords.length+'/24)',ox+16,cy);cy+=20;
+    const col2Start=cy;
+    for(let i=0;i<24;i++){
+      const found=foundWords.includes(i);
+      ctx.fillStyle=found?C.orange:'#444';ctx.font=`12px ${FONT}`;ctx.textAlign='left';
+      const colX=ox+16+(i>=12?180:0);
+      const rowY=i>=12?col2Start+(i-12)*16:cy+i*16;
+      ctx.fillText((i+1)+'. '+(found?SEED_WORDS[i].word:'???'),colX,rowY);
+    }
     ctx.fillStyle=C.gray;ctx.font=`12px ${FONT}`;ctx.textAlign='center';ctx.fillText('[O] or [Esc] to close',canvas.width/2,oy+oh-10);
   }
   
@@ -2458,6 +2564,7 @@ function drawHUD(){
   if(shopOpen) drawShop();
   if(citadelMenuOpen) drawCitadelMenu();
   if(invOpen) drawInv();
+  if(chestOpen) drawChest();
   if(showSkills) drawSkillsPanel();
   if(showControls) drawControlsPanel();
   if(showDaySummary && daySummary) drawDaySummary();
@@ -2713,6 +2820,36 @@ function drawInv(){
     ctx.fillText(`${it.icon} ${it.name}`,dx,dy+16);ctx.fillStyle='#CCC';ctx.font=`12px ${FONT}`;ctx.textAlign='left';wrapText(it.desc,dx,dy+36,155,15);
     ctx.fillStyle=C.gray;if(it.buy>0)ctx.fillText(`Buy: ${fmt(it.buy)}`,dx,dy+80);if(it.sell>0)ctx.fillText(`Sell: ${fmt(it.sell)}`,dx,dy+94);ctx.fillText(`Qty: ${sel.qty}`,dx,dy+108);}
   ctx.fillStyle=C.gray;ctx.font=`12px ${FONT}`;ctx.textAlign='center';ctx.fillText('1-9,0:Select | Click:Select | I/Tab/Esc:Close',x+w/2,y+h-10);
+}
+
+function drawChest(){
+  const cols=5,rows=4,ss=56,gap=6;
+  const totalW=cols*(ss+gap)+gap;
+  const w=totalW*2+40,h=rows*(ss+gap)+gap+60;
+  const x=(canvas.width-w)/2,y=(canvas.height-h)/2;
+  panel(x,y,w,h);
+  ctx.fillStyle=C.hud;ctx.font='bold 18px '+FONT;ctx.textAlign='center';
+  ctx.fillText('📦 Storage Chest',x+w/2,y+24);
+  ctx.fillStyle=C.gray;ctx.font='bold 13px '+FONT;ctx.textAlign='center';
+  ctx.fillText('Your Inventory',x+totalW/2+10,y+42);
+  for(let r=0;r<rows;r++)for(let c=0;c<cols;c++){
+    const i=r*cols+c,sx2=x+gap+c*(ss+gap)+10,sy2=y+50+r*(ss+gap);
+    ctx.fillStyle=i===selSlot?'rgba(247,147,26,.2)':'rgba(20,20,25,.8)';ctx.fillRect(sx2,sy2,ss,ss);
+    ctx.strokeStyle=i===selSlot?C.hud:'#333';ctx.lineWidth=i===selSlot?2:1;ctx.strokeRect(sx2,sy2,ss,ss);
+    const sl=inv[i];if(sl){ctx.font='28px serif';ctx.textAlign='center';ctx.fillText(ITEMS[sl.id].icon,sx2+ss/2,sy2+ss/2+8);
+      if(sl.qty>1){ctx.fillStyle=C.white;ctx.font='bold 13px '+FONT;ctx.fillText(sl.qty,sx2+ss-10,sy2+ss-6);}}
+  }
+  ctx.fillStyle=C.gray;ctx.font='bold 13px '+FONT;ctx.textAlign='center';
+  ctx.fillText('Chest',x+totalW+totalW/2+30,y+42);
+  for(let r=0;r<rows;r++)for(let c=0;c<cols;c++){
+    const i=r*cols+c,sx2=x+totalW+30+gap+c*(ss+gap),sy2=y+50+r*(ss+gap);
+    ctx.fillStyle='rgba(40,30,20,.8)';ctx.fillRect(sx2,sy2,ss,ss);
+    ctx.strokeStyle='#554430';ctx.lineWidth=1;ctx.strokeRect(sx2,sy2,ss,ss);
+    const sl=chestInv[i];if(sl){ctx.font='28px serif';ctx.textAlign='center';ctx.fillText(ITEMS[sl.id].icon,sx2+ss/2,sy2+ss/2+8);
+      if(sl.qty>1){ctx.fillStyle=C.white;ctx.font='bold 13px '+FONT;ctx.fillText(sl.qty,sx2+ss-10,sy2+ss-6);}}
+  }
+  ctx.fillStyle=C.gray;ctx.font='12px '+FONT;ctx.textAlign='center';
+  ctx.fillText('Click items to transfer | Esc to close',x+w/2,y+h-10);
 }
 
 function panel(x,y,w,h){ctx.fillStyle=C.hudBg;rr(x,y,w,h,6);ctx.strokeStyle=C.hudBorder;ctx.lineWidth=1.5;ctx.stroke();}
