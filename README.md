@@ -43,7 +43,7 @@ See [`docs/GDD.md`](docs/GDD.md) for the full Game Design Document.
 
 ## 🤝 Contributing
 
-Not open for contributions yet — still in early prototyping. Star the repo and watch for updates!
+We're building this together! See [`CONTRIBUTING.md`](CONTRIBUTING.md) for the workflow — branch + PR, no direct pushes to main.
 
 ## 📜 License
 
