@@ -690,7 +690,7 @@ function buildBuilding(bx, by, w, h, type) {
   
   // Add roof decoration
   const roofColors = { home:'#8B2020', shed:'#5A6A4A', shop:'#C47415', tavern:'#6A3A1A', hall:'#4A4A6A' };
-  decor.push({ x: bx, y: by-1, type: 'roof', w, h: 1, color: roofColors[type] || '#8B2020', label: type });
+  decor.push({ x: bx, y: by-1, type: 'roof', w, h: 1, bh: h, color: roofColors[type] || '#8B2020', label: type });
 }
 
 function rebuildCitadel() {
@@ -1673,7 +1673,8 @@ function update(dt) {
   // ---- BUILDING EXIT (interior) ----
   if (interior && !transition) {
     const pty = Math.floor(player.y / TILE);
-    if (pty >= interior.h - 1) {
+    // Exit when player walks into the bottom wall area (door zone)
+    if (pty >= interior.h - 2 && player.y >= (interior.h - 2) * TILE) {
       const rx = interior.returnX, ry = interior.returnY;
       startTransition('fadeOut', 0.4, () => {
         interior = null;
@@ -1746,11 +1747,14 @@ function update(dt) {
 
   // ---- USE ITEM ----
   placeCd-=dt;
-  if(jp['r']&&placeCd<=0&&!shopOpen&&!invOpen&&!dlg){
+  if(jp['r']&&placeCd<=0&&!shopOpen&&!invOpen&&!dlg&&!chestOpen){
     placeCd=.3;const sel=getSelected();
     if(!sel){notify('Select item (1-9)',1.5);}
     else{
       const it=ITEMS[sel.id];
+      // Block placing world items inside buildings (food consumption still works below)
+      if(interior && it.type!=='food'){notify("Can't place items indoors!",1.5);sfx.error();}
+      else{
       const px=Math.round((player.x+player.facing.x*24)/TILE)*TILE+8;
       const py=Math.round((player.y+player.facing.y*24)/TILE)*TILE+8;
       const ptx=Math.floor(px/TILE),pty=Math.floor(py/TILE);
@@ -1879,6 +1883,7 @@ function update(dt) {
         if(!picked){notify('Nothing to pick up',1.5);sfx.error();}
       }
     }
+    } // end interior check
   }
   
   // NPCs
@@ -2229,31 +2234,68 @@ function drawDecor(d) {
     }
   }
   else if(d.type==='roof'){
-    // Building rooftop
-    const rw = d.w * ST, rh = ST;
+    // Full building exterior (covers interior when viewed from overworld)
+    if (interior) return; // don't draw roofs when inside a building
+    const rw = d.w * ST, bh = (d.bh || 4) * ST; // bh = building height in tiles
     const rx = sx, ry = sy;
-    if(sx+rw<0||sx>canvas.width||ry+rh<0||ry>canvas.height)return;
-    // Roof base
-    ctx.fillStyle=d.color;ctx.fillRect(rx-4,ry,rw+8,rh);
-    // Ridge line
-    ctx.fillStyle='rgba(0,0,0,0.2)';ctx.fillRect(rx-4,ry+rh/2-1,rw+8,3);
+    if(sx+rw<-ST||sx>canvas.width+ST||ry>canvas.height+ST||ry+bh+ST<0)return;
+    
+    // Building walls (cover the interior)
+    const wallCol = {home:'#6A4430',shed:'#5A5A4A',shop:'#7A5A30',tavern:'#5A3A1A',hall:'#4A4A5A'}[d.label]||'#6A4430';
+    ctx.fillStyle=wallCol;ctx.fillRect(rx,ry+ST,rw,bh-ST);
+    // Wall detail — horizontal planks
+    ctx.fillStyle='rgba(0,0,0,0.1)';
+    for(let i=0;i<Math.floor(bh/ST)-1;i++){ctx.fillRect(rx,ry+ST+i*ST+ST-2,rw,2);}
+    // Wall detail — vertical beams
+    ctx.fillStyle='rgba(0,0,0,0.08)';
+    ctx.fillRect(rx+2,ry+ST,4,bh-ST);ctx.fillRect(rx+rw-6,ry+ST,4,bh-ST);
+    
+    // Windows
+    const winCol='rgba(200,220,255,0.3)';const winFrame='#4A3018';
+    if(d.w>=6){
+      // Left window
+      ctx.fillStyle=winFrame;ctx.fillRect(rx+ST-2,ry+ST+8,ST+4,ST-8);
+      ctx.fillStyle=winCol;ctx.fillRect(rx+ST,ry+ST+10,ST,ST-12);
+      ctx.fillStyle='rgba(255,255,255,0.08)';ctx.fillRect(rx+ST,ry+ST+10,ST/2,ST-12);
+      // Right window
+      ctx.fillStyle=winFrame;ctx.fillRect(rx+rw-2*ST-2,ry+ST+8,ST+4,ST-8);
+      ctx.fillStyle=winCol;ctx.fillRect(rx+rw-2*ST,ry+ST+10,ST,ST-12);
+      ctx.fillStyle='rgba(255,255,255,0.08)';ctx.fillRect(rx+rw-2*ST,ry+ST+10,ST/2,ST-12);
+    }
+    
+    // Door at bottom center
+    const doorW=ST,doorH=ST+8;
+    const doorX2=rx+Math.floor(d.w/2)*ST;
+    ctx.fillStyle='#3A2010';ctx.fillRect(doorX2-2,ry+bh-doorH,doorW+4,doorH);
+    ctx.fillStyle='#5A3A18';ctx.fillRect(doorX2,ry+bh-doorH+2,doorW,doorH-2);
+    // Door handle
+    ctx.fillStyle='#AA8844';ctx.fillRect(doorX2+doorW-8,ry+bh-doorH/2,4,4);
+    // Door mat
+    ctx.fillStyle='#8A6A40';ctx.fillRect(doorX2-4,ry+bh-2,doorW+8,4);
+    
+    // Roof (covers top, extends beyond walls)
+    ctx.fillStyle=d.color;ctx.fillRect(rx-6,ry-4,rw+12,ST+8);
+    // Roof ridge
+    ctx.fillStyle='rgba(0,0,0,0.15)';ctx.fillRect(rx-6,ry+ST/2-1,rw+12,3);
     // Eaves shadow
-    ctx.fillStyle='rgba(0,0,0,0.15)';ctx.fillRect(rx-6,ry+rh-4,rw+12,6);
-    // Chimney (for home and tavern)
+    ctx.fillStyle='rgba(0,0,0,0.2)';ctx.fillRect(rx-8,ry+ST+2,rw+16,4);
+    
+    // Chimney (home and tavern)
     if(d.label==='home'||d.label==='tavern'){
-      ctx.fillStyle='#6A3A1A';ctx.fillRect(rx+rw-20,ry-12,12,16);
-      ctx.fillStyle='#5A2A0A';ctx.fillRect(rx+rw-22,ry-14,16,4);
-      // Smoke
+      ctx.fillStyle='#6A3A1A';ctx.fillRect(rx+rw-20,ry-16,12,20);
+      ctx.fillStyle='#5A2A0A';ctx.fillRect(rx+rw-22,ry-18,16,4);
       const t=performance.now()/1000;
       ctx.fillStyle='rgba(180,180,180,0.3)';
-      ctx.beginPath();ctx.arc(rx+rw-14+Math.sin(t)*4,ry-20-Math.sin(t*1.5)*6,4+Math.sin(t*2)*2,0,Math.PI*2);ctx.fill();
-      ctx.beginPath();ctx.arc(rx+rw-12+Math.sin(t+1)*5,ry-30-Math.sin(t*1.3)*8,3+Math.sin(t*2.5)*1.5,0,Math.PI*2);ctx.fill();
+      ctx.beginPath();ctx.arc(rx+rw-14+Math.sin(t)*4,ry-24-Math.sin(t*1.5)*6,4+Math.sin(t*2)*2,0,Math.PI*2);ctx.fill();
+      ctx.beginPath();ctx.arc(rx+rw-12+Math.sin(t+1)*5,ry-34-Math.sin(t*1.3)*8,3+Math.sin(t*2.5)*1.5,0,Math.PI*2);ctx.fill();
     }
-    // Shop sign
-    if(d.label==='shop'){
-      ctx.fillStyle='#2A1A08';ctx.fillRect(rx+rw/2-20,ry-8,40,14);
-      ctx.fillStyle=C.orange;ctx.font=`bold 10px ${FONT}`;ctx.textAlign='center';
-      ctx.fillText("₿ RUBY'S",rx+rw/2+sx*0,ry+2);
+    
+    // Building sign
+    const signs={shop:"₿ RUBY'S",tavern:'🍺 HODL TAVERN',hall:'🏛️ TOWN HALL',shed:'⛏️ MINING'};
+    if(signs[d.label]){
+      ctx.fillStyle='#2A1A08';ctx.fillRect(rx+rw/2-28,ry-2,56,14);
+      ctx.fillStyle=C.hud;ctx.font='bold 9px '+FONT;ctx.textAlign='center';
+      ctx.fillText(signs[d.label],rx+rw/2,ry+9);
     }
     return;
   }
@@ -3203,7 +3245,11 @@ function draw(){
   // Sort all entities by Y for depth
   const entities = [];
   if (!interior) {
-    for(const d of decor)entities.push({y:d.y*TILE+TILE,draw:()=>drawDecor(d)});
+    for(const d of decor){
+      // Roofs draw last (highest Y) so they cover floor tiles and entities inside
+      const sortY = d.type==='roof' ? (d.y+d.bh+2)*TILE : d.y*TILE+TILE;
+      entities.push({y:sortY, draw:()=>drawDecor(d)});
+    }
     for(const i of placed)entities.push({y:i.y,draw:()=>drawPlaced(i)});
     for(const r of rigs)entities.push({y:r.y,draw:()=>drawRig(r)});
     for(const n of npcs)entities.push({y:n.y,draw:()=>drawNPC(n)});
