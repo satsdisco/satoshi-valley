@@ -90,7 +90,18 @@ canvas.addEventListener('mousemove', e => {
 
 canvas.addEventListener('click', e => {
   if (gameState !== 'playing') return;
-  if (dlg||citadelMenuOpen||showObjectives||showDaySummary||showSkills||showControls) return;
+  if (dlg){if(!dlg.done){dlg.displayedChars=dlg.fullText.length;dlg.done=true;}else{dlg=null;}return;}
+  if (citadelMenuOpen||showObjectives||showDaySummary||showSkills||showControls) return;
+  // Tutorial skip button + press-to-advance
+  if (!tutorialDone && tutorialStep < TUTORIAL_STEPS.length) {
+    const tw2=Math.min(650,canvas.width-60), th2=58;
+    const tx2=(canvas.width-tw2)/2, ty2=canvas.height*0.14;
+    const skipX2=tx2+tw2-108, skipY2=ty2+th2+4;
+    if (e.clientX>=skipX2&&e.clientX<=skipX2+100&&e.clientY>=skipY2&&e.clientY<=skipY2+24) {
+      tutorialDone=true;notify('Tutorial skipped! Press ? for controls.',3);sfx.menuClose();return;
+    }
+    if (TUTORIAL_STEPS[tutorialStep].trigger==='press'){tutorialStep++;tutTimer=0;if(tutorialStep>=TUTORIAL_STEPS.length)tutorialDone=true;return;}
+  }
   // Shop layer
   if (shopOpen) {
     const sw=560,sh=460,sx=(canvas.width-sw)/2,sy=(canvas.height-sh)/2;
@@ -139,7 +150,7 @@ canvas.addEventListener('click', e => {
   // NPC
   for (const n of npcs) {
     if (Math.hypot(n.x-wx,n.y-wy)<32) {
-      dlg={name:n.name,text:n.dlg[Math.floor(Math.random()*n.dlg.length)],role:n.role}; sfx.interact();
+      const _nd=n.dlg[Math.floor(Math.random()*n.dlg.length)];dlg={name:n.name,text:_nd,role:n.role,fullText:_nd,displayedChars:0,done:false};dlgCharTimer=0; sfx.interact();
       if(n.name==='The Hermit')completeObjective('find_hermit');
       initRelationships();
       if(!relationships[n.name].talked){relationships[n.name].talked=true;addHearts(n.name,0.2);addXP('social',3);}
@@ -159,7 +170,7 @@ canvas.addEventListener('click', e => {
       }else{
         const daysLeft=info.produceTime-a.daysSinceProd;
         const mood=a.happiness>=70?'😊 Happy':a.happiness>=30?'😐 OK':'😞 Unhappy';
-        dlg={name:info.name,text:mood+' | Fed: '+(a.fed?'Yes ✅':'No ❌')+' | '+(daysLeft>0?daysLeft+' days until '+info.productName:info.productName+' ready!'),role:'animal'};
+        const _at=mood+' | Fed: '+(a.fed?'Yes ✅':'No ❌')+' | '+(daysLeft>0?daysLeft+' days until '+info.productName:info.productName+' ready!');dlg={name:info.name,text:_at,role:'animal',fullText:_at,displayedChars:0,done:false};dlgCharTimer=0;
         sfx.interact();
       }
       return;
@@ -308,34 +319,23 @@ const INTRO_SLIDES = [
 ];
 
 const TUTORIAL_STEPS = [
-  // Phase 1: Orientation
-  { msg: "Welcome to Satoshi Valley. Your uncle left you this homestead.", trigger: 'auto', dur: 4, highlight: null },
-  { msg: "🎮 CONTROLS: Use WASD or Arrow Keys to move. Try walking around!", trigger: 'move', highlight: 'controls' },
-  { msg: "Great! You can see your cabin here. Let's check on the mining operation.", trigger: 'auto', dur: 3.5, highlight: null },
-  
-  // Phase 2: Mining (core mechanic)
-  { msg: "⛏️ Walk WEST (left) to the Mining Shed. Follow the path!", trigger: 'near_rig', highlight: 'arrow_west' },
-  { msg: "These are CPU miners your uncle left running. They earn sats automatically!", trigger: 'auto', dur: 4, highlight: null },
-  { msg: "⚡ Press E near a rig to toggle its power on/off. Try it!", trigger: 'interact_rig', highlight: 'key_e' },
-  { msg: "Watch the ₿ sats counter in the top-left. You're earning Bitcoin!", trigger: 'earn_sats', highlight: 'hud_sats' },
-  
-  // Phase 3: Inventory
-  { msg: "📦 Press I to open your Inventory. You have tools and seeds to start.", trigger: 'open_inv', highlight: 'key_i' },
-  { msg: "Select items with number keys 1-9 on the hotbar at the bottom.", trigger: 'select_item', highlight: 'hotbar' },
-  { msg: "Select the Wrench (slot 1) and press E near a rig to repair it.", trigger: 'auto', dur: 5, highlight: 'key_1' },
-  
-  // Phase 4: Shop
-  { msg: "🏪 Ruby's Hardware Shop is SOUTH. Walk down the path to find her!", trigger: 'visit_shop', highlight: 'arrow_south' },
-  { msg: "Press B near Ruby to open the shop. Buy upgrades, tools, and seeds!", trigger: 'auto', dur: 4, highlight: 'key_b' },
-  
-  // Phase 5: Farming
-  { msg: "🌱 FARMING: Select potato seeds, face a brown dirt tile, press R to plant!", trigger: 'auto', dur: 5, highlight: 'garden' },
-  { msg: "Crops grow over several days. Press H to harvest when they glow gold.", trigger: 'auto', dur: 4, highlight: null },
-  
-  // Phase 6: World & Goals
-  { msg: "🗺️ EXPLORE! The forest (west), mountains (north), and lake (east) await.", trigger: 'auto', dur: 4, highlight: null },
-  { msg: "🧩 Your uncle hid 24 seed phrase fragments. Find them to unlock his secret.", trigger: 'auto', dur: 4.5, highlight: null },
-  { msg: "Press O for Objectives, K for Skills, ? for all Controls. Good luck, pleb!", trigger: 'auto', dur: 5, highlight: null },
+  { msg: '📜 A letter from your Uncle Toshi: "Dear nephew, I\'ve left you something in the valley..."', trigger: 'press' },
+  { msg: '"My mining rigs still run. The garden needs tending. And I hid something important..."', trigger: 'press' },
+  { msg: '🎮 Use WASD or Arrow Keys to move. Click anywhere to walk there. Try it!', trigger: 'move', highlight: 'controls' },
+  { msg: '⛏️ Head WEST to the Mining Shed. Your uncle\'s rigs are still running!', trigger: 'near_rig', highlight: 'arrow_west' },
+  { msg: 'These CPU miners earn sats automatically. Press E near one to toggle power!', trigger: 'interact_rig', highlight: 'key_e' },
+  { msg: '₿ Watch your sats grow in the top-left. You\'re mining Bitcoin!', trigger: 'earn_sats', highlight: 'hud_sats' },
+  { msg: '📦 Press I to open your Inventory. Your uncle left you some starting supplies.', trigger: 'open_inv', highlight: 'key_i' },
+  { msg: 'Use number keys 1-9 to select items on your hotbar. Or just click them!', trigger: 'select_item', highlight: 'hotbar' },
+  { msg: '🔧 Select the Wrench and press E near a rig to repair it. Keep them running!', trigger: 'press', highlight: 'key_1' },
+  { msg: '🏪 Ruby runs the Hardware Shop to the SOUTH. She sells everything you need.', trigger: 'visit_shop', highlight: 'arrow_south' },
+  { msg: 'Press B near Ruby to browse her shop. Click or arrow keys to navigate!', trigger: 'press', highlight: 'key_b' },
+  { msg: '🌱 Find dirt tiles in the garden (east of home). Select seeds and press R to plant!', trigger: 'press', highlight: null },
+  { msg: '⏳ Crops grow over several days. Press H near a golden glowing crop to harvest.', trigger: 'press' },
+  { msg: '🐄 Ruby also sells animals! Buy chickens, goats, and cows to build your ranch.', trigger: 'press' },
+  { msg: '🏰 Press C near your home to upgrade your Citadel. Build toward sovereignty!', trigger: 'press' },
+  { msg: '🧩 Your uncle hid 24 seed phrase fragments across the valley. Each one unlocks Bitcoin history.', trigger: 'press' },
+  { msg: '🗺️ Explore! The forest (west), mountains (north), and lake (east) hold secrets. Good luck, pleb!', trigger: 'press' },
 ];
 
 const objectives = [
@@ -842,7 +842,9 @@ let shopOpen=false, shopCur=0, shopMode='buy', shopNpcRole='shop', shopScroll=0;
 // ============================================================
 // UI STATE
 // ============================================================
-let dlg = null; // active dialogue
+let dlg = null; // {name, text, role, displayedChars, done, fullText}
+let dlgCharTimer = 0;
+const DLG_CHAR_SPEED = 0.03; // seconds per character
 let invOpen = false;
 const notifs = [];
 function notify(text,dur=2.5,big=false){notifs.push({text,t:dur,big});}
@@ -1311,6 +1313,7 @@ function update(dt) {
     const tut = TUTORIAL_STEPS[tutorialStep];
     tutTimer += dt;
     if (tut.trigger === 'auto' && tutTimer > (tut.dur || 4)) { tutorialStep++; tutTimer = 0; }
+    if (tut.trigger === 'press' && (jp['enter'] || jp['e'] || jp[' '])) { tutorialStep++; tutTimer = 0; }
     if (tut.trigger === 'move' && player.moving) { tutorialStep++; tutTimer = 0; }
     if (tut.trigger === 'near_rig' && rigs.some(r => Math.hypot(r.x-player.x,r.y-player.y) < 48)) { tutorialStep++; tutTimer = 0; }
     if (tut.trigger === 'interact_rig' && jp['e'] && rigs.some(r => Math.hypot(r.x-player.x,r.y-player.y) < 48)) { tutTriggered=true; }
@@ -1349,7 +1352,7 @@ function update(dt) {
     }else if(shopOpen){shopOpen=false;sfx.menuClose();}
   }
   if(jp['i']||jp['tab']){if(!shopOpen){invOpen=!invOpen;invOpen?sfx.menuOpen():sfx.menuClose();}}
-  if(jp['escape']){if(shopOpen){shopOpen=false;sfx.menuClose();}else if(citadelMenuOpen){citadelMenuOpen=false;sfx.menuClose();}else if(invOpen){invOpen=false;sfx.menuClose();}else if(dlg)dlg=null;else if(showObjectives)showObjectives=false;}
+  if(jp['escape']){if(shopOpen){shopOpen=false;sfx.menuClose();}else if(citadelMenuOpen){citadelMenuOpen=false;sfx.menuClose();}else if(invOpen){invOpen=false;sfx.menuClose();}else if(dlg){if(!dlg.done){dlg.displayedChars=dlg.fullText.length;dlg.done=true;}else{dlg=null;}}else if(showObjectives)showObjectives=false;}
   if(jp['p'])saveGame();if(jp['l'])loadGame();
   for(let n=0;n<=9;n++)if(jp[n.toString()])selSlot=n===0?9:n-1;
   
@@ -1408,7 +1411,7 @@ function update(dt) {
   intCd-=dt;
   if(jp['e']&&intCd<=0&&!shopOpen&&!invOpen){
     intCd=.25;
-    if(dlg){dlg=null;}
+    if(dlg){if(!dlg.done){dlg.displayedChars=dlg.fullText.length;dlg.done=true;}else{dlg=null;}}
     else{
       const ix=player.x+player.facing.x*20,iy=player.y+player.facing.y*20;
       let cr=null,cd=28;for(const r of rigs){const d=Math.hypot(r.x-ix,r.y-iy);if(d<cd){cr=r;cd=d;}}
@@ -1430,14 +1433,14 @@ function update(dt) {
             }else{
               const daysLeft=info.produceTime-a.daysSinceProd;
               const mood=a.happiness>=70?'😊 Happy':a.happiness>=30?'😐 OK':'😞 Unhappy';
-              dlg={name:info.name,text:mood+' | Fed: '+(a.fed?'Yes ✅':'No ❌')+' | '+(daysLeft>0?daysLeft+' days until '+info.productName:info.productName+' ready!'),role:'animal'};
+              const _at2=mood+' | Fed: '+(a.fed?'Yes ✅':'No ❌')+' | '+(daysLeft>0?daysLeft+' days until '+info.productName:info.productName+' ready!');dlg={name:info.name,text:_at2,role:'animal',fullText:_at2,displayedChars:0,done:false};dlgCharTimer=0;
               sfx.interact();
             }
             animalHandled=true;break;
           }
         }
         if(!animalHandled){
-          for(const n of npcs){if(Math.hypot(n.x-ix,n.y-iy)<32){dlg={name:n.name,text:n.dlg[Math.floor(Math.random()*n.dlg.length)],role:n.role};sfx.interact();
+          for(const n of npcs){if(Math.hypot(n.x-ix,n.y-iy)<32){const _nd2=n.dlg[Math.floor(Math.random()*n.dlg.length)];dlg={name:n.name,text:_nd2,role:n.role,fullText:_nd2,displayedChars:0,done:false};dlgCharTimer=0;sfx.interact();
             if(n.name==='The Hermit')completeObjective('find_hermit');
             initRelationships();
             if(!relationships[n.name].talked){relationships[n.name].talked=true;addHearts(n.name,0.2);addXP('social',3);}
@@ -1447,6 +1450,16 @@ function update(dt) {
     }
   }
   
+  // ---- TYPEWRITER DIALOGUE UPDATE ----
+  if(dlg && !dlg.done){
+    dlgCharTimer+=dt;
+    while(dlgCharTimer>=DLG_CHAR_SPEED && dlg.displayedChars<dlg.fullText.length){
+      dlg.displayedChars++;dlgCharTimer-=DLG_CHAR_SPEED;
+      if(dlg.displayedChars%2===0)tone(300+Math.random()*200,0.02,'square',0.015);
+    }
+    if(dlg.displayedChars>=dlg.fullText.length)dlg.done=true;
+  }
+
   // ---- USE ITEM ----
   placeCd-=dt;
   if(jp['r']&&placeCd<=0&&!shopOpen&&!invOpen&&!dlg){
@@ -2220,7 +2233,14 @@ function drawHUD(){
     // Step counter
     ctx.fillStyle=C.gray;ctx.font=`12px ${FONT}`;ctx.textAlign='right';
     ctx.fillText(`${tutorialStep+1}/${TUTORIAL_STEPS.length}`,tx+tw-12,ty+th-6);
-    
+
+    // Skip tutorial button
+    const skipW=100,skipH=24;
+    const skipX=tx+tw-skipW-8,skipY=ty+th+4;
+    ctx.fillStyle='rgba(80,20,20,0.7)';rr(skipX,skipY,skipW,skipH,4);
+    ctx.fillStyle='#CC6666';ctx.font=`bold 12px ${FONT}`;ctx.textAlign='center';
+    ctx.fillText('Skip Tutorial',skipX+skipW/2,skipY+16);
+
     // Visual guide arrows
     const sx2=player.x*SCALE-cam.x,sy2=player.y*SCALE-cam.y;
     if(tut.highlight==='arrow_west'){drawTutArrow(sx2-70,sy2,'left');}
@@ -2256,9 +2276,9 @@ function drawHUD(){
     ctx.fillStyle=C.hud;ctx.font=`bold 16px ${FONT}`;ctx.textAlign='left';
     ctx.fillText(dlg.name,dx+16,dy+26);
     ctx.fillStyle=C.white;ctx.font=`14px ${FONT}`;ctx.textAlign='left';
-    wrapText(dlg.text,dx+16,dy+48,dw-40,18);
+    wrapText(dlg.fullText.substring(0,dlg.displayedChars),dx+16,dy+48,dw-40,18);
     ctx.fillStyle=C.gray;ctx.font=`12px ${FONT}`;ctx.textAlign='right';
-    ctx.fillText('[E] Close',dx+dw-16,dy+dh-10);
+    ctx.fillText(dlg.done?'[E/Click] Continue':'[E/Click] Skip',dx+dw-16,dy+dh-10);
   }
   
   // Objectives panel
