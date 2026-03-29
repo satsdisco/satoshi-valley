@@ -477,13 +477,15 @@ function generateMap() {
   // Village plaza (4x4 path tiles where south paths diverge)
   for(let py=homeY+4;py<=homeY+7;py++) for(let px=homeX+4;px<=homeX+7;px++) setT(px,py,T.PATH);
   
-  // ---- GARDEN (right of cabin) ----
-  for (let y = homeY-2; y <= homeY+2; y++) for (let x = homeX+6; x <= homeX+12; x++) {
+  // ---- GARDEN (well east of home — room for max citadel 15w centered at homeX) ----
+  // Max citadel spans homeX-7 to homeX+8, so garden starts at homeX+12
+  const gardenX = homeX+12;
+  for (let y = homeY-2; y <= homeY+2; y++) for (let x = gardenX; x <= gardenX+7; x++) {
     if (y >= 0 && y < MAP_H && x >= 0 && x < MAP_W) map[y][x] = T.DIRT;
   }
-  for (let x = homeX+5; x <= homeX+13; x++) { setT(x, homeY-3, T.FENCE); setT(x, homeY+3, T.FENCE); }
-  for (let y = homeY-3; y <= homeY+3; y++) { setT(homeX+5, y, T.FENCE); setT(homeX+13, y, T.FENCE); }
-  setT(homeX+9, homeY+3, T.PATH); // gate
+  for (let x = gardenX-1; x <= gardenX+8; x++) { setT(x, homeY-3, T.FENCE); setT(x, homeY+3, T.FENCE); }
+  for (let y = homeY-3; y <= homeY+3; y++) { setT(gardenX-1, y, T.FENCE); setT(gardenX+8, y, T.FENCE); }
+  setT(gardenX+3, homeY+3, T.PATH); // gate
   
   // ---- BRIDGE over water ----
   // Find water crossing near the north path
@@ -620,8 +622,9 @@ function rebuildCitadel() {
   if (citadelTier >= 4) {
     decor.push({ x: homeX+Math.floor(t.w/2)-1, y: cy, type: 'citadel_tower' });
   }
-  // Restore path to front door
-  drawPath(homeX, homeY+3, homeX, homeY+5, 1);
+  // Restore paths around citadel
+  drawPath(homeX, homeY+Math.floor(t.h/2)+1, homeX, homeY+5, 1); // front door to main road
+  drawPath(homeX-20, homeY+3, homeX+25, homeY+3, 3); // re-draw main road segment near home
 }
 
 function upgradeCitadel() {
@@ -811,7 +814,7 @@ const npcs = [
       '"At least I proved Bitcoin had real-world value. You\'re welcome."',
     ],
     wp:[{x:homeX+1,y:homeY+21},{x:homeX+4,y:homeY+21},{x:homeX+4,y:homeY+23},{x:homeX+1,y:homeY+23}],pi:0,mt:0,mi:4 },
-  { name:'Farmer Pete',x:(homeX+9)*TILE+8,y:(homeY+4)*TILE+8,col:'#228822',hair:'#886633',role:'market',
+  { name:'Farmer Pete',x:(homeX+15)*TILE+8,y:(homeY+4)*TILE+8,col:'#228822',hair:'#886633',role:'market',
     dlg:[
       '"Press B to sell your harvest! I pay in sats, naturally."',
       '"Potatoes, tomatoes, corn — bring me what you\'ve got."',
@@ -820,7 +823,7 @@ const npcs = [
       '"Low time preference applies to farming too. Be patient."',
       '"Sell in Euphoria phase for max profit. Buy seeds in Capitulation."',
     ],
-    wp:[{x:homeX+9,y:homeY+4},{x:homeX+11,y:homeY+4},{x:homeX+11,y:homeY+2},{x:homeX+9,y:homeY+2}],pi:0,mt:0,mi:4 },
+    wp:[{x:homeX+14,y:homeY+4},{x:homeX+18,y:homeY+4},{x:homeX+18,y:homeY+2},{x:homeX+14,y:homeY+2}],pi:0,mt:0,mi:4 },
 ];
 
 // ============================================================
