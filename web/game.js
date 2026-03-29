@@ -1312,7 +1312,7 @@ function toggleMusic() {
   if (musicOn) { music.stop(); musicOn = false; notify('🔇 Music off', 1.5); }
   else { music.start(); musicOn = true; notify('🎵 Music on', 1.5); }
 }
-const time = {dl:180,cur:.25,day:1,spd:1,td:1};
+const time = {dl:300,cur:.25,day:1,spd:1,td:1}; // 5 min days (was 3)
 function getHour(){return time.cur*24;}
 function getTimeStr(){const h=Math.floor(getHour()),m=Math.floor((getHour()-h)*60);return`${h%12||12}:${m.toString().padStart(2,'0')} ${h<12?'AM':'PM'}`;}
 function getPeriod(){const h=getHour();if(h<5)return'Night';if(h<7)return'Dawn';if(h<12)return'Morning';if(h<14)return'Noon';if(h<17)return'Afternoon';if(h<21)return'Evening';return'Night';}
@@ -1343,8 +1343,9 @@ initSprites();
 generateMap();
 generateInteriors();
 // Starter rigs in the mining shed — already mining!
-const rig1 = new Rig((homeX-16)*TILE+8, (homeY-4)*TILE+8, 0);
-const rig2 = new Rig((homeX-14)*TILE+8, (homeY-4)*TILE+8, 0);
+// Starter rigs outside the shed (visible and accessible)
+const rig1 = new Rig((homeX-17)*TILE+8, (homeY+0)*TILE+8, 0);
+const rig2 = new Rig((homeX-15)*TILE+8, (homeY+0)*TILE+8, 0);
 rig1.powered = true; rig2.powered = true;
 rigs.push(rig1); rigs.push(rig2);
 addItem('wrench', 3);
@@ -1694,6 +1695,21 @@ function update(dt) {
   if(jp['e']&&intCd<=0&&!shopOpen&&!invOpen&&!chestOpen){
     intCd=.25;
     if(dlg){if(!dlg.done){dlg.displayedChars=dlg.fullText.length;dlg.done=true;}else{dlg=null;}}
+    else if(interior && interior.type==='home'){
+      // Sleep — skip to morning
+      const hour=getHour();
+      if(hour>=18||hour<6){
+        startTransition('fadeOut', 0.6, ()=>{
+          time.cur=0.25; // 6 AM
+          player.energy=Math.min(player.maxEnergy,player.energy+50);
+          notify('💤 You slept through the night. Energy restored!',3);
+          sfx.story();
+          startTransition('fadeIn', 0.6, null);
+        });
+      } else {
+        notify("Not tired yet. Come back after 6 PM.",2);sfx.error();
+      }
+    }
     else{
       const ix=player.x+player.facing.x*20,iy=player.y+player.facing.y*20;
       let cr=null,cd=28;for(const r of rigs){const d=Math.hypot(r.x-ix,r.y-iy);if(d<cd){cr=r;cd=d;}}
@@ -2132,7 +2148,13 @@ function drawTile(x,y,tile){
 
 function drawDecor(d) {
   const sx=d.x*ST-cam.x,sy=d.y*ST-cam.y;
-  if(sx>canvas.width+ST*2||sy>canvas.height+ST*2||sx<-ST*2||sy<-ST*2)return;
+  // Roofs have tall facades — use building height for culling
+  if(d.type==='roof'){
+    const facadeBottom = sy + (d.bh+2)*ST;
+    if(sx>canvas.width+ST*2||facadeBottom<-ST||sx+d.w*ST<-ST*2||sy>canvas.height+ST*2)return;
+  } else {
+    if(sx>canvas.width+ST*2||sy>canvas.height+ST*2||sx<-ST*2||sy<-ST*2)return;
+  }
   const t = performance.now()/1000;
   
   if(d.type==='tree'){
