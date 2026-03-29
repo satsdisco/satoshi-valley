@@ -26,15 +26,24 @@
 - [x] Halving events
 - [x] 3x zoom for pixel art feel
 
-## Sprint 3: "The Economy" — NEXT
-- [ ] Shop NPC (buy/sell items)
-- [ ] Inventory system (grid-based)
-- [ ] Multiple rig tiers purchasable (CPU → GPU → ASIC)
-- [ ] Tool system (pickaxe, wrench for repairs)
-- [ ] Repair mechanic for rigs
-- [ ] Power management (solar panels, grid)
-- [ ] Sound effects (mining hum, block found, footsteps)
-- [ ] Save/load game state (localStorage)
+## Sprint 3: "The Economy" ✅ COMPLETE
+- [x] Shop NPC — Ruby the Miner with full buy/sell UI
+- [x] Inventory system — 20-slot grid with hotbar (1-9,0 keys)
+- [x] Multiple rig tiers — CPU (500), GPU (5000), ASIC (50000)
+- [x] Tool system — Wrench (repair), Pickaxe (mine resources)
+- [x] Repair mechanic — wrench repairs +25 durability
+- [x] Power management — Solar panels, batteries, grid fallback
+- [x] Cooling fans — reduce nearby rig heat
+- [x] Food items — Bread (energy), Coffee (speed boost)
+- [x] Mining resources — Copper ore, Silicon from stone tiles
+- [x] Market price fluctuation — prices change with market phase
+- [x] Sound effects — mining hum, block found fanfare, footsteps, buy/sell, place, repair, error, menu open/close, coin
+- [x] Save/load game state (localStorage + auto-save weekly)
+- [x] New NPC: Ruby the Miner (shopkeeper)
+- [x] New NPC: The Hermit (forest, cypherpunk lore)
+- [x] Energy system
+- [x] Item database with 13 items
+- [x] Quest item: Seed phrase fragments
 
 ## Sprint 4: "The Social"
 - [ ] 5+ more NPCs with full dialogue trees
