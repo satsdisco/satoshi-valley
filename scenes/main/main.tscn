@@ -1,0 +1,93 @@
+[gd_scene load_steps=7 format=3 uid="uid://main001"]
+
+[ext_resource type="Script" path="res://scripts/player.gd" id="1_player"]
+[ext_resource type="Texture2D" path="res://assets/sprites/player.png" id="2_playerspr"]
+[ext_resource type="Script" path="res://scripts/camera.gd" id="3_camera"]
+[ext_resource type="Script" path="res://scripts/day_night_cycle.gd" id="4_daynight"]
+[ext_resource type="Script" path="res://scripts/hud.gd" id="5_hud"]
+[ext_resource type="Texture2D" path="res://assets/sprites/tile_grass.png" id="6_grass"]
+
+[sub_resource type="CircleShape2D" id="CircleShape2D_player"]
+radius = 6.0
+
+[sub_resource type="TileSetAtlasSource" id="TileSetAtlasSource_grass"]
+texture = ExtResource("6_grass")
+texture_region_size = Vector2i(16, 16)
+0:0/0 = 0
+
+[sub_resource type="TileSet" id="TileSet_main"]
+tile_size = Vector2i(16, 16)
+sources/0 = SubResource("TileSetAtlasSource_grass")
+
+[node name="Main" type="Node2D"]
+
+[node name="TileMapLayer" type="TileMapLayer" parent="."]
+tile_set = SubResource("TileSet_main")
+
+[node name="Player" type="CharacterBody2D" parent="."]
+position = Vector2(128, 128)
+script = ExtResource("1_player")
+
+[node name="Sprite2D" type="Sprite2D" parent="Player"]
+texture = ExtResource("2_playerspr")
+texture_filter = 0
+
+[node name="CollisionShape2D" type="CollisionShape2D" parent="Player"]
+shape = SubResource("CircleShape2D_player")
+
+[node name="InteractionRay" type="RayCast2D" parent="Player"]
+target_position = Vector2(0, 20)
+collision_mask = 1
+
+[node name="Camera2D" type="Camera2D" parent="."]
+position = Vector2(128, 128)
+zoom = Vector2(3, 3)
+script = ExtResource("3_camera")
+
+[node name="DayNightCycle" type="CanvasModulate" parent="."]
+script = ExtResource("4_daynight")
+
+[node name="HUD" type="CanvasLayer" parent="."]
+script = ExtResource("5_hud")
+
+[node name="MarginContainer" type="MarginContainer" parent="HUD"]
+anchors_preset = 0
+offset_left = 10.0
+offset_top = 10.0
+offset_right = 300.0
+offset_bottom = 200.0
+
+[node name="VBoxContainer" type="VBoxContainer" parent="HUD/MarginContainer"]
+layout_mode = 2
+
+[node name="SatsLabel" type="Label" parent="HUD/MarginContainer/VBoxContainer"]
+layout_mode = 2
+text = "₿ 1,000 sats"
+
+[node name="TimeLabel" type="Label" parent="HUD/MarginContainer/VBoxContainer"]
+layout_mode = 2
+text = "6:00 AM"
+
+[node name="DayLabel" type="Label" parent="HUD/MarginContainer/VBoxContainer"]
+layout_mode = 2
+text = "Day 1 — Morning"
+
+[node name="HashrateLabel" type="Label" parent="HUD/MarginContainer/VBoxContainer"]
+layout_mode = 2
+text = "⚡ 0.0 TH/s | Diff: 1.0"
+
+[node name="PhaseLabel" type="Label" parent="HUD/MarginContainer/VBoxContainer"]
+layout_mode = 2
+text = "Phase: Accumulation"
+
+[node name="BlockNotification" type="Label" parent="HUD"]
+anchors_preset = 5
+anchor_left = 0.5
+anchor_right = 0.5
+offset_left = -200.0
+offset_top = 50.0
+offset_right = 200.0
+offset_bottom = 80.0
+horizontal_alignment = 1
+text = ""
+visible = false

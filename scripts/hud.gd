@@ -1,15 +1,14 @@
 extends CanvasLayer
 
-## Heads-up display — shows sats balance, time, hashrate, phase
+## Heads-up display — sats balance, time, hashrate, market phase
 
 @onready var sats_label: Label = $MarginContainer/VBoxContainer/SatsLabel
 @onready var time_label: Label = $MarginContainer/VBoxContainer/TimeLabel
 @onready var day_label: Label = $MarginContainer/VBoxContainer/DayLabel
 @onready var hashrate_label: Label = $MarginContainer/VBoxContainer/HashrateLabel
 @onready var phase_label: Label = $MarginContainer/VBoxContainer/PhaseLabel
-
-# Block found notification
 @onready var block_notification: Label = $BlockNotification
+
 var notification_timer: float = 0.0
 
 func _ready() -> void:
@@ -27,24 +26,22 @@ func _process(delta: float) -> void:
 	_update_time_display()
 	_update_hashrate_display()
 	
-	# Fade block notification
 	if notification_timer > 0:
 		notification_timer -= delta
-		if notification_timer <= 0:
+		if notification_timer <= 0 and block_notification:
 			block_notification.visible = false
 
 func _on_balance_changed(new_balance: int) -> void:
 	if sats_label:
-		# Format with commas
 		sats_label.text = "₿ %s sats" % _format_number(new_balance)
 
-func _on_block_found(_rig: MiningRig, reward: int) -> void:
+func _on_block_found(_rig, reward: int) -> void:
 	if block_notification:
 		block_notification.text = "⛏️ BLOCK FOUND! +%s sats!" % _format_number(reward)
 		block_notification.visible = true
-		notification_timer = 5.0  # Show for 5 seconds
+		notification_timer = 5.0
 
-func _on_phase_changed(new_phase: int) -> void:
+func _on_phase_changed(_new_phase: int) -> void:
 	var economy = get_node_or_null("/root/Economy")
 	if economy and phase_label:
 		phase_label.text = "Phase: %s" % economy.get_phase_name()
