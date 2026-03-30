@@ -2109,7 +2109,9 @@ function update(dt) {
     intCd=.25;
     if(dlg){if(!dlg.done){dlg.displayedChars=dlg.fullText.length;dlg.done=true;}else{dlg=null;}}
     else if(interior && interior.type==='home'){
-      // Sleep — skip to morning
+      // Sleep — must be near the bed (top-left area of home interior)
+      const nearBed=player.y<4*TILE && player.x<5*TILE;
+      if(!nearBed){notify('Walk to the bed to sleep 🛏️',2);sfx.error();for(const k in jp)jp[k]=false;return;}
       const hour=getHour();
       if(hour>=18||hour<6){
         startTransition('fadeOut', 0.6, ()=>{
@@ -2954,9 +2956,32 @@ function drawDecor(d) {
       ctx.fillStyle='#6A4A20';ctx.fillRect(fx+10,fy+16,ST-20,2);ctx.fillRect(fx+ST/2-1,fy+10,2,ST-14);
     }
     else if(d.item==='bed'){
-      ctx.fillStyle='#5A3A18';ctx.fillRect(fx+4,fy+8,ST-8,ST-10); // frame
-      ctx.fillStyle='#8888CC';ctx.fillRect(fx+6,fy+10,ST-12,ST-16); // blanket
-      ctx.fillStyle='#CCCCEE';ctx.fillRect(fx+6,fy+6,ST-12,8); // pillow
+      // Wooden bed frame
+      ctx.fillStyle='#5A3A18';ctx.fillRect(fx+2,fy+4,ST-4,ST-6);
+      // Headboard (darker, taller)
+      ctx.fillStyle='#4A2A10';ctx.fillRect(fx+2,fy+2,ST-4,8);
+      ctx.fillStyle='#3A1A08';ctx.fillRect(fx+4,fy+4,ST-8,4); // headboard detail
+      // Mattress
+      ctx.fillStyle='#DDDDEE';ctx.fillRect(fx+4,fy+10,ST-8,ST-18);
+      // Cozy blanket (blue with pattern)
+      ctx.fillStyle='#6070B0';ctx.fillRect(fx+4,fy+16,ST-8,ST-26);
+      ctx.fillStyle='#5060A0';ctx.fillRect(fx+6,fy+18,ST-12,ST-30); // blanket fold
+      // Orange ₿ on blanket
+      ctx.fillStyle='#F7931A';ctx.font='bold 10px '+FONT;ctx.textAlign='center';
+      ctx.fillText('₿',fx+ST/2,fy+ST-12);
+      // Pillow (white, plump)
+      ctx.fillStyle='#EEEEFF';ctx.beginPath();ctx.ellipse(fx+ST/2,fy+12,ST/2-6,5,0,0,Math.PI*2);ctx.fill();
+      ctx.fillStyle='#DDDDEE';ctx.beginPath();ctx.ellipse(fx+ST/2,fy+12,ST/2-8,3,0,0,Math.PI*2);ctx.fill();
+      // Sleep prompt when nearby and nighttime
+      if(interior&&interior.type==='home'){
+        const bdist=Math.hypot(d.x*TILE+8-player.x,d.y*TILE+8-player.y);
+        const hr=getHour();
+        if(bdist<TILE*3){
+          ctx.fillStyle=(hr>=18||hr<6)?C.gold:'#888';
+          ctx.font=`bold 11px ${FONT}`;ctx.textAlign='center';
+          ctx.fillText((hr>=18||hr<6)?'[E] Sleep 💤':'Not tired yet',fx+ST/2,fy-4);
+        }
+      }
     }
     else if(d.item==='fireplace'){
       ctx.fillStyle='#555';ctx.fillRect(fx+6,fy+4,ST-12,ST-6); // stone surround
