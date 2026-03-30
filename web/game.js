@@ -549,6 +549,7 @@ function addItem(id,qty=1){const it=ITEMS[id];if(!it)return false;if(it.stack){c
 function removeItem(id,qty=1){const s=inv.find(s=>s&&s.id===id&&s.qty>=qty);if(!s)return false;s.qty-=qty;if(s.qty<=0){const i=inv.indexOf(s);inv[i]=null;}return true;}
 function hasItem(id){const s=inv.find(s=>s&&s.id===id);return s&&s.qty>0;}
 function getSelected(){return(selSlot>=0&&selSlot<inv.length&&inv[selSlot])?inv[selSlot]:null;}
+function useEnergy(amount){if(player.energy<amount){notify('Too tired! Eat food or sleep.',2);sfx.error();return false;}player.energy-=amount;return true;}
 
 // ============================================================
 // POWER
@@ -756,10 +757,21 @@ function generateMap() {
 
   // Seed fragments hidden in the world
   const fragLocations = [
-    { x: homeX-16, y: homeY-5 }, // In mining shed
-    { x: 15, y: 20 }, // Deep forest
-    { x: 90, y: 15 }, // Mountain cave
-    { x: homeX+30, y: homeY+20 }, // Near lake
+    // Near home & buildings
+    {x:homeX-16,y:homeY-5},   // Mining shed
+    {x:homeX+10,y:homeY+18},  // Behind shop
+    {x:homeX+22,y:homeY+14},  // Near tavern
+    {x:homeX-3,y:homeY-10},   // In the garden
+    // Forest (west)
+    {x:15,y:20},{x:8,y:40},{x:20,y:55},{x:12,y:65},{x:6,y:30},
+    // Mountains (north)
+    {x:40,y:8},{x:70,y:6},{x:90,y:12},
+    // Lake & beaches (east)
+    {x:95,y:45},{x:100,y:60},{x:85,y:75},
+    // Map edges & corners (reward exploration)
+    {x:5,y:80},{x:110,y:10},{x:105,y:80},{x:60,y:5},
+    // Unique terrain spots
+    {x:35,y:25},{x:75,y:35},{x:50,y:70},{x:30,y:50},{x:80,y:25},
   ];
   for (const loc of fragLocations) {
     decor.push({ x: loc.x, y: loc.y, type: 'seed_fragment' });
@@ -1705,6 +1717,8 @@ function update(dt) {
   // Time
   time.cur += (dt*time.spd)/time.dl;
   if (time.cur>=1){time.cur-=1;time.day++;time.td++;econ.pd++;
+    player.energy=Math.max(0,player.energy-2);
+    if(player.energy<20&&player.energy>0)notify('Getting tired...',2);
     updateCrops(); // Grow crops each day
     // Rain bonus: crops grow 1 extra day in rain/storm
     if(weather.current==='rain'||weather.current==='storm'){
@@ -1752,7 +1766,7 @@ function update(dt) {
 
   time.spd = keys[' '] ? 15 : 1;
   if(player.boost>0){player.boost-=dt;if(player.boost<=0)notify('☕ Coffee wore off',1.5);}
-  const spd = player.speed*(player.boost>0?1.5:1);
+  const spd = player.speed*(player.boost>0?1.5:1)*(player.energy<=0?0.5:1);
   
   // Objective checks
   if(player.totalEarned>=1000) completeObjective('earn_1000');
@@ -2086,6 +2100,7 @@ function update(dt) {
       else if(sel.id==='honey'){removeItem('honey');player.energy=Math.min(player.maxEnergy,player.energy+35);player.boost=20;sfx.coin();notify('🍯 Sweet honey! +35 energy, speed boost!',2);}
       else if(sel.id==='cheese'){removeItem('cheese');player.energy=Math.min(player.maxEnergy,player.energy+40);sfx.coin();notify('🧀 Aged cheese! +40 energy',1.5);}
       else if(sel.id==='pickaxe'){
+        if(!useEnergy(8))return;
         const tx=Math.floor((player.x+player.facing.x*16)/TILE),ty=Math.floor((player.y+player.facing.y*16)/TILE);
         if(map[ty]&&(map[ty][tx]===T.STONE||map[ty][tx]===T.CLIFF)){
           if(Math.random()<.4){addItem('copper_ore');sfx.repair();notify('🪨 Copper ore!',1.5);addXP('foraging',3);}
@@ -2095,6 +2110,7 @@ function update(dt) {
       }
       // CROP PLANTING on dirt tiles
       else if(sel.id==='potato_seed'||sel.id==='tomato_seed'||sel.id==='corn_seed'||sel.id==='pumpkin_seed'){
+        if(!useEnergy(2))return;
         const tx=Math.floor((player.x+player.facing.x*16)/TILE),ty=Math.floor((player.y+player.facing.y*16)/TILE);
         if(map[ty]&&map[ty][tx]===T.DIRT&&!crops.some(c=>c.x===tx&&c.y===ty)){
           const cropType = sel.id.replace('_seed','');
@@ -2107,6 +2123,7 @@ function update(dt) {
       }
       // AXE — chop trees, clear tall grass
       else if(sel.id==='axe'){
+        if(!useEnergy(5))return;
         const tx=Math.floor((player.x+player.facing.x*20)/TILE),ty=Math.floor((player.y+player.facing.y*20)/TILE);
         // Check for trees in decor
         let chopped = false;
@@ -2131,6 +2148,7 @@ function update(dt) {
       }
       // HOE — convert grass to dirt
       else if(sel.id==='hoe'){
+        if(!useEnergy(3))return;
         const tx=Math.floor((player.x+player.facing.x*16)/TILE),ty=Math.floor((player.y+player.facing.y*16)/TILE);
         if(map[ty]&&(map[ty][tx]===T.GRASS||map[ty][tx]===T.TALLGRASS||map[ty][tx]===T.FLOWERS)){
           map[ty][tx]=T.DIRT;
@@ -2139,6 +2157,7 @@ function update(dt) {
       }
       // SHOVEL — pick up placed items and rigs
       else if(sel.id==='shovel'){
+        if(!useEnergy(2))return;
         const ix=player.x+player.facing.x*20,iy=player.y+player.facing.y*20;
         // Check placed items first
         let picked=false;
@@ -2202,7 +2221,10 @@ function update(dt) {
   // NPCs
   for(const n of npcs){n.mt+=dt;if(n.mt>=n.mi){n.mt=0;n.pi=(n.pi+1)%n.wp.length;}
     const t=n.wp[n.pi],tx=t.x*TILE+8,ty=t.y*TILE+8,s=30*dt;
-    if(Math.abs(n.x-tx)>1)n.x+=Math.sign(tx-n.x)*s;if(Math.abs(n.y-ty)>1)n.y+=Math.sign(ty-n.y)*s;}
+    const nMoving=Math.abs(n.x-tx)>1||Math.abs(n.y-ty)>1;
+    if(Math.abs(n.x-tx)>1)n.x+=Math.sign(tx-n.x)*s;if(Math.abs(n.y-ty)>1)n.y+=Math.sign(ty-n.y)*s;
+    n.moving=nMoving;
+    if(nMoving){n.wt=(n.wt||0)+dt;if(n.wt>0.15){n.wt=0;n.wf=((n.wf||0)+1)%4;}}else n.wt=0;}
   
   // Rigs
   let th=0;for(const r of rigs){const e=r.update(dt);if(e>0){player.wallet+=e;player.totalEarned+=e;
@@ -3341,13 +3363,259 @@ function drawAnimal(a){
 
 function drawNPC(n){
   const sx=n.x*SCALE-cam.x,sy=n.y*SCALE-cam.y;
-  const w=ST,h=ST+8,px=sx-w/2,py=sy-h/2;
+  const w=ST+4,h=ST+16,px=sx-w/2,py=sy-h/2;
   if(sx>canvas.width+w||sy>canvas.height+h||sx<-w||sy<-h)return;
-  ctx.fillStyle='rgba(0,0,0,.15)';ctx.beginPath();ctx.ellipse(sx,sy+h/2,12,4,0,0,Math.PI*2);ctx.fill();
-  ctx.fillStyle=n.col;ctx.fillRect(px+8,py+14,w-16,h-28);
-  ctx.fillStyle=C.skin;ctx.fillRect(px+12,py+2,w-24,16);
-  ctx.fillStyle=n.hair;ctx.fillRect(px+10,py-2,w-20,8);
-  ctx.fillStyle=C.black;ctx.fillRect(px+16,py+8,3,3);ctx.fillRect(px+w-19,py+8,3,3);
+  const bob=n.moving?Math.sin((n.wf||0)*Math.PI/2)*2:0;
+  const lo=n.moving?Math.sin((n.wf||0)*Math.PI)*4:0;
+  const as=n.moving?Math.sin((n.wf||0)*Math.PI)*5:0;
+  const eyeOff=player?((n.x<player.x)?2:(n.x>player.x)?-2:0):0;
+  
+  // Shadow
+  ctx.fillStyle='rgba(0,0,0,.18)';ctx.beginPath();ctx.ellipse(sx,sy+h/2+3,16,6,0,0,Math.PI*2);ctx.fill();
+
+  // === PER-NPC UNIQUE DESIGNS ===
+  if(n.name==='Hodl Hannah'){
+    // Legs — dark leggings
+    ctx.fillStyle='#2A2A3A';ctx.fillRect(px+12+lo,py+h-20,10,16);ctx.fillRect(px+w-22-lo,py+h-20,10,16);
+    ctx.fillStyle='#C06080';ctx.fillRect(px+10+lo,py+h-6,14,6);ctx.fillRect(px+w-24-lo,py+h-6,14,6); // pink shoes
+    // Body — pink top
+    ctx.fillStyle='#FF69B4';ctx.fillRect(px+8,py+18+bob,w-16,h-38);
+    ctx.fillStyle='#E05A9E';ctx.fillRect(px+14,py+34+bob,w-28,6); // belt line
+    // ₿ necklace
+    ctx.fillStyle='#FFD700';ctx.font='bold 10px '+FONT;ctx.textAlign='center';ctx.fillText('₿',sx,py+28+bob);
+    // Arms
+    ctx.fillStyle='#FF69B4';ctx.fillRect(px+1,py+18+bob-as,10,12);ctx.fillRect(px+w-11,py+18+bob+as,10,12);
+    ctx.fillStyle=C.skin;ctx.fillRect(px+2,py+28+bob-as,8,8);ctx.fillRect(px+w-10,py+28+bob+as,8,8);
+    // Head
+    ctx.fillStyle=C.skin;ctx.fillRect(px+12,py+4+bob,w-24,16);ctx.fillRect(px+14,py+18+bob,w-28,4);
+    // Blonde hair — long flowing
+    ctx.fillStyle='#FFD700';ctx.fillRect(px+10,py+bob,w-20,8);
+    ctx.fillRect(px+8,py+2+bob,6,18);ctx.fillRect(px+w-14,py+2+bob,6,18); // long sides
+    // Eyes
+    ctx.fillStyle=C.white;ctx.fillRect(px+16+eyeOff,py+10+bob,6,5);ctx.fillRect(px+w-22+eyeOff,py+10+bob,6,5);
+    ctx.fillStyle='#4488CC';ctx.fillRect(px+18+eyeOff,py+11+bob,3,3);ctx.fillRect(px+w-20+eyeOff,py+11+bob,3,3); // blue eyes
+    ctx.fillStyle='#D09070';ctx.fillRect(px+20,py+16+bob,w-40,2); // mouth
+  }
+  else if(n.name==='Leverage Larry'){
+    // Legs — suit pants
+    ctx.fillStyle='#2A2A55';ctx.fillRect(px+12+lo,py+h-20,10,16);ctx.fillRect(px+w-22-lo,py+h-20,10,16);
+    ctx.fillStyle='#1A1A30';ctx.fillRect(px+10+lo,py+h-6,14,6);ctx.fillRect(px+w-24-lo,py+h-6,14,6); // dark shoes
+    // Body — blue suit jacket
+    ctx.fillStyle='#4455FF';ctx.fillRect(px+8,py+18+bob,w-16,h-38);
+    ctx.fillStyle='#3344DD';ctx.fillRect(px+14,py+20+bob,2,h-42); // lapel left
+    ctx.fillRect(px+w-16,py+20+bob,2,h-42); // lapel right
+    ctx.fillStyle='#DDD';ctx.fillRect(sx-1,py+20+bob,2,h-40); // tie
+    ctx.fillStyle='#FF4444';ctx.fillRect(sx-2,py+22+bob,4,8); // red tie knot
+    // Arms
+    ctx.fillStyle='#4455FF';ctx.fillRect(px+1,py+18+bob-as,10,12);ctx.fillRect(px+w-11,py+18+bob+as,10,12);
+    ctx.fillStyle=C.skin;ctx.fillRect(px+2,py+28+bob-as,8,8);ctx.fillRect(px+w-10,py+28+bob+as,8,8);
+    // Head
+    ctx.fillStyle=C.skin;ctx.fillRect(px+12,py+4+bob,w-24,16);ctx.fillRect(px+14,py+18+bob,w-28,4);
+    ctx.fillStyle='#222';ctx.fillRect(px+10,py+bob,w-20,8); // dark slicked hair
+    // Nervous sweat drop
+    const st=performance.now()/800;
+    if(Math.sin(st)>0.3){ctx.fillStyle='rgba(100,180,255,0.7)';ctx.fillRect(px+w-12,py+6+bob,3,5);}
+    // Eyes — wide, nervous
+    ctx.fillStyle=C.white;ctx.fillRect(px+15+eyeOff,py+9+bob,7,6);ctx.fillRect(px+w-22+eyeOff,py+9+bob,7,6);
+    ctx.fillStyle=C.black;ctx.fillRect(px+18+eyeOff,py+11+bob,3,3);ctx.fillRect(px+w-20+eyeOff,py+11+bob,3,3);
+    ctx.fillStyle='#D09070';ctx.fillRect(px+20,py+16+bob,w-40,2);
+  }
+  else if(n.name==='Mayor Keynesian'){
+    // Legs — grey trousers
+    ctx.fillStyle='#555';ctx.fillRect(px+12+lo,py+h-20,10,16);ctx.fillRect(px+w-22-lo,py+h-20,10,16);
+    ctx.fillStyle='#333';ctx.fillRect(px+10+lo,py+h-6,14,6);ctx.fillRect(px+w-24-lo,py+h-6,14,6);
+    // Body — grey suit, white shirt front
+    ctx.fillStyle='#777';ctx.fillRect(px+8,py+18+bob,w-16,h-38);
+    ctx.fillStyle='#EEE';ctx.fillRect(px+16,py+20+bob,w-32,h-42); // white shirt
+    ctx.fillStyle='#333';ctx.fillRect(sx-1,py+20+bob,2,h-40); // black tie
+    // Gold pocket watch chain
+    ctx.fillStyle='#FFD700';ctx.fillRect(px+12,py+30+bob,8,2);
+    // Arms
+    ctx.fillStyle='#777';ctx.fillRect(px+1,py+18+bob-as,10,12);ctx.fillRect(px+w-11,py+18+bob+as,10,12);
+    ctx.fillStyle=C.skin;ctx.fillRect(px+2,py+28+bob-as,8,8);ctx.fillRect(px+w-10,py+28+bob+as,8,8);
+    // Head
+    ctx.fillStyle=C.skin;ctx.fillRect(px+12,py+4+bob,w-24,16);ctx.fillRect(px+14,py+18+bob,w-28,4);
+    ctx.fillStyle='#AAA';ctx.fillRect(px+10,py+bob,w-20,8); // grey hair
+    // Top hat
+    ctx.fillStyle='#222';ctx.fillRect(px+12,py-10+bob,w-24,12);ctx.fillRect(px+8,py+bob,w-16,4); // brim
+    // Monocle
+    ctx.strokeStyle='#FFD700';ctx.lineWidth=1.5;ctx.beginPath();ctx.arc(px+w-18+eyeOff,py+11+bob,5,0,Math.PI*2);ctx.stroke();
+    ctx.fillStyle='rgba(200,220,255,0.3)';ctx.beginPath();ctx.arc(px+w-18+eyeOff,py+11+bob,4,0,Math.PI*2);ctx.fill();
+    // Eyes
+    ctx.fillStyle=C.white;ctx.fillRect(px+16+eyeOff,py+10+bob,5,4);ctx.fillRect(px+w-22+eyeOff,py+9+bob,6,5);
+    ctx.fillStyle=C.black;ctx.fillRect(px+18+eyeOff,py+11+bob,2,2);ctx.fillRect(px+w-20+eyeOff,py+10+bob,3,3);
+    ctx.fillStyle='#B09070';ctx.fillRect(px+20,py+16+bob,w-40,2);
+  }
+  else if(n.name==='Ruby'){
+    // Legs — work jeans
+    ctx.fillStyle='#3A4A6A';ctx.fillRect(px+12+lo,py+h-20,10,16);ctx.fillRect(px+w-22-lo,py+h-20,10,16);
+    ctx.fillStyle='#5A3818';ctx.fillRect(px+10+lo,py+h-6,14,6);ctx.fillRect(px+w-24-lo,py+h-6,14,6); // work boots
+    // Body — red work shirt + apron
+    ctx.fillStyle='#CC4444';ctx.fillRect(px+8,py+18+bob,w-16,h-38);
+    ctx.fillStyle='#8B6A40';ctx.fillRect(px+12,py+26+bob,w-24,h-48); // brown apron
+    ctx.fillStyle='#6A4A20';ctx.fillRect(px+12,py+24+bob,w-24,4); // apron top strap
+    // Tool belt
+    ctx.fillStyle='#4A3010';ctx.fillRect(px+10,py+38+bob,w-20,4);
+    ctx.fillStyle='#888';ctx.fillRect(px+14,py+36+bob,4,6); // wrench
+    ctx.fillStyle='#AAA';ctx.fillRect(px+w-18,py+36+bob,3,6); // screwdriver
+    // Arms
+    ctx.fillStyle='#CC4444';ctx.fillRect(px+1,py+18+bob-as,10,12);ctx.fillRect(px+w-11,py+18+bob+as,10,12);
+    ctx.fillStyle=C.skin;ctx.fillRect(px+2,py+28+bob-as,8,8);ctx.fillRect(px+w-10,py+28+bob+as,8,8);
+    // Head
+    ctx.fillStyle=C.skin;ctx.fillRect(px+12,py+4+bob,w-24,16);ctx.fillRect(px+14,py+18+bob,w-28,4);
+    ctx.fillStyle='#FF6644';ctx.fillRect(px+10,py+bob,w-20,8); // orange hair
+    ctx.fillRect(px+8,py+2+bob,5,12);ctx.fillRect(px+w-13,py+2+bob,5,12); // side hair
+    // Bandana
+    ctx.fillStyle='#CC2222';ctx.fillRect(px+10,py+bob,w-20,4);
+    // Eyes
+    ctx.fillStyle=C.white;ctx.fillRect(px+16+eyeOff,py+10+bob,6,5);ctx.fillRect(px+w-22+eyeOff,py+10+bob,6,5);
+    ctx.fillStyle='#442200';ctx.fillRect(px+18+eyeOff,py+11+bob,3,3);ctx.fillRect(px+w-20+eyeOff,py+11+bob,3,3);
+    ctx.fillStyle='#D09070';ctx.fillRect(px+20,py+16+bob,w-40,2);
+  }
+  else if(n.name==='The Hermit'){
+    // Legs — hidden under cloak
+    ctx.fillStyle='#2A3A2A';ctx.fillRect(px+12+lo,py+h-16,10,12);ctx.fillRect(px+w-22-lo,py+h-16,10,12);
+    ctx.fillStyle='#3A2A18';ctx.fillRect(px+10+lo,py+h-6,14,6);ctx.fillRect(px+w-24-lo,py+h-6,14,6); // leather boots
+    // Body — dark green cloak
+    ctx.fillStyle='#2A4A2A';ctx.fillRect(px+6,py+12+bob,w-12,h-28);
+    ctx.fillStyle='#1A3A1A';ctx.fillRect(px+6,py+12+bob,w-12,6); // cloak collar
+    // Cloak drape effect
+    ctx.fillStyle='rgba(0,0,0,0.15)';ctx.fillRect(px+8,py+20+bob,4,h-36);ctx.fillRect(px+w-12,py+20+bob,4,h-36);
+    // Rope belt
+    ctx.fillStyle='#8A7A50';ctx.fillRect(px+10,py+34+bob,w-20,3);
+    // No visible arms (hidden in cloak)
+    // Head
+    ctx.fillStyle=C.skin;ctx.fillRect(px+14,py+6+bob,w-28,14);
+    // Hood
+    ctx.fillStyle='#2A4A2A';ctx.fillRect(px+8,py-4+bob,w-16,14);
+    ctx.fillRect(px+6,py+bob,w-12,6); // hood overhang
+    // Grey beard
+    ctx.fillStyle='#888';ctx.fillRect(px+16,py+14+bob,w-32,8);
+    ctx.fillRect(px+18,py+20+bob,w-36,4); // longer beard
+    // Eyes — deep set, mysterious
+    ctx.fillStyle='#8A8';ctx.fillRect(px+18+eyeOff,py+9+bob,4,3);ctx.fillRect(px+w-22+eyeOff,py+9+bob,4,3); // green eyes
+  }
+  else if(n.name==='Saylor'){
+    // Legs — navy suit pants
+    ctx.fillStyle='#1A1A4B';ctx.fillRect(px+12+lo,py+h-20,10,16);ctx.fillRect(px+w-22-lo,py+h-20,10,16);
+    ctx.fillStyle='#111';ctx.fillRect(px+10+lo,py+h-6,14,6);ctx.fillRect(px+w-24-lo,py+h-6,14,6); // polished shoes
+    // Body — navy power suit
+    ctx.fillStyle='#1A1A6B';ctx.fillRect(px+8,py+18+bob,w-16,h-38);
+    ctx.fillStyle='#EEE';ctx.fillRect(px+16,py+20+bob,w-32,h-42); // white shirt
+    ctx.fillStyle='#F7931A';ctx.fillRect(sx-2,py+20+bob,4,h-42); // ORANGE tie (Bitcoin orange!)
+    // Power shoulders
+    ctx.fillStyle='#1A1A6B';ctx.fillRect(px+4,py+18+bob,w-8,6);
+    // Arms
+    ctx.fillStyle='#1A1A6B';ctx.fillRect(px+1,py+18+bob-as,10,12);ctx.fillRect(px+w-11,py+18+bob+as,10,12);
+    ctx.fillStyle=C.skin;ctx.fillRect(px+2,py+28+bob-as,8,8);ctx.fillRect(px+w-10,py+28+bob+as,8,8);
+    // Head
+    ctx.fillStyle=C.skin;ctx.fillRect(px+12,py+4+bob,w-24,16);ctx.fillRect(px+14,py+18+bob,w-28,4);
+    ctx.fillStyle='#333';ctx.fillRect(px+10,py+bob,w-20,8);
+    ctx.fillRect(px+10,py+2+bob,4,6); // sideburns
+    // LASER EYES
+    const lt=performance.now()/200;
+    const laserAlpha=0.5+Math.sin(lt)*0.3;
+    ctx.fillStyle=C.white;ctx.fillRect(px+16+eyeOff,py+10+bob,6,5);ctx.fillRect(px+w-22+eyeOff,py+10+bob,6,5);
+    ctx.fillStyle=`rgba(247,147,26,${laserAlpha})`;
+    ctx.fillRect(px+17+eyeOff,py+10+bob,4,4);ctx.fillRect(px+w-21+eyeOff,py+10+bob,4,4);
+    // Laser beam glow
+    ctx.fillStyle=`rgba(247,147,26,${laserAlpha*0.3})`;
+    ctx.fillRect(px+15,py+8+bob,8,2);ctx.fillRect(px+w-23,py+8+bob,8,2);
+    ctx.fillStyle='#D09070';ctx.fillRect(px+20,py+16+bob,w-40,2);
+  }
+  else if(n.name==='Pizza Pete'){
+    // Legs — kitchen pants
+    ctx.fillStyle='#555';ctx.fillRect(px+12+lo,py+h-20,10,16);ctx.fillRect(px+w-22-lo,py+h-20,10,16);
+    ctx.fillStyle='#444';ctx.fillRect(px+10+lo,py+h-6,14,6);ctx.fillRect(px+w-24-lo,py+h-6,14,6);
+    // Body — white chef coat with stains
+    ctx.fillStyle='#EEE';ctx.fillRect(px+8,py+18+bob,w-16,h-38);
+    ctx.fillStyle='#CC8800';ctx.fillRect(px+12,py+26+bob,6,4); // cheese stain
+    ctx.fillStyle='#CC3300';ctx.fillRect(px+w-18,py+30+bob,4,4); // sauce stain
+    // Apron
+    ctx.fillStyle='#DDD';ctx.fillRect(px+12,py+28+bob,w-24,h-48);
+    ctx.fillStyle='#CCC';ctx.fillRect(px+16,py+26+bob,w-32,4); // apron strap
+    // Arms
+    ctx.fillStyle='#EEE';ctx.fillRect(px+1,py+18+bob-as,10,12);ctx.fillRect(px+w-11,py+18+bob+as,10,12);
+    ctx.fillStyle=C.skin;ctx.fillRect(px+2,py+28+bob-as,8,8);ctx.fillRect(px+w-10,py+28+bob+as,8,8);
+    // Head
+    ctx.fillStyle=C.skin;ctx.fillRect(px+12,py+4+bob,w-24,16);ctx.fillRect(px+14,py+18+bob,w-28,4);
+    ctx.fillStyle='#664400';ctx.fillRect(px+10,py+bob,w-20,8);
+    // Chef hat
+    ctx.fillStyle='#FFF';ctx.fillRect(px+10,py-2+bob,w-20,6); // hat band
+    ctx.fillRect(px+12,py-12+bob,w-24,12); // tall hat
+    ctx.fillStyle='#EEE';ctx.fillRect(px+14,py-10+bob,w-28,8); // hat crease
+    // Eyes + mustache
+    ctx.fillStyle=C.white;ctx.fillRect(px+16+eyeOff,py+10+bob,6,5);ctx.fillRect(px+w-22+eyeOff,py+10+bob,6,5);
+    ctx.fillStyle=C.black;ctx.fillRect(px+18+eyeOff,py+11+bob,3,3);ctx.fillRect(px+w-20+eyeOff,py+11+bob,3,3);
+    ctx.fillStyle='#664400';ctx.fillRect(px+16,py+15+bob,w-32,3); // mustache
+    ctx.fillStyle='#D09070';ctx.fillRect(px+20,py+17+bob,w-40,2);
+  }
+  else if(n.name==='Farmer Pete'){
+    // Legs — denim overalls continue
+    ctx.fillStyle='#3A5A8A';ctx.fillRect(px+12+lo,py+h-20,10,16);ctx.fillRect(px+w-22-lo,py+h-20,10,16);
+    ctx.fillStyle='#5A3818';ctx.fillRect(px+10+lo,py+h-6,14,6);ctx.fillRect(px+w-24-lo,py+h-6,14,6); // muddy boots
+    // Body — plaid shirt + overalls
+    ctx.fillStyle='#CC4444';ctx.fillRect(px+8,py+18+bob,w-16,h-38); // red plaid base
+    ctx.fillStyle='rgba(0,0,0,0.12)';for(let i=0;i<4;i++){ctx.fillRect(px+8,py+20+bob+i*6,w-16,2);} // plaid lines
+    ctx.fillStyle='#3A5A8A';ctx.fillRect(px+12,py+24+bob,w-24,h-44); // overalls front
+    // Suspender straps
+    ctx.fillStyle='#3A5A8A';ctx.fillRect(px+14,py+18+bob,4,8);ctx.fillRect(px+w-18,py+18+bob,4,8);
+    // Arms
+    ctx.fillStyle='#CC4444';ctx.fillRect(px+1,py+18+bob-as,10,12);ctx.fillRect(px+w-11,py+18+bob+as,10,12);
+    ctx.fillStyle=C.skin;ctx.fillRect(px+2,py+28+bob-as,8,8);ctx.fillRect(px+w-10,py+28+bob+as,8,8);
+    // Head
+    ctx.fillStyle=C.skin;ctx.fillRect(px+12,py+4+bob,w-24,16);ctx.fillRect(px+14,py+18+bob,w-28,4);
+    ctx.fillStyle='#886633';ctx.fillRect(px+10,py+bob,w-20,8);
+    // Straw hat
+    ctx.fillStyle='#D4B060';ctx.fillRect(px+6,py+bob,w-12,4); // wide brim
+    ctx.fillRect(px+12,py-6+bob,w-24,8); // hat top
+    ctx.fillStyle='#C4A050';ctx.fillRect(px+12,py-2+bob,w-24,3); // hat band
+    // Eyes
+    ctx.fillStyle=C.white;ctx.fillRect(px+16+eyeOff,py+10+bob,6,5);ctx.fillRect(px+w-22+eyeOff,py+10+bob,6,5);
+    ctx.fillStyle='#442200';ctx.fillRect(px+18+eyeOff,py+11+bob,3,3);ctx.fillRect(px+w-20+eyeOff,py+11+bob,3,3);
+    ctx.fillStyle='#D09070';ctx.fillRect(px+20,py+16+bob,w-40,2);
+  }
+  else if(n.name==='Seed Sally'){
+    // Legs — garden pants
+    ctx.fillStyle='#5A7A3A';ctx.fillRect(px+12+lo,py+h-20,10,16);ctx.fillRect(px+w-22-lo,py+h-20,10,16);
+    ctx.fillStyle='#886633';ctx.fillRect(px+10+lo,py+h-6,14,6);ctx.fillRect(px+w-24-lo,py+h-6,14,6); // garden clogs
+    // Body — green gardening top + floral apron
+    ctx.fillStyle='#44AA44';ctx.fillRect(px+8,py+18+bob,w-16,h-38);
+    ctx.fillStyle='#EED8AA';ctx.fillRect(px+12,py+26+bob,w-24,h-48); // cream apron
+    // Flower embroidery on apron
+    ctx.fillStyle='#E04060';ctx.fillRect(px+16,py+32+bob,4,4);
+    ctx.fillStyle='#40A0E0';ctx.fillRect(px+26,py+34+bob,4,4);
+    ctx.fillStyle='#E0C040';ctx.fillRect(px+20,py+38+bob,4,4);
+    // Arms
+    ctx.fillStyle='#44AA44';ctx.fillRect(px+1,py+18+bob-as,10,12);ctx.fillRect(px+w-11,py+18+bob+as,10,12);
+    ctx.fillStyle=C.skin;ctx.fillRect(px+2,py+28+bob-as,8,8);ctx.fillRect(px+w-10,py+28+bob+as,8,8);
+    // Head
+    ctx.fillStyle=C.skin;ctx.fillRect(px+12,py+4+bob,w-24,16);ctx.fillRect(px+14,py+18+bob,w-28,4);
+    ctx.fillStyle='#886633';ctx.fillRect(px+10,py+bob,w-20,8);
+    ctx.fillRect(px+8,py+2+bob,5,14);ctx.fillRect(px+w-13,py+2+bob,5,14); // long brown hair
+    // Sun hat with flower
+    ctx.fillStyle='#E8D8A0';ctx.fillRect(px+4,py-2+bob,w-8,4); // wide brim
+    ctx.fillRect(px+12,py-8+bob,w-24,8); // hat top
+    ctx.fillStyle='#FF6688';ctx.fillRect(px+w-16,py-6+bob,6,6); // flower on hat
+    ctx.fillStyle='#FFDD44';ctx.fillRect(px+w-14,py-4+bob,2,2); // flower center
+    // Eyes
+    ctx.fillStyle=C.white;ctx.fillRect(px+16+eyeOff,py+10+bob,6,5);ctx.fillRect(px+w-22+eyeOff,py+10+bob,6,5);
+    ctx.fillStyle='#228844';ctx.fillRect(px+18+eyeOff,py+11+bob,3,3);ctx.fillRect(px+w-20+eyeOff,py+11+bob,3,3); // green eyes
+    ctx.fillStyle='#D09070';ctx.fillRect(px+20,py+16+bob,w-40,2);
+  }
+  else {
+    // Default NPC (fallback)
+    ctx.fillStyle='#3A4A6A';ctx.fillRect(px+12+lo,py+h-20,10,16);ctx.fillRect(px+w-22-lo,py+h-20,10,16);
+    ctx.fillStyle='#4A3018';ctx.fillRect(px+10+lo,py+h-6,14,6);ctx.fillRect(px+w-24-lo,py+h-6,14,6);
+    ctx.fillStyle=n.col;ctx.fillRect(px+8,py+18+bob,w-16,h-38);
+    ctx.fillStyle=n.col;ctx.fillRect(px+1,py+18+bob-as,10,12);ctx.fillRect(px+w-11,py+18+bob+as,10,12);
+    ctx.fillStyle=C.skin;ctx.fillRect(px+2,py+28+bob-as,8,8);ctx.fillRect(px+w-10,py+28+bob+as,8,8);
+    ctx.fillStyle=C.skin;ctx.fillRect(px+12,py+4+bob,w-24,16);ctx.fillRect(px+14,py+18+bob,w-28,4);
+    ctx.fillStyle=n.hair;ctx.fillRect(px+10,py+bob,w-20,8);
+    ctx.fillStyle=C.white;ctx.fillRect(px+16+eyeOff,py+10+bob,6,5);ctx.fillRect(px+w-22+eyeOff,py+10+bob,6,5);
+    ctx.fillStyle=C.black;ctx.fillRect(px+18+eyeOff,py+11+bob,3,3);ctx.fillRect(px+w-20+eyeOff,py+11+bob,3,3);
+    ctx.fillStyle='#D09070';ctx.fillRect(px+20,py+16+bob,w-40,2);
+  }
   // Quest markers
   initRelationships();
   const rel=relationships[n.name];
@@ -3549,7 +3817,7 @@ function drawHUD(){
     ctx.fillStyle=i===selSlot?'rgba(247,147,26,.25)':'rgba(20,20,25,.8)';ctx.fillRect(x,hbY,hbW,hbH);
     ctx.strokeStyle=i===selSlot?C.hud:'#333';ctx.lineWidth=i===selSlot?2:1;ctx.strokeRect(x,hbY,hbW,hbH);
     ctx.fillStyle='#444';ctx.font=`11px ${FONT}`;ctx.textAlign='left';ctx.fillText(`${(i+1)%10}`,x+3,hbY+10);
-    const sl=inv[i];if(sl){
+    const sl=inv[i];if(sl&&ITEMS[sl.id]){
       const sprName = ITEM_SPRITES[sl.id];
       if(sprName && SpriteCache[sprName]){drawSprite(sprName,x+6,hbY+6,2);}
       else{ctx.font='20px serif';ctx.textAlign='center';ctx.fillText(ITEMS[sl.id].icon,x+hbW/2,hbY+hbH/2+6);}
@@ -4002,7 +4270,7 @@ function drawInv(){
     ctx.fillStyle=i===selSlot?'rgba(247,147,26,.2)':'rgba(20,20,25,.8)';ctx.fillRect(sx,sy,ss,ss);
     ctx.strokeStyle=i===selSlot?C.hud:'#333';ctx.lineWidth=i===selSlot?2:1;ctx.strokeRect(sx,sy,ss,ss);
     ctx.fillStyle='#444';ctx.font=`11px ${FONT}`;ctx.textAlign='left';ctx.fillText(i<10?`${(i+1)%10}`:'',sx+3,sy+11);
-    const sl=inv[i];if(sl){ctx.font='28px serif';ctx.textAlign='center';ctx.fillText(ITEMS[sl.id].icon,sx+ss/2,sy+ss/2+8);
+    const sl=inv[i];if(sl&&ITEMS[sl.id]){ctx.font='28px serif';ctx.textAlign='center';ctx.fillText(ITEMS[sl.id].icon,sx+ss/2,sy+ss/2+8);
       if(sl.qty>1){ctx.fillStyle=C.white;ctx.font=`bold 13px ${FONT}`;ctx.fillText(sl.qty,sx+ss-10,sy+ss-6);}}}
   const sel=inv[selSlot],dx=x+cols*(ss+gap)+gap+10,dy=y+36;
   if(sel){const it=ITEMS[sel.id];ctx.fillStyle=C.hud;ctx.font=`bold 14px ${FONT}`;ctx.textAlign='left';
