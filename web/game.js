@@ -2358,6 +2358,11 @@ function update(dt) {
 // ============================================================
 // TILE DRAWING — Beautiful pixel art style
 // ============================================================
+// Tile neighbor helper for edge blending
+function getTile(tx,ty){if(ty<0||ty>=MAP_H||tx<0||tx>=MAP_W)return T.CLIFF;return map[ty][tx];}
+const TERRAIN_GRASS=new Set([T.GRASS,T.TALLGRASS,T.FLOWER,T.MUSHROOM]);
+const TERRAIN_WATER_SET=new Set([T.WATER,T.DEEP]);
+
 function drawTile(x,y,tile){
   const sx=x*ST-cam.x,sy=y*ST-cam.y;
   if(sx>canvas.width+ST||sy>canvas.height+ST||sx<-ST||sy<-ST)return;
@@ -2386,6 +2391,22 @@ function drawTile(x,y,tile){
       // Very sparse wildflowers
       if(gSeed===1){ctx.fillStyle='#E8C840';ctx.fillRect(sx+22,sy+18,2,2);}
       if(gSeed===17){ctx.fillStyle='#D0D0F0';ctx.fillRect(sx+14,sy+28,2,2);}
+      // Ground clutter — tiny scattered details like Stardew
+      if(gSeed===3){ctx.fillStyle='rgba(80,60,30,0.2)';ctx.fillRect(sx+30,sy+36,3,2);} // twig
+      if(gSeed===7){ctx.fillStyle='rgba(100,90,70,0.25)';ctx.beginPath();ctx.arc(sx+38,sy+10,2,0,Math.PI*2);ctx.fill();} // pebble
+      if(gSeed===12){ctx.fillStyle='rgba(60,100,40,0.3)';ctx.fillRect(sx+6,sy+40,4,3);} // small weed
+      if(gSeed===20){ctx.fillStyle='rgba(90,80,50,0.2)';ctx.fillRect(sx+24,sy+30,2,4);} // stick
+      // Edge blending — soft transition where grass meets non-grass
+      const tN=getTile(x,y-1),tS=getTile(x,y+1),tW=getTile(x-1,y),tE=getTile(x+1,y);
+      if(!TERRAIN_GRASS.has(tN)){ctx.fillStyle='rgba(120,100,60,0.18)';ctx.fillRect(sx,sy,ST,6);ctx.fillStyle='rgba(80,65,35,0.12)';ctx.fillRect(sx+4,sy,ST-8,3);}
+      if(!TERRAIN_GRASS.has(tS)){ctx.fillStyle='rgba(120,100,60,0.18)';ctx.fillRect(sx,sy+ST-6,ST,6);ctx.fillStyle='rgba(80,65,35,0.12)';ctx.fillRect(sx+4,sy+ST-3,ST-8,3);}
+      if(!TERRAIN_GRASS.has(tW)){ctx.fillStyle='rgba(120,100,60,0.18)';ctx.fillRect(sx,sy,6,ST);ctx.fillStyle='rgba(80,65,35,0.12)';ctx.fillRect(sx,sy+4,3,ST-8);}
+      if(!TERRAIN_GRASS.has(tE)){ctx.fillStyle='rgba(120,100,60,0.18)';ctx.fillRect(sx+ST-6,sy,6,ST);ctx.fillStyle='rgba(80,65,35,0.12)';ctx.fillRect(sx+ST-3,sy+4,3,ST-8);}
+      // Corner blending (diagonal neighbors)
+      if(!TERRAIN_GRASS.has(tN)&&!TERRAIN_GRASS.has(tW)){ctx.fillStyle='rgba(100,80,40,0.2)';ctx.beginPath();ctx.arc(sx,sy,8,0,Math.PI/2);ctx.fill();}
+      if(!TERRAIN_GRASS.has(tN)&&!TERRAIN_GRASS.has(tE)){ctx.fillStyle='rgba(100,80,40,0.2)';ctx.beginPath();ctx.arc(sx+ST,sy,8,Math.PI/2,Math.PI);ctx.fill();}
+      if(!TERRAIN_GRASS.has(tS)&&!TERRAIN_GRASS.has(tW)){ctx.fillStyle='rgba(100,80,40,0.2)';ctx.beginPath();ctx.arc(sx,sy+ST,8,-Math.PI/2,0);ctx.fill();}
+      if(!TERRAIN_GRASS.has(tS)&&!TERRAIN_GRASS.has(tE)){ctx.fillStyle='rgba(100,80,40,0.2)';ctx.beginPath();ctx.arc(sx+ST,sy+ST,8,Math.PI,-Math.PI/2);ctx.fill();}
       break;}
     case T.TALLGRASS:{
       // Same smooth Perlin base as regular grass
@@ -2433,6 +2454,13 @@ function drawTile(x,y,tile){
       ctx.strokeStyle=`rgba(140,200,255,${.1+Math.sin(wt+1)*.05})`;ctx.lineWidth=1;
       ctx.beginPath();ctx.moveTo(sx,sy+ST*.3+Math.sin(wt)*3);ctx.lineTo(sx+ST,sy+ST*.3+Math.sin(wt+2)*3);ctx.stroke();
       ctx.beginPath();ctx.moveTo(sx,sy+ST*.7+Math.sin(wt+3)*3);ctx.lineTo(sx+ST,sy+ST*.7+Math.sin(wt+5)*3);ctx.stroke();
+      // Shoreline foam where water meets land
+      const wN=getTile(x,y-1),wS=getTile(x,y+1),wW=getTile(x-1,y),wE=getTile(x+1,y);
+      const foam=`rgba(200,230,255,${0.25+Math.sin(wt*2)*0.1})`;
+      if(!TERRAIN_WATER_SET.has(wN)){ctx.fillStyle=foam;ctx.fillRect(sx,sy,ST,4+Math.sin(wt)*2);}
+      if(!TERRAIN_WATER_SET.has(wS)){ctx.fillStyle=foam;ctx.fillRect(sx,sy+ST-4-Math.sin(wt)*2,ST,4+Math.sin(wt)*2);}
+      if(!TERRAIN_WATER_SET.has(wW)){ctx.fillStyle=foam;ctx.fillRect(sx,sy,4+Math.sin(wt+1)*2,ST);}
+      if(!TERRAIN_WATER_SET.has(wE)){ctx.fillStyle=foam;ctx.fillRect(sx+ST-4-Math.sin(wt+1)*2,sy,4+Math.sin(wt+1)*2,ST);}
       break;}
     case T.DEEP:{ctx.fillStyle=C.deepWater;ctx.fillRect(sx,sy,ST,ST);
       ctx.fillStyle=`rgba(40,100,180,${.1+Math.sin(t+x+y)*.08})`;ctx.fillRect(sx,sy,ST,ST);break;}
@@ -2454,6 +2482,16 @@ function drawTile(x,y,tile){
       if(pSeed>22){ctx.fillStyle=`rgba(170,150,120,0.25)`;ctx.fillRect(sx+12+pSeed%5*6,sy+20,8,5);}
       // Worn center line (paths get lighter in the middle from foot traffic)
       ctx.fillStyle='rgba(180,165,140,0.12)';ctx.fillRect(sx+ST/4,sy,ST/2,ST);
+      // Path edge blending — grassy edges where path meets grass
+      const ptN=getTile(x,y-1),ptS=getTile(x,y+1),ptW=getTile(x-1,y),ptE=getTile(x+1,y);
+      if(TERRAIN_GRASS.has(ptN)){ctx.fillStyle='rgba(50,100,30,0.2)';ctx.fillRect(sx+2,sy,ST-4,4);
+        ctx.fillStyle='rgba(60,120,35,0.15)';for(let i=0;i<4;i++)ctx.fillRect(sx+4+i*10,sy,2,6+((x+i)%3)*2);}
+      if(TERRAIN_GRASS.has(ptS)){ctx.fillStyle='rgba(50,100,30,0.2)';ctx.fillRect(sx+2,sy+ST-4,ST-4,4);
+        ctx.fillStyle='rgba(60,120,35,0.15)';for(let i=0;i<4;i++)ctx.fillRect(sx+6+i*10,sy+ST-6-((x+i)%3)*2,2,6);}
+      if(TERRAIN_GRASS.has(ptW)){ctx.fillStyle='rgba(50,100,30,0.2)';ctx.fillRect(sx,sy+2,4,ST-4);
+        ctx.fillStyle='rgba(60,120,35,0.15)';for(let i=0;i<3;i++)ctx.fillRect(sx,sy+6+i*12,6+((y+i)%3)*2,2);}
+      if(TERRAIN_GRASS.has(ptE)){ctx.fillStyle='rgba(50,100,30,0.2)';ctx.fillRect(sx+ST-4,sy+2,4,ST-4);
+        ctx.fillStyle='rgba(60,120,35,0.15)';for(let i=0;i<3;i++)ctx.fillRect(sx+ST-6-((y+i)%3)*2,sy+8+i*12,6,2);}
       break;}
     case T.WALL:{
       // Detailed log cabin walls
