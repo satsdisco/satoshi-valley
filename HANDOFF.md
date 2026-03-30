@@ -7,11 +7,11 @@
 
 ## 🏗️ Current State
 
-**Last updated:** 2026-03-30 20:20 CET
-**Last dev:** Bender (shift 2 — extended)
+**Last updated:** 2026-03-30 22:25 CET
+**Last dev:** Bender (shift 2 — full day session)
 **Repo:** `Bender21m/satoshi-valley` | Fork: `satsdisco/satoshi-valley`
 **Live demo:** https://bender21m.github.io/satoshi-valley
-**game.js lines:** ~4,700 | **Save version:** v8 | **Sprints complete:** 13
+**game.js lines:** ~4,900 | **Save version:** v8 | **Sprints complete:** 13 | **Open issues:** 2
 
 ### What's Working ✅
 - Full mining loop (3 rig tiers, power grid, durability, overheating)
@@ -70,10 +70,20 @@
 **Next up (Sprint 14 — NPC Quests & Circular Economy):**
 1. NPC request system — NPCs ask for items, give rewards
 2. Pizza Pete quest chain (wheat → dough, tomatoes → sauce, cheese → pizza)
-3. Tavern menu — buy food/beer from barkeep, drunk effect
-4. Crafting chains tied to NPC requests (unlock recipes by fulfilling orders)
-5. Continue visual polish (building shadows, night window glow, art direction)
-6. Code modularization (game.js is 4700 lines — painful for devs)
+3. Crafting chains tied to NPC requests (unlock recipes by fulfilling orders)
+4. NPC daily schedules (walk between locations)
+5. Gift system (give items to NPCs for hearts)
+6. Continue visual polish (building shadows, night window glow, art direction)
+7. Code modularization (game.js is ~4900 lines — painful for devs)
+
+**Recently completed this session:**
+- Tavern menu with beer/stew/pie/wine + drunk effect ✅
+- Right-click → Shift+Click item placement ✅  
+- Proper bed with sleep prompt ✅
+- Shops close at night (except tavern) ✅
+- Auto-feed animals from chest ✅
+- Easier item pickup (bigger range) ✅
+- Faster night energy drain ✅
 
 ### Shift 1 — Flexo (2026-03-29/30, overnight)
 **Did:**
