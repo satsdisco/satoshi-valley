@@ -2,44 +2,25 @@
 // SATOSHI VALLEY — v0.5 "The Daily Loop Update"
 // ============================================================
 
-// ---- SPROUT LANDS TILESET SYSTEM ----
+// ---- SPROUT LANDS SPRITE SHEETS (for buildings, objects, fences — NOT terrain) ----
 const spriteSheets = {};
-let spritesLoaded = 0;
-const SPRITE_TOTAL = 4; // grass, water, biome, dirt — load essentials first
-
 function loadSprite(name, filename) {
   const img = new Image();
-  const tryPath = (p) => { img.src = p; };
-  img.onload = () => { spriteSheets[name] = img; spritesLoaded++; };
-  img.onerror = () => { if(!img.src.includes('web/'))tryPath('web/assets/sprout/'+filename); };
-  tryPath('assets/sprout/'+filename);
+  img.onload = () => { spriteSheets[name] = img; };
+  img.onerror = () => { const img2 = new Image(); img2.onload=()=>{spriteSheets[name]=img2;}; img2.src='web/assets/sprout/'+filename; };
+  img.src = 'assets/sprout/'+filename;
 }
-loadSprite('grass','grass.png');
-loadSprite('water','water.png');
-loadSprite('biome','biome.png');
-loadSprite('dirt','dirt.png');
+loadSprite('house','house.png');
+loadSprite('roof','roof.png');
+loadSprite('walls','walls.png');
+loadSprite('doors','doors.png');
 loadSprite('fences','fences.png');
-loadSprite('hills','hills.png');
-loadSprite('paths','paths.png');
+loadSprite('furniture','furniture.png');
+loadSprite('chest','chest.png');
+loadSprite('biome','biome.png');
 loadSprite('plants','plants.png');
 loadSprite('bridge','bridge.png');
-
-function spriteReady(name){return !!spriteSheets[name];}
-
-// Draw 16x16 sprite from a named sheet at source (sx,sy) to screen (dx,dy) at scale
-function drawSpr(sheet, sx, sy, dx, dy, scale) {
-  const img = spriteSheets[sheet];
-  if (!img) return false;
-  ctx.drawImage(img, sx, sy, 16, 16, dx, dy, 16*scale, 16*scale);
-  return true;
-}
-
-// Grass tileset layout (Sprout Lands):
-// Row 0: outer_tl(0,0) ?(16,0) edge_t(32,48,64) ?(80,0) inner_tl(96,0) inner_tr(112,0)
-// Row 1: edge_l(0,16) ?(16,16) center(32-64,16-32) edge_r(80,16) inner_bl(96,16) inner_br(112,16)
-// Row 2: same pattern
-// Row 3: outer_bl(0,48) ... edge_b(32-64,48) outer_br(80,48)
-// Center grass tiles for fill: (32,16)(48,16)(64,16)(32,32)(48,32)(64,32)
+function drawSpr(sheet,sx2,sy2,dx,dy,sw,sh,dw,dh){const img=spriteSheets[sheet];if(!img)return false;ctx.drawImage(img,sx2,sy2,sw||16,sh||16,dx,dy,dw||ST,dh||ST);return true;}
 
 const canvas = document.getElementById('game');
 const ctx = canvas.getContext('2d');
@@ -423,14 +404,14 @@ function lerp(a,b,t){return a+(b-a)*t;}
 const SEASON_PALETTES = {
   // Accumulation = Spring: fresh greens, flowers blooming
   0: {
-    grass:['#5A8F29','#64A02E','#6DAA2C','#7EC631','#8AD43A'],
-    treeLeaf:['#3D7A1A','#4A8B22','#5A9A2A','#6DAA2C','#7EC631'],
-    treeLeafLight:['#7EC631','#8AD43A','#A5D64C'],
+    grass:['#1F4D0F','#2A5E18','#347020','#3E8228','#489430'],
+    treeLeaf:['#1A4A10','#2A5A1A','#1E5014','#2E6020','#3A7028'],
+    treeLeafLight:['#3A7028','#4A8035','#5A9040'],
     flower:['#E8C840','#D04040','#7070E0','#E870B0','#70D0A0','#F0A030'],
   },
   // Hype = Summer: bright, lush, vibrant
   1: {
-    grass:['#64A02E','#6DAA2C','#7EC631','#8AD43A','#A5D64C'],
+    grass:['#1A5A08','#2A6A14','#3A7A20','#4A8A2C','#5A9A38'],
     treeLeaf:['#1A5A08','#2A6A14','#1E6010','#2E7020','#3A8028'],
     treeLeafLight:['#4A9030','#5AA040','#6AB050'],
     flower:['#FFD040','#FF5050','#8080FF','#FF80C0','#80E0B0','#FFB040'],
@@ -2781,30 +2762,17 @@ function drawTile(x,y,tile){
   const v=(x*7+y*13)%3,t=performance.now()/1000;
   const v2=(x*11+y*3)%5;
   
-  // ---- SPROUT LANDS SPRITE RENDERING ----
-  if(spriteReady('grass') && !interior){
-    const tN=getTile(x,y-1),tS=getTile(x,y+1),tW=getTile(x-1,y),tE=getTile(x+1,y);
-    const isGrassN=TERRAIN_GRASS.has(tN),isGrassS=TERRAIN_GRASS.has(tS),isGrassW=TERRAIN_GRASS.has(tW),isGrassE=TERRAIN_GRASS.has(tE);
-    
-    // ---- USE SPROUT LANDS PALETTE WITH PERLIN CANVAS RENDERING ----
-    // Sprite tiles at 3x show seams. Instead: use the Sprout Lands COLOR PALETTE
-    // with our smooth Perlin noise canvas rendering. Best of both worlds.
-    // Sprout Lands grass palette: #5A8F29 (dark), #6DAA2C (mid), #7EC631 (light), #A5D64C (highlight)
-    // Sprout Lands dirt palette: #8B7355 (dark), #A6894A (mid), #C4A265 (light)
-    // Sprout Lands water palette: #3F7CB6 (deep), #5B9BD5 (mid), #7AB8E0 (light)
-    // We skip the rest and let it fall through to the canvas renderer below with these colors
-  }
-  
   switch(tile){
     case T.GRASS:{
-      // Sprout Lands palette + Perlin noise = seamless beautiful grass
-      const gn=fbm(x*0.15+0.5,y*0.15+0.5,2);
-      const gn2=fbm(x*0.3+10,y*0.3+10,2);
-      // Sprout Lands greens: #5A8F29 → #A5D64C (warm bright greens)
-      const baseR=Math.floor(80+gn*40+gn2*10);
-      const baseG=Math.floor(140+gn*45+gn2*20);
-      const baseB=Math.floor(30+gn*20+gn2*8);
-      ctx.fillStyle=`rgb(${baseR},${baseG},${baseB})`;ctx.fillRect(sx,sy,ST,ST);
+      // Use Perlin noise for smooth, organic color blending (no checkerboard!)
+      const gn=fbm(x*0.15+0.5,y*0.15+0.5,2); // smooth noise 0-1
+      const gn2=fbm(x*0.3+10,y*0.3+10,2); // finer detail layer
+      // Seasonal color shift based on market phase
+      const sR=[0,0,20,0][econ.phase]; // Euphoria adds warmth
+      const sG=[0,10,-10,-20][econ.phase]; // Capitulation desaturates
+      const sB=[0,0,0,10][econ.phase]; // Capitulation adds blue
+      const baseR=Math.floor(30+gn*30+sR);const baseG=Math.floor(90+gn*50+gn2*20+sG);const baseB=Math.floor(15+gn*20+sB);
+      ctx.fillStyle=`rgb(${Math.max(0,Math.min(255,baseR))},${Math.max(0,Math.min(255,baseG))},${Math.max(0,Math.min(255,baseB))})`;ctx.fillRect(sx,sy,ST,ST);
       // Subtle lighter patches using second noise octave
       if(gn2>0.55){ctx.fillStyle=`rgba(80,160,50,${(gn2-0.55)*0.4})`;ctx.fillRect(sx,sy,ST,ST);}
       // Darker patches for depth
@@ -2819,11 +2787,27 @@ function drawTile(x,y,tile){
       // Very sparse wildflowers
       if(gSeed===1){ctx.fillStyle='#E8C840';ctx.fillRect(sx+22,sy+18,2,2);}
       if(gSeed===17){ctx.fillStyle='#D0D0F0';ctx.fillRect(sx+14,sy+28,2,2);}
+      // Ground clutter — tiny scattered details like Stardew
+      if(gSeed===3){ctx.fillStyle='rgba(80,60,30,0.2)';ctx.fillRect(sx+30,sy+36,3,2);} // twig
+      if(gSeed===7){ctx.fillStyle='rgba(100,90,70,0.25)';ctx.beginPath();ctx.arc(sx+38,sy+10,2,0,Math.PI*2);ctx.fill();} // pebble
+      if(gSeed===12){ctx.fillStyle='rgba(60,100,40,0.3)';ctx.fillRect(sx+6,sy+40,4,3);} // small weed
+      if(gSeed===20){ctx.fillStyle='rgba(90,80,50,0.2)';ctx.fillRect(sx+24,sy+30,2,4);} // stick
+      // Edge blending — soft transition where grass meets non-grass
+      const tN=getTile(x,y-1),tS=getTile(x,y+1),tW=getTile(x-1,y),tE=getTile(x+1,y);
+      if(!TERRAIN_GRASS.has(tN)){ctx.fillStyle='rgba(120,100,60,0.18)';ctx.fillRect(sx,sy,ST,6);ctx.fillStyle='rgba(80,65,35,0.12)';ctx.fillRect(sx+4,sy,ST-8,3);}
+      if(!TERRAIN_GRASS.has(tS)){ctx.fillStyle='rgba(120,100,60,0.18)';ctx.fillRect(sx,sy+ST-6,ST,6);ctx.fillStyle='rgba(80,65,35,0.12)';ctx.fillRect(sx+4,sy+ST-3,ST-8,3);}
+      if(!TERRAIN_GRASS.has(tW)){ctx.fillStyle='rgba(120,100,60,0.18)';ctx.fillRect(sx,sy,6,ST);ctx.fillStyle='rgba(80,65,35,0.12)';ctx.fillRect(sx,sy+4,3,ST-8);}
+      if(!TERRAIN_GRASS.has(tE)){ctx.fillStyle='rgba(120,100,60,0.18)';ctx.fillRect(sx+ST-6,sy,6,ST);ctx.fillStyle='rgba(80,65,35,0.12)';ctx.fillRect(sx+ST-3,sy+4,3,ST-8);}
+      // Corner blending (diagonal neighbors)
+      if(!TERRAIN_GRASS.has(tN)&&!TERRAIN_GRASS.has(tW)){ctx.fillStyle='rgba(100,80,40,0.2)';ctx.beginPath();ctx.arc(sx,sy,8,0,Math.PI/2);ctx.fill();}
+      if(!TERRAIN_GRASS.has(tN)&&!TERRAIN_GRASS.has(tE)){ctx.fillStyle='rgba(100,80,40,0.2)';ctx.beginPath();ctx.arc(sx+ST,sy,8,Math.PI/2,Math.PI);ctx.fill();}
+      if(!TERRAIN_GRASS.has(tS)&&!TERRAIN_GRASS.has(tW)){ctx.fillStyle='rgba(100,80,40,0.2)';ctx.beginPath();ctx.arc(sx,sy+ST,8,-Math.PI/2,0);ctx.fill();}
+      if(!TERRAIN_GRASS.has(tS)&&!TERRAIN_GRASS.has(tE)){ctx.fillStyle='rgba(100,80,40,0.2)';ctx.beginPath();ctx.arc(sx+ST,sy+ST,8,Math.PI,-Math.PI/2);ctx.fill();}
       break;}
     case T.TALLGRASS:{
-      // Sprout Lands palette — slightly darker green for tall grass
+      // Same smooth Perlin base as regular grass
       const tgn=fbm(x*0.15+0.5,y*0.15+0.5,2);
-      const tgR=Math.floor(70+tgn*35);const tgG=Math.floor(130+tgn*40);const tgB=Math.floor(25+tgn*18);
+      const tgR=Math.floor(30+tgn*30);const tgG=Math.floor(90+tgn*50);const tgB=Math.floor(15+tgn*20);
       ctx.fillStyle=`rgb(${tgR},${tgG},${tgB})`;ctx.fillRect(sx,sy,ST,ST);
       const sw=Math.sin(t*1.8+x*.7+y*.5)*3;
       ctx.fillStyle='#4A9030';
@@ -2917,8 +2901,7 @@ function drawTile(x,y,tile){
     case T.WATER:{const wt=t*1.5+x*.5+y*.3;
       // Smooth Perlin-based water — no checkerboard
       const wn=fbm(x*0.12+t*0.08,y*0.12+t*0.05,2);
-      // Sprout Lands water: #3F7CB6 → #7AB8E0 (bright inviting blue)
-      const wR=Math.floor(55+wn*30);const wG=Math.floor(115+wn*35);const wB=Math.floor(170+wn*25);
+      const wR=Math.floor(25+wn*15);const wG=Math.floor(80+wn*30);const wB=Math.floor(140+wn*25);
       ctx.fillStyle=`rgb(${wR},${wG},${wB})`;ctx.fillRect(sx,sy,ST,ST);
       // Animated shimmer layer
       ctx.fillStyle=`rgba(100,180,240,${0.06+Math.sin(wt)*0.04})`;ctx.fillRect(sx,sy,ST,ST);
@@ -2965,9 +2948,9 @@ function drawTile(x,y,tile){
       if((x*13+y*7)%11<3){ctx.fillStyle='rgba(210,190,140,0.15)';ctx.fillRect(sx+4,sy+12,ST-8,2);ctx.fillRect(sx+8,sy+28,ST-16,2);}
       break;}
     case T.PATH:{
-      // Sprout Lands warm dirt palette + Perlin noise
+      // Smooth dirt path with subtle noise variation
       const pn=fbm(x*0.2+5,y*0.2+5,2);
-      const pR=Math.floor(155+pn*25);const pG=Math.floor(125+pn*20);const pB=Math.floor(75+pn*15);
+      const pR=Math.floor(130+pn*20);const pG=Math.floor(115+pn*15);const pB=Math.floor(90+pn*15);
       ctx.fillStyle=`rgb(${pR},${pG},${pB})`;ctx.fillRect(sx,sy,ST,ST);
       // Subtle pebble/texture details
       const pSeed=(x*23+y*11)%29;
@@ -2975,6 +2958,16 @@ function drawTile(x,y,tile){
       if(pSeed>22){ctx.fillStyle=`rgba(170,150,120,0.25)`;ctx.fillRect(sx+12+pSeed%5*6,sy+20,8,5);}
       // Worn center line (paths get lighter in the middle from foot traffic)
       ctx.fillStyle='rgba(180,165,140,0.12)';ctx.fillRect(sx+ST/4,sy,ST/2,ST);
+      // Path edge blending — grassy edges where path meets grass
+      const ptN=getTile(x,y-1),ptS=getTile(x,y+1),ptW=getTile(x-1,y),ptE=getTile(x+1,y);
+      if(TERRAIN_GRASS.has(ptN)){ctx.fillStyle='rgba(50,100,30,0.2)';ctx.fillRect(sx+2,sy,ST-4,4);
+        ctx.fillStyle='rgba(60,120,35,0.15)';for(let i=0;i<4;i++)ctx.fillRect(sx+4+i*10,sy,2,6+((x+i)%3)*2);}
+      if(TERRAIN_GRASS.has(ptS)){ctx.fillStyle='rgba(50,100,30,0.2)';ctx.fillRect(sx+2,sy+ST-4,ST-4,4);
+        ctx.fillStyle='rgba(60,120,35,0.15)';for(let i=0;i<4;i++)ctx.fillRect(sx+6+i*10,sy+ST-6-((x+i)%3)*2,2,6);}
+      if(TERRAIN_GRASS.has(ptW)){ctx.fillStyle='rgba(50,100,30,0.2)';ctx.fillRect(sx,sy+2,4,ST-4);
+        ctx.fillStyle='rgba(60,120,35,0.15)';for(let i=0;i<3;i++)ctx.fillRect(sx,sy+6+i*12,6+((y+i)%3)*2,2);}
+      if(TERRAIN_GRASS.has(ptE)){ctx.fillStyle='rgba(50,100,30,0.2)';ctx.fillRect(sx+ST-4,sy+2,4,ST-4);
+        ctx.fillStyle='rgba(60,120,35,0.15)';for(let i=0;i<3;i++)ctx.fillRect(sx+ST-6-((y+i)%3)*2,sy+8+i*12,6,2);}
       break;}
     case T.WALL:{
       // Detailed log cabin walls
@@ -3955,17 +3948,21 @@ function drawPlaced(item){
 function drawFence(fence){
   const sx=fence.x*ST-cam.x,sy=fence.y*ST-cam.y;
   if(sx>canvas.width+ST||sy>canvas.height+ST||sx<-ST||sy<-ST)return;
-  // Ground tile already drawn — draw fence posts and rails on top
-  ctx.fillStyle='#8B6340'; // post color
-  // Center vertical post
-  ctx.fillRect(sx+ST/2-3,sy,6,ST);
-  // Horizontal rails
-  ctx.fillStyle='#A07850';
-  ctx.fillRect(sx,sy+8,ST,5);
-  ctx.fillRect(sx,sy+ST-16,ST,5);
-  // Post highlight
-  ctx.fillStyle='#C09060';
-  ctx.fillRect(sx+ST/2-2,sy+2,2,ST-4);
+  // Try Sprout Lands fence sprite first
+  if(spriteSheets['fences']){
+    // Check neighbors for fence connections
+    const hasN=fences.some(f=>f.x===fence.x&&f.y===fence.y-1);
+    const hasS=fences.some(f=>f.x===fence.x&&f.y===fence.y+1);
+    const hasW=fences.some(f=>f.x===fence.x-1&&f.y===fence.y);
+    const hasE=fences.some(f=>f.x===fence.x+1&&f.y===fence.y);
+    // Pick fence tile: row 1 col 1 = intersection, adapt based on neighbors
+    drawSpr('fences',16,16,sx,sy);
+  } else {
+    // Fallback canvas fence
+    ctx.fillStyle='#8B6340';ctx.fillRect(sx+ST/2-3,sy,6,ST);
+    ctx.fillStyle='#A07850';ctx.fillRect(sx,sy+8,ST,5);ctx.fillRect(sx,sy+ST-16,ST,5);
+    ctx.fillStyle='#C09060';ctx.fillRect(sx+ST/2-2,sy+2,2,ST-4);
+  }
 }
 
 function drawPlayer(){
