@@ -1902,33 +1902,31 @@ function update(dt) {
       }
     }
 
-      if (buildingType && INTERIOR_MAPS[buildingType]) {
-        mouseTarget = null; clickIndicator = null; // Clear mouse state when entering
-        const returnX = player.x, returnY = player.y + TILE * 3; // well outside building
-        startTransition('fadeOut', 0.4, () => {
-          const im = INTERIOR_MAPS[buildingType];
-          interior = {type:buildingType, map:im.map, w:im.w, h:im.h, furniture:im.furniture, doorX:im.doorX, returnX, returnY};
-          player.x = im.spawnX; player.y = im.spawnY;
-          cam.x = player.x * SCALE - canvas.width / 2;
-          cam.y = player.y * SCALE - canvas.height / 2;
-          startTransition('fadeIn', 0.4, null);
-          notify('Entered ' + buildingType.charAt(0).toUpperCase() + buildingType.slice(1), 2);
-          // Populate interior NPCs
-          interiorNPCs = [];
-          if (buildingType === 'shop') {
-            interiorNPCs.push({ name:'Ruby', x:3*TILE+8, y:2*TILE+8, col:'#CC4444', hair:'#FF6644',
-              dlg:['"Welcome to my shop! Take a look around."','"Everything priced in sats — no fiat accepted."','"Your uncle was my best customer."','"Need anything? I\'ve got CPUs to ASICs."'] });
-          } else if (buildingType === 'tavern') {
-            interiorNPCs.push({ name:'Barkeep', x:4*TILE+8, y:2*TILE+8, col:'#8B6340', hair:'#2A1A08',
-              dlg:['"Welcome to the Hodl Tavern. What\'ll it be?"','"We only serve Bitcoin-branded beverages here."','"Your uncle used to sit right where you\'re standing."','"Lightning tips accepted and appreciated."'] });
-          } else if (buildingType === 'hall') {
-            interiorNPCs.push({ name:'Mayor Keynesian', x:4*TILE+8, y:2*TILE+8, col:'#888', hair:'#AAA',
-              dlg:['"Ah, you\'ve come to discuss village policy?"','"I\'ve been thinking about a new stimulus package..."','"The village budget is... flexible. Very flexible."','"Don\'t listen to the hermit. The system works fine."'] });
-          }
-        });
-      }
+    if (buildingType && INTERIOR_MAPS[buildingType]) {
+      mouseTarget = null; clickIndicator = null;
+      const returnX = player.x, returnY = player.y + TILE * 3;
+      startTransition('fadeOut', 0.4, () => {
+        const im = INTERIOR_MAPS[buildingType];
+        interior = {type:buildingType, map:im.map, w:im.w, h:im.h, furniture:im.furniture, doorX:im.doorX, returnX, returnY};
+        player.x = im.spawnX; player.y = im.spawnY;
+        cam.x = player.x * SCALE - canvas.width / 2;
+        cam.y = player.y * SCALE - canvas.height / 2;
+        startTransition('fadeIn', 0.4, null);
+        notify('Entered ' + buildingType.charAt(0).toUpperCase() + buildingType.slice(1), 2);
+        interiorNPCs = [];
+        if (buildingType === 'shop') {
+          interiorNPCs.push({ name:'Ruby', x:3*TILE+8, y:2*TILE+8, col:'#CC4444', hair:'#FF6644',
+            dlg:['"Welcome to my shop! Take a look around."','"Everything priced in sats — no fiat accepted."','"Your uncle was my best customer."','"Need anything? I\'ve got CPUs to ASICs."'] });
+        } else if (buildingType === 'tavern') {
+          interiorNPCs.push({ name:'Barkeep', x:4*TILE+8, y:2*TILE+8, col:'#8B6340', hair:'#2A1A08',
+            dlg:['"Welcome to the Hodl Tavern. What\'ll it be?"','"We only serve Bitcoin-branded beverages here."','"Your uncle used to sit right where you\'re standing."','"Lightning tips accepted and appreciated."'] });
+        } else if (buildingType === 'hall') {
+          interiorNPCs.push({ name:'Mayor Keynesian', x:4*TILE+8, y:2*TILE+8, col:'#888', hair:'#AAA',
+            dlg:['"Ah, you\'ve come to discuss village policy?"','"I\'ve been thinking about a new stimulus package..."','"The village budget is... flexible. Very flexible."','"Don\'t listen to the hermit. The system works fine."'] });
+        }
+      });
     }
-  }
+  } // end building entry
 
   // ---- BUILDING EXIT (interior) ----
   if (interior && !transition) {
@@ -2193,6 +2191,7 @@ function update(dt) {
         }else{sfx.error();notify("Can't place here!",1.5);}
       }
     } // end interior check
+  } // end R-key use item
   }
   
   // NPCs
@@ -2325,7 +2324,7 @@ function update(dt) {
   }
 
   for(const k in jp)jp[k]=false;
-}
+} // end update()
 
 // ============================================================
 // TILE DRAWING — Beautiful pixel art style
