@@ -1192,7 +1192,7 @@ const npcs = [
 // ============================================================
 // SHOP
 // ============================================================
-const SHOP_LIST = ['wrench','pickaxe','axe','hoe','shovel','cpu_miner','gpu_rig','asic_s21','solar_panel','battery','cooling_fan','bread','coffee','potato_seed','tomato_seed','corn_seed','pumpkin_seed','immersion_tank','mesh_antenna','bitcoin_sign','chest','goat','cow','bee_hive','chicken','feed'];
+const SHOP_LIST = ['wrench','pickaxe','axe','hoe','shovel','fishing_rod','cpu_miner','gpu_rig','asic_s21','solar_panel','battery','cooling_fan','bread','coffee','potato_seed','tomato_seed','corn_seed','pumpkin_seed','immersion_tank','mesh_antenna','bitcoin_sign','chest','goat','cow','bee_hive','chicken','feed'];
 const SEED_SHOP_LIST = ['potato_seed','tomato_seed','corn_seed','pumpkin_seed','feed','bread'];
 
 // Map item IDs to sprite cache names
