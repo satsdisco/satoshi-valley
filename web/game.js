@@ -1931,7 +1931,8 @@ function update(dt) {
         cam.x = player.x * SCALE - canvas.width / 2;
         cam.y = player.y * SCALE - canvas.height / 2;
         startTransition('fadeIn', 0.4, null);
-        notify('Entered ' + buildingType.charAt(0).toUpperCase() + buildingType.slice(1), 2);
+        particles.length=0; // Clear sat particles on room transition
+          notify('Entered ' + buildingType.charAt(0).toUpperCase() + buildingType.slice(1), 2);
         interiorNPCs = [];
         if (buildingType === 'shop') {
           interiorNPCs.push({ name:'Ruby', x:3*TILE+8, y:2*TILE+8, col:'#CC4444', hair:'#FF6644',
@@ -2228,8 +2229,9 @@ function update(dt) {
   
   // Rigs
   let th=0;for(const r of rigs){const e=r.update(dt);if(e>0){player.wallet+=e;player.totalEarned+=e;
-    // Always show sat particles when earning
-    satPart(r.x,r.y-10,e);
+    // Only show sat particles for rigs in current view (interior match)
+    const rigVisible=interior?(r.interior===interior.type):!r.interior;
+    if(rigVisible)satPart(r.x,r.y-10,e);
     if(Math.random()<.2){sfx.coin();if(Math.random()<.1)addXP('mining',1);}
   }if(r.powered&&!r.oh&&r.dur>0)th+=r.hr;}
   econ.diff=1+(th/10)*.5;updateHum(th);updatePower(dt);
