@@ -640,6 +640,65 @@ function completeObjective(id) {
 }
 
 // ============================================================
+// NPC QUEST SYSTEM — Multi-step quest chains
+// ============================================================
+const NPC_QUESTS = {
+  'Ruby': [
+    { id:'ruby_1', title:'First Rig', task:'Place a mining rig', check:()=>objectives.find(o=>o.id==='place_rig')?.done, reward:{sats:500,items:[{id:'copper_ore',qty:3}]}, dialogue:'Thanks for getting that rig running! Here\'s some copper I had lying around.' },
+    { id:'ruby_2', title:'Power Up', task:'Place a solar panel', check:()=>objectives.find(o=>o.id==='place_solar')?.done, reward:{sats:1000,items:[{id:'battery',qty:1}]}, dialogue:'Solar is the future! Take this battery — you\'ll need it for nighttime.' },
+    { id:'ruby_3', title:'Upgrade Path', task:'Buy a GPU rig', check:()=>objectives.find(o=>o.id==='buy_gpu')?.done, reward:{sats:3000}, dialogue:'Now you\'re mining for real. Your uncle would be proud.' },
+  ],
+  'Hodl Hannah': [
+    { id:'hannah_1', title:'Green Thumb', task:'Plant 3 crops', check:()=>crops.length>=3||skills.farming.level>=2, reward:{sats:300,items:[{id:'corn_seed',qty:5}]}, dialogue:'The garden is coming alive! Here, try planting some corn.' },
+    { id:'hannah_2', title:'Patient Farmer', task:'Harvest any crop', check:()=>skills.farming.level>=3, reward:{sats:800,items:[{id:'pumpkin_seed',qty:3}]}, dialogue:'Patience pays off — just like hodling. Try these pumpkin seeds!' },
+    { id:'hannah_3', title:'Diamond Hands', task:'Earn 10,000 sats without spending', check:()=>player.wallet>=10000, reward:{sats:2000}, dialogue:'You held through the dip! That\'s real diamond hands energy.' },
+  ],
+  'The Hermit': [
+    { id:'hermit_1', title:'Cypherpunk\'s Test', task:'Find 3 seed phrase words', check:()=>foundWords.length>=3, reward:{sats:2000,items:[{id:'silicon',qty:5}]}, dialogue:'You\'re uncovering the truth. Here — silicon, for when you need to build something important.' },
+    { id:'hermit_2', title:'Verify Everything', task:'Find 10 seed phrase words', check:()=>foundWords.length>=10, reward:{sats:10000}, dialogue:'You\'re halfway there. Your uncle would say: "Don\'t trust. Verify." You\'re verifying.' },
+    { id:'hermit_3', title:'The Complete Seed', task:'Find all 24 seed phrase words', check:()=>foundWords.length>=24, reward:{sats:100000}, dialogue:'You found them all. The seed is complete. Now you understand what your uncle built.' },
+  ],
+  'Leverage Larry': [
+    { id:'larry_1', title:'Stack to 5K', task:'Have 5,000 sats', check:()=>player.wallet>=5000, reward:{sats:500}, dialogue:'5K?! I lost that in a trade last Tuesday. But congrats I guess.' },
+    { id:'larry_2', title:'ASIC Dreams', task:'Place an ASIC S21', check:()=>rigs.some(r=>r.tier===2), reward:{sats:5000}, dialogue:'An ASIC! Now THAT\'S what I\'m talking about. Hash rate goes brrrr!' },
+  ],
+  'Mayor Keynesian': [
+    { id:'mayor_1', title:'Village Duty', task:'Upgrade citadel to Cabin', check:()=>citadelTier>=1, reward:{sats:1000}, dialogue:'Good, good. The village needs strong homesteads. Here\'s a... stimulus payment.' },
+    { id:'mayor_2', title:'Community Builder', task:'Upgrade citadel to Compound', check:()=>citadelTier>=3, reward:{sats:10000}, dialogue:'Impressive compound! Maybe you should run for mayor. On second thought...' },
+  ],
+  'Farmer Pete': [
+    { id:'pete_1', title:'First Harvest', task:'Sell a crop at the market', check:()=>skills.farming.level>=2, reward:{sats:200,items:[{id:'tomato_seed',qty:5}]}, dialogue:'Fresh produce! Here\'s some tomato seeds — diversify your crops.' },
+    { id:'pete_2', title:'Rancher', task:'Own 3 animals', check:()=>animals.length>=3, reward:{sats:1500,items:[{id:'feed',qty:20}]}, dialogue:'A real rancher now! Take this feed — your animals need it.' },
+  ],
+};
+
+let questProgress = {}; // {npcName: currentQuestIndex}
+
+function getActiveQuest(npcName) {
+  const chain = NPC_QUESTS[npcName];
+  if (!chain) return null;
+  const idx = questProgress[npcName] || 0;
+  if (idx >= chain.length) return null; // all done
+  return chain[idx];
+}
+
+function checkQuestCompletion(npcName) {
+  const quest = getActiveQuest(npcName);
+  if (!quest) return false;
+  if (quest.check()) {
+    // Complete quest — give rewards
+    if (quest.reward.sats) { player.wallet += quest.reward.sats; player.totalEarned += quest.reward.sats; }
+    if (quest.reward.items) { quest.reward.items.forEach(i => addItem(i.id, i.qty)); }
+    questProgress[npcName] = (questProgress[npcName] || 0) + 1;
+    notify(`🎉 Quest complete: ${quest.title}! +${fmt(quest.reward.sats||0)} sats`, 5, true);
+    sfx.block();
+    addXP('social', 15);
+    return true;
+  }
+  return false;
+}
+
+// ============================================================
 // INVENTORY
 // ============================================================
 const INV_SIZE = 20;
@@ -1602,7 +1661,7 @@ const cam = {x:0,y:0};
 // ============================================================
 // SAVE / LOAD
 // ============================================================
-function saveGame(){try{localStorage.setItem('sv_save',JSON.stringify({v:8,p:{x:player.x,y:player.y,w:player.wallet,te:player.totalEarned,e:player.energy},inv:inv.map(s=>s?{id:s.id,q:s.qty}:null),ss:selSlot,rigs:rigs.map(r=>({x:r.x,y:r.y,t:r.tier,p:r.powered,tp:r.temp,d:r.dur,m:r.mined,int:r.interior||null})),placed:placed.map(i=>({x:i.x,y:i.y,t:i.type})),fences:[...fences],econ:{...econ},time:{...time},pwr:{p:pwr.panels,b:pwr.batts},obj:objectives.map(o=>o.done),tut:tutorialDone,skills,crops:crops.map(c=>({x:c.x,y:c.y,type:c.type,dayAge:c.dayAge,stage:c.stage})),rels:relationships,citadelTier,animals:animals.map(a=>({x:a.x,y:a.y,t:a.type,hx:a.homeX,hy:a.homeY,hp:a.happiness,fed:a.fed,dsp:a.daysSinceProd,pr:a.prodReady,dir:a.dir})),weather:{c:weather.current},chest:chestInv.map(s=>s?{id:s.id,q:s.qty}:null),fw:foundWords}));notify('💾 Saved!',2);sfx.buy();}catch(e){notify('❌ Save failed!',2);}}
+function saveGame(){try{localStorage.setItem('sv_save',JSON.stringify({v:8,p:{x:player.x,y:player.y,w:player.wallet,te:player.totalEarned,e:player.energy},inv:inv.map(s=>s?{id:s.id,q:s.qty}:null),ss:selSlot,rigs:rigs.map(r=>({x:r.x,y:r.y,t:r.tier,p:r.powered,tp:r.temp,d:r.dur,m:r.mined,int:r.interior||null})),placed:placed.map(i=>({x:i.x,y:i.y,t:i.type})),fences:[...fences],econ:{...econ},time:{...time},pwr:{p:pwr.panels,b:pwr.batts},obj:objectives.map(o=>o.done),tut:tutorialDone,skills,crops:crops.map(c=>({x:c.x,y:c.y,type:c.type,dayAge:c.dayAge,stage:c.stage})),rels:relationships,citadelTier,animals:animals.map(a=>({x:a.x,y:a.y,t:a.type,hx:a.homeX,hy:a.homeY,hp:a.happiness,fed:a.fed,dsp:a.daysSinceProd,pr:a.prodReady,dir:a.dir})),weather:{c:weather.current},chest:chestInv.map(s=>s?{id:s.id,q:s.qty}:null),fw:foundWords,qp:questProgress}));notify('💾 Saved!',2);sfx.buy();}catch(e){notify('❌ Save failed!',2);}}
 function loadGame(){try{const d=JSON.parse(localStorage.getItem('sv_save'));if(!d)return notify('No save found!',2),false;player.x=d.p.x;player.y=d.p.y;player.wallet=d.p.w;player.totalEarned=d.p.te;player.energy=d.p.e||100;inv.length=0;d.inv.forEach(s=>inv.push(s?{id:s.id,qty:s.q}:null));selSlot=d.ss||0;rigs.length=0;d.rigs.forEach(r=>{const ri=new Rig(r.x,r.y,r.t);ri.powered=r.p;ri.temp=r.tp;ri.dur=r.d;ri.mined=r.m;ri.interior=r.int||null;rigs.push(ri);});placed.length=0;(d.placed||[]).forEach(i=>placed.push(i));Object.assign(econ,d.econ);Object.assign(time,d.time);pwr.panels=d.pwr?.p||[];pwr.batts=d.pwr?.b||[];if(d.obj)d.obj.forEach((done,i)=>{if(objectives[i])objectives[i].done=done;});tutorialDone=d.tut||false;
     if(d.skills)Object.assign(skills,d.skills);
     crops.length=0;if(d.crops)d.crops.forEach(c=>crops.push(c));
@@ -1612,6 +1671,7 @@ function loadGame(){try{const d=JSON.parse(localStorage.getItem('sv_save'));if(!
     if(d.weather)weather.current=d.weather.c;
     chestInv.length=0;(d.chest||[]).forEach(s=>chestInv.push(s?{id:s.id,qty:s.q}:null));
     foundWords=(d.fw||[]);
+    questProgress=(d.qp||{});
     fences.length=0;(d.fences||[]).forEach(f=>fences.push(f));
     gameState='playing';notify('📂 Loaded!',2);sfx.buy();return true;}catch(e){notify('❌ Load failed!',2);return false;}}
 
@@ -2201,7 +2261,23 @@ function update(dt) {
             }
           }
           // Interior NPCs handled at top of interact block (priority check) — removed duplicate here (#58)
-          if(!chestOpen)for(const n of npcs){if(Math.hypot(n.x-ix,n.y-iy)<32){const _nd2=n.dlg[Math.floor(Math.random()*n.dlg.length)];dlg={name:n.name,text:_nd2,role:n.role,fullText:_nd2,displayedChars:0,done:false};dlgCharTimer=0;sfx.interact();
+          if(!chestOpen)for(const n of npcs){if(Math.hypot(n.x-ix,n.y-iy)<32){
+            // Check for quest completion first
+            if(checkQuestCompletion(n.name)){
+              const q=NPC_QUESTS[n.name];const idx=(questProgress[n.name]||1)-1;
+              const completedQ=q[idx];
+              dlg={name:n.name,text:completedQ.dialogue,role:n.role,fullText:completedQ.dialogue,displayedChars:0,done:false};dlgCharTimer=0;sfx.interact();
+            } else {
+              // Show quest task or regular dialogue
+              const activeQ=getActiveQuest(n.name);
+              let _nd2;
+              if(activeQ){
+                _nd2=`📜 Quest: ${activeQ.title}\n"${activeQ.task}"\n\nReward: ${fmt(activeQ.reward.sats||0)} sats`;
+              } else {
+                _nd2=n.dlg[Math.floor(Math.random()*n.dlg.length)];
+              }
+              dlg={name:n.name,text:_nd2,role:n.role,fullText:_nd2,displayedChars:0,done:false};dlgCharTimer=0;sfx.interact();
+            }
             if(n.name==='The Hermit')completeObjective('find_hermit');
             initRelationships();
             if(!relationships[n.name].talked){relationships[n.name].talked=true;addHearts(n.name,0.2);addXP('social',3);}
@@ -4105,6 +4181,15 @@ function drawNPC(n){
       // Seed fragment hint — orange puzzle
       ctx.font=`16px serif`;ctx.textAlign='center';
       ctx.fillText('🧩',sx,markerY);
+    } else if(getActiveQuest(n.name)){
+      // Has active quest — orange quest marker
+      const aq=getActiveQuest(n.name);
+      const qReady=aq.check();
+      ctx.fillStyle=qReady?'#44FF44':'#FF8800'; // green=ready, orange=in progress
+      ctx.shadowColor='rgba(0,0,0,0.8)';ctx.shadowBlur=3;
+      ctx.font=`bold 18px ${FONT}`;ctx.textAlign='center';
+      ctx.fillText(qReady?'✅':'❗',sx,markerY);
+      ctx.shadowBlur=0;
     } else if(rel.talked===false){
       // Hasn't talked today — yellow !
       ctx.fillStyle='#FFD700';
