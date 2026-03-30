@@ -2786,11 +2786,41 @@ function drawTile(x,y,tile){
     const tN=getTile(x,y-1),tS=getTile(x,y+1),tW=getTile(x-1,y),tE=getTile(x+1,y);
     const isGrassN=TERRAIN_GRASS.has(tN),isGrassS=TERRAIN_GRASS.has(tS),isGrassW=TERRAIN_GRASS.has(tW),isGrassE=TERRAIN_GRASS.has(tE);
     
+    // ALWAYS draw a solid earth base first — grass transparency shows this, not black
+    ctx.fillStyle='#967959';ctx.fillRect(sx,sy,ST,ST);
+    
     if(tile===T.GRASS||tile===T.TALLGRASS||tile===T.FLOWER||tile===T.MUSHROOM){
-      // Solid grass centers: columns 3-5, rows 1-3 (px: 48-80, 16-48) — NO transparency
-      const grassCenters=[[48,16],[64,16],[80,16],[48,32],[64,32],[80,32],[48,48],[64,48],[80,48]];
-      const gi=Math.abs((x*7+y*13)%9);
-      drawSpr('grass',grassCenters[gi][0],grassCenters[gi][1],sx,sy,SCALE);
+      // Auto-tile grass: check neighbors to pick correct edge/center tile
+      // Grass sheet layout: cols 3-5, rows 1-3 = solid centers
+      // Edges: col 0=left, col 6=right, row 0=top, row 4=bottom
+      // Corners: (0,0)=TL outer, (6,0)=TR outer, (0,4)=BL outer, (6,4)=BR outer
+      // Inner corners: (7,0)=TL, (8,0)=TR, (7,1)=BL, (8,1)=BR
+      
+      const isNonGrassN=!TERRAIN_GRASS.has(tN);
+      const isNonGrassS=!TERRAIN_GRASS.has(tS);
+      const isNonGrassW=!TERRAIN_GRASS.has(tW);
+      const isNonGrassE=!TERRAIN_GRASS.has(tE);
+      
+      let gsx=48,gsy=32; // default: solid center
+      
+      // Edges
+      if(isNonGrassN&&!isNonGrassS&&!isNonGrassW&&!isNonGrassE) {gsx=48;gsy=0;} // top edge
+      else if(!isNonGrassN&&isNonGrassS&&!isNonGrassW&&!isNonGrassE) {gsx=48;gsy=64;} // bottom edge
+      else if(!isNonGrassN&&!isNonGrassS&&isNonGrassW&&!isNonGrassE) {gsx=0;gsy=16;} // left edge
+      else if(!isNonGrassN&&!isNonGrassS&&!isNonGrassW&&isNonGrassE) {gsx=96;gsy=16;} // right edge
+      // Outer corners
+      else if(isNonGrassN&&isNonGrassW) {gsx=0;gsy=0;} // top-left
+      else if(isNonGrassN&&isNonGrassE) {gsx=96;gsy=0;} // top-right
+      else if(isNonGrassS&&isNonGrassW) {gsx=0;gsy=64;} // bottom-left
+      else if(isNonGrassS&&isNonGrassE) {gsx=96;gsy=64;} // bottom-right
+      // Solid center — vary for natural look
+      else {
+        const grassCenters=[[48,16],[64,16],[80,16],[48,32],[64,32],[80,32],[48,48],[64,48],[80,48]];
+        const gi=Math.abs((x*7+y*13)%9);
+        gsx=grassCenters[gi][0];gsy=grassCenters[gi][1];
+      }
+      
+      drawSpr('grass',gsx,gsy,sx,sy,SCALE);
       
       // Overlay decorations from biome sheet
       if(tile===T.FLOWER && spriteReady('biome')){
