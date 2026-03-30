@@ -2,6 +2,55 @@
 // SATOSHI VALLEY — v0.5 "The Daily Loop Update"
 // ============================================================
 
+// ---- TILESET SPRITE SHEET ----
+const tilesetImg = new Image();
+// Try both paths (works from /web/index.html AND /index.html)
+tilesetImg.onerror = () => { tilesetImg.src = 'web/assets/tileset-shubibubi.png'; };
+tilesetImg.src = 'assets/tileset-shubibubi.png';
+let tilesetReady = false;
+tilesetImg.onload = () => { tilesetReady = true; console.log('Tileset loaded!'); };
+
+// Tileset tile map — maps game tiles to sprite sheet positions (16x16 grid, 8 cols)
+// {sx, sy} = source x,y on the sprite sheet (in pixels)
+const TS = {
+  // Grass variants
+  grass1: {sx:0,sy:0}, grass2: {sx:16,sy:0}, grass3: {sx:32,sy:0},
+  grass4: {sx:80,sy:16}, grass5: {sx:96,sy:16}, grass6: {sx:80,sy:32}, grass7: {sx:96,sy:32},
+  // Dirt path with transitions (9-patch)
+  path_tl: {sx:32,sy:16}, path_t: {sx:48,sy:16}, path_tr: {sx:64,sy:16},
+  path_l: {sx:32,sy:32}, path_c: {sx:48,sy:32}, path_r: {sx:64,sy:32},
+  path_bl: {sx:32,sy:48}, path_b: {sx:48,sy:48}, path_br: {sx:64,sy:48},
+  // Trees (2x2 canopy + 1x2 trunk)
+  tree_tl: {sx:0,sy:16}, tree_tr: {sx:16,sy:16},
+  tree_bl: {sx:0,sy:32}, tree_br: {sx:16,sy:32},
+  trunk_l: {sx:0,sy:48}, trunk_r: {sx:16,sy:48},
+  // Small trees (1x2)
+  stree_t: {sx:112,sy:32}, stree_b: {sx:112,sy:48},
+  // Fence
+  fence_h: {sx:80,sy:48}, fence_post: {sx:96,sy:48},
+  // Decorations
+  mushroom1: {sx:0,sy:96}, mushroom2: {sx:16,sy:96}, mushroom_red: {sx:32,sy:96},
+  door: {sx:48,sy:96}, stepping: {sx:64,sy:96},
+  veggie1: {sx:80,sy:96}, veggie2: {sx:96,sy:96}, rock_brown: {sx:112,sy:96},
+  mush_cluster1: {sx:0,sy:112}, mush_cluster2: {sx:16,sy:112}, mush_cluster3: {sx:32,sy:112},
+  crate: {sx:48,sy:112}, pebbles: {sx:64,sy:112},
+  turnip: {sx:80,sy:112}, pumpkin: {sx:96,sy:112}, rock_gray: {sx:112,sy:112},
+  // Houses (4x2 each)
+  house1_tl: {sx:0,sy:64}, house1_t2: {sx:16,sy:64}, house1_t3: {sx:32,sy:64}, house1_tr: {sx:48,sy:64},
+  house1_bl: {sx:0,sy:80}, house1_b2: {sx:16,sy:80}, house1_b3: {sx:32,sy:80}, house1_br: {sx:48,sy:80},
+  house2_tl: {sx:64,sy:64}, house2_t2: {sx:80,sy:64}, house2_t3: {sx:96,sy:64}, house2_tr: {sx:112,sy:64},
+  house2_bl: {sx:64,sy:80}, house2_b2: {sx:80,sy:80}, house2_b3: {sx:96,sy:80}, house2_br: {sx:112,sy:80},
+  // Berry bush / dark tree
+  berry: {sx:96,sy:0}, bird_tree_t: {sx:112,sy:0}, bird_tree_b: {sx:112,sy:16},
+};
+
+// Draw a single tile from the tileset
+function drawTS(tile, dx, dy, scale) {
+  if (!tilesetReady || !tile) return false;
+  ctx.drawImage(tilesetImg, tile.sx, tile.sy, 16, 16, dx, dy, 16*scale, 16*scale);
+  return true;
+}
+
 const canvas = document.getElementById('game');
 const ctx = canvas.getContext('2d');
 
@@ -2741,6 +2790,60 @@ function drawTile(x,y,tile){
   if(sx>canvas.width+ST||sy>canvas.height+ST||sx<-ST||sy<-ST)return;
   const v=(x*7+y*13)%3,t=performance.now()/1000;
   const v2=(x*11+y*3)%5;
+  
+  // ---- TILESET SPRITE RENDERING (when loaded) ----
+  if(tilesetReady && !interior){
+    const tN=getTile(x,y-1),tS=getTile(x,y+1),tW=getTile(x-1,y),tE=getTile(x+1,y);
+    const isPathN=(tN===T.PATH||tN===T.BRIDGE),isPathS=(tS===T.PATH||tS===T.BRIDGE);
+    const isPathW=(tW===T.PATH||tW===T.BRIDGE),isPathE=(tE===T.PATH||tE===T.BRIDGE);
+    
+    if(tile===T.GRASS||tile===T.TALLGRASS||tile===T.FLOWER){
+      // Pick grass variant based on noise
+      const gv=[TS.grass1,TS.grass2,TS.grass3,TS.grass4,TS.grass5,TS.grass6,TS.grass7];
+      const gi=Math.floor(fbm(x*0.2,y*0.2,2)*6.99);
+      drawTS(gv[gi],sx,sy,SCALE);
+      // Flowers overlay
+      if(tile===T.FLOWER){
+        const fc=(x+y*3)%3;
+        drawTS([TS.veggie1,TS.veggie2,TS.turnip][fc],sx,sy,SCALE);
+      }
+      return;
+    }
+    if(tile===T.PATH||tile===T.BRIDGE){
+      // 9-patch path — check neighbors to pick the right edge piece
+      const pathN=TERRAIN_GRASS.has(tN)||tN===T.DIRT,pathS=TERRAIN_GRASS.has(tS)||tS===T.DIRT;
+      const pathW=TERRAIN_GRASS.has(tW)||tW===T.DIRT,pathE=TERRAIN_GRASS.has(tE)||tE===T.DIRT;
+      let pathTile=TS.path_c; // default center
+      if(pathN&&pathW)pathTile=TS.path_tl;
+      else if(pathN&&pathE)pathTile=TS.path_tr;
+      else if(pathS&&pathW)pathTile=TS.path_bl;
+      else if(pathS&&pathE)pathTile=TS.path_br;
+      else if(pathN)pathTile=TS.path_t;
+      else if(pathS)pathTile=TS.path_b;
+      else if(pathW)pathTile=TS.path_l;
+      else if(pathE)pathTile=TS.path_r;
+      drawTS(pathTile,sx,sy,SCALE);
+      return;
+    }
+    if(tile===T.DIRT){
+      drawTS(TS.path_c,sx,sy,SCALE);
+      return;
+    }
+    if(tile===T.MUSHROOM){
+      const gv=[TS.grass1,TS.grass3,TS.grass5];
+      drawTS(gv[v],sx,sy,SCALE);
+      drawTS([TS.mushroom1,TS.mushroom2,TS.mushroom_red][v],sx,sy,SCALE);
+      return;
+    }
+    if(tile===T.SAND){
+      drawTS(TS.pebbles,sx,sy,SCALE);
+      return;
+    }
+    if(tile===T.STONE){
+      drawTS(TS.rock_gray,sx,sy,SCALE);
+      return;
+    }
+  }
   
   switch(tile){
     case T.GRASS:{
