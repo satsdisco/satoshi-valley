@@ -2448,22 +2448,47 @@ function drawTile(x,y,tile){
       ctx.fillStyle='#353540';ctx.fillRect(sx,sy,ST,ST/3);
       ctx.fillStyle='#4A4A55';ctx.fillRect(sx+4,sy+ST/3,ST-8,4);break;}
     case T.WATER:{const wt=t*1.5+x*.5+y*.3;
-      ctx.fillStyle=C.water[v];ctx.fillRect(sx,sy,ST,ST);
-      ctx.fillStyle=`rgba(80,160,230,${.08+Math.sin(wt)*.06})`;ctx.fillRect(sx,sy,ST,ST);
-      // Wave lines
-      ctx.strokeStyle=`rgba(140,200,255,${.1+Math.sin(wt+1)*.05})`;ctx.lineWidth=1;
-      ctx.beginPath();ctx.moveTo(sx,sy+ST*.3+Math.sin(wt)*3);ctx.lineTo(sx+ST,sy+ST*.3+Math.sin(wt+2)*3);ctx.stroke();
-      ctx.beginPath();ctx.moveTo(sx,sy+ST*.7+Math.sin(wt+3)*3);ctx.lineTo(sx+ST,sy+ST*.7+Math.sin(wt+5)*3);ctx.stroke();
+      // Smooth Perlin-based water — no checkerboard
+      const wn=fbm(x*0.12+t*0.08,y*0.12+t*0.05,2);
+      const wR=Math.floor(25+wn*15);const wG=Math.floor(80+wn*30);const wB=Math.floor(140+wn*25);
+      ctx.fillStyle=`rgb(${wR},${wG},${wB})`;ctx.fillRect(sx,sy,ST,ST);
+      // Animated shimmer layer
+      ctx.fillStyle=`rgba(100,180,240,${0.06+Math.sin(wt)*0.04})`;ctx.fillRect(sx,sy,ST,ST);
+      // Gentle caustic light patterns
+      const cx1=sx+ST*0.3+Math.sin(wt*0.7+x)*6,cy1=sy+ST*0.4+Math.cos(wt*0.9+y)*5;
+      const cx2=sx+ST*0.7+Math.sin(wt*0.5+x+2)*5,cy2=sy+ST*0.6+Math.cos(wt*0.8+y+1)*6;
+      ctx.fillStyle=`rgba(150,210,255,${0.06+Math.sin(wt*1.3)*0.03})`;
+      ctx.beginPath();ctx.arc(cx1,cy1,6+Math.sin(wt)*2,0,Math.PI*2);ctx.fill();
+      ctx.beginPath();ctx.arc(cx2,cy2,5+Math.cos(wt+1)*2,0,Math.PI*2);ctx.fill();
+      // Soft wave highlights
+      ctx.strokeStyle=`rgba(160,210,255,${0.08+Math.sin(wt+1)*0.04})`;ctx.lineWidth=1;
+      ctx.beginPath();ctx.moveTo(sx,sy+ST*0.35+Math.sin(wt)*3);ctx.quadraticCurveTo(sx+ST/2,sy+ST*0.3+Math.sin(wt+1)*4,sx+ST,sy+ST*0.35+Math.sin(wt+2)*3);ctx.stroke();
       // Shoreline foam where water meets land
       const wN=getTile(x,y-1),wS=getTile(x,y+1),wW=getTile(x-1,y),wE=getTile(x+1,y);
-      const foam=`rgba(200,230,255,${0.25+Math.sin(wt*2)*0.1})`;
-      if(!TERRAIN_WATER_SET.has(wN)){ctx.fillStyle=foam;ctx.fillRect(sx,sy,ST,4+Math.sin(wt)*2);}
-      if(!TERRAIN_WATER_SET.has(wS)){ctx.fillStyle=foam;ctx.fillRect(sx,sy+ST-4-Math.sin(wt)*2,ST,4+Math.sin(wt)*2);}
-      if(!TERRAIN_WATER_SET.has(wW)){ctx.fillStyle=foam;ctx.fillRect(sx,sy,4+Math.sin(wt+1)*2,ST);}
-      if(!TERRAIN_WATER_SET.has(wE)){ctx.fillStyle=foam;ctx.fillRect(sx+ST-4-Math.sin(wt+1)*2,sy,4+Math.sin(wt+1)*2,ST);}
+      const foamA=0.3+Math.sin(wt*2)*0.12;
+      if(!TERRAIN_WATER_SET.has(wN)){
+        ctx.fillStyle=`rgba(220,240,255,${foamA})`;ctx.fillRect(sx,sy,ST,5+Math.sin(wt)*2);
+        ctx.fillStyle=`rgba(255,255,255,${foamA*0.5})`;ctx.fillRect(sx+4,sy,ST-8,2+Math.sin(wt)*1);
+      }
+      if(!TERRAIN_WATER_SET.has(wS)){
+        ctx.fillStyle=`rgba(220,240,255,${foamA})`;ctx.fillRect(sx,sy+ST-5-Math.sin(wt)*2,ST,5+Math.sin(wt)*2);
+        ctx.fillStyle=`rgba(255,255,255,${foamA*0.5})`;ctx.fillRect(sx+4,sy+ST-2-Math.sin(wt)*1,ST-8,2);
+      }
+      if(!TERRAIN_WATER_SET.has(wW)){
+        ctx.fillStyle=`rgba(220,240,255,${foamA})`;ctx.fillRect(sx,sy,5+Math.sin(wt+1)*2,ST);
+        ctx.fillStyle=`rgba(255,255,255,${foamA*0.5})`;ctx.fillRect(sx,sy+4,2+Math.sin(wt+1)*1,ST-8);
+      }
+      if(!TERRAIN_WATER_SET.has(wE)){
+        ctx.fillStyle=`rgba(220,240,255,${foamA})`;ctx.fillRect(sx+ST-5-Math.sin(wt+1)*2,sy,5+Math.sin(wt+1)*2,ST);
+        ctx.fillStyle=`rgba(255,255,255,${foamA*0.5})`;ctx.fillRect(sx+ST-2-Math.sin(wt+1)*1,sy+4,2,ST-8);
+      }
       break;}
-    case T.DEEP:{ctx.fillStyle=C.deepWater;ctx.fillRect(sx,sy,ST,ST);
-      ctx.fillStyle=`rgba(40,100,180,${.1+Math.sin(t+x+y)*.08})`;ctx.fillRect(sx,sy,ST,ST);break;}
+    case T.DEEP:{
+      // Deep water — darker Perlin, subtle undercurrent
+      const dwn=fbm(x*0.1+t*0.05,y*0.1+t*0.03,2);
+      ctx.fillStyle=`rgb(${Math.floor(12+dwn*15)},${Math.floor(40+dwn*20)},${Math.floor(80+dwn*20)})`;ctx.fillRect(sx,sy,ST,ST);
+      ctx.fillStyle=`rgba(20,60,120,${0.1+Math.sin(t*0.8+x+y)*0.06})`;ctx.fillRect(sx,sy,ST,ST);
+      break;}
     case T.SAND:{
       const sn=fbm(x*0.18+3,y*0.18+3,2);
       const sR=Math.floor(180+sn*20);const sG=Math.floor(155+sn*20);const sB=Math.floor(95+sn*15);
@@ -2544,20 +2569,47 @@ function drawDecor(d) {
   
   if(d.type==='tree'){
     const sz = d.size || 1;
-    // Shadow
-    ctx.fillStyle='rgba(0,0,0,0.15)';ctx.beginPath();ctx.ellipse(sx+ST/2,sy+ST+4,18*sz,6*sz,0,0,Math.PI*2);ctx.fill();
-    // Trunk
+    const sway = Math.sin(t*.8+d.x+d.y)*1.5;
+    const tcx=sx+ST/2, tcy=sy;
+    // Ground shadow (larger, softer)
+    ctx.fillStyle='rgba(0,0,0,0.12)';ctx.beginPath();ctx.ellipse(tcx+4,sy+ST+6,22*sz,8*sz,0.1,0,Math.PI*2);ctx.fill();
+    // Trunk — tapered, with bark detail
     ctx.fillStyle=C.treeTrunk[d.v%3];
-    const tw=8*sz;ctx.fillRect(sx+ST/2-tw/2,sy+ST*.3,tw,ST*.7);
-    // Canopy layers (depth!)
-    const sway = Math.sin(t*.8+d.x+d.y)*.5;
-    ctx.fillStyle=C.treeLeaf[d.v%5];ctx.beginPath();ctx.arc(sx+ST/2+sway,sy-4*sz,24*sz,0,Math.PI*2);ctx.fill();
-    ctx.fillStyle=C.treeLeaf[(d.v+1)%5];ctx.beginPath();ctx.arc(sx+ST/2-8*sz+sway*.5,sy+4*sz,18*sz,0,Math.PI*2);ctx.fill();
-    ctx.fillStyle=C.treeLeafLight[d.v%3];ctx.beginPath();ctx.arc(sx+ST/2+6*sz+sway*1.5,sy-8*sz,14*sz,0,Math.PI*2);ctx.fill();
+    const tw=7*sz,tbw=10*sz;
+    ctx.beginPath();ctx.moveTo(tcx-tw/2,tcy+ST*0.2);ctx.lineTo(tcx-tbw/2,sy+ST);ctx.lineTo(tcx+tbw/2,sy+ST);ctx.lineTo(tcx+tw/2,tcy+ST*0.2);ctx.closePath();ctx.fill();
+    // Bark lines
+    ctx.fillStyle='rgba(0,0,0,0.15)';ctx.fillRect(tcx-2,tcy+ST*0.3,1,ST*0.5);ctx.fillRect(tcx+2,tcy+ST*0.4,1,ST*0.4);
+    // Root bumps at base
+    ctx.fillStyle=C.treeTrunk[d.v%3];
+    ctx.beginPath();ctx.ellipse(tcx-tbw/2-2,sy+ST,5*sz,3*sz,0,0,Math.PI*2);ctx.fill();
+    ctx.beginPath();ctx.ellipse(tcx+tbw/2+2,sy+ST,4*sz,3*sz,0,0,Math.PI*2);ctx.fill();
+    // Canopy — multiple overlapping layers for depth, not single circles
+    // Back layer (darkest, largest)
+    ctx.fillStyle=C.treeLeaf[d.v%5];
+    ctx.beginPath();ctx.ellipse(tcx+sway*0.5,tcy-2*sz,26*sz,20*sz,0,0,Math.PI*2);ctx.fill();
+    // Mid layer clusters
+    ctx.fillStyle=C.treeLeaf[(d.v+1)%5];
+    ctx.beginPath();ctx.ellipse(tcx-10*sz+sway,tcy+4*sz,16*sz,14*sz,0,0,Math.PI*2);ctx.fill();
+    ctx.beginPath();ctx.ellipse(tcx+10*sz+sway*0.8,tcy+2*sz,15*sz,13*sz,0,0,Math.PI*2);ctx.fill();
+    // Front highlight layer (lightest, smaller)
+    ctx.fillStyle=C.treeLeafLight[d.v%3];
+    ctx.beginPath();ctx.ellipse(tcx+4*sz+sway*1.5,tcy-8*sz,12*sz,10*sz,0,0,Math.PI*2);ctx.fill();
+    ctx.beginPath();ctx.ellipse(tcx-6*sz+sway,tcy+1*sz,10*sz,8*sz,0,0,Math.PI*2);ctx.fill();
+    // Dappled light spots on canopy
+    ctx.fillStyle='rgba(120,200,80,0.15)';
+    ctx.beginPath();ctx.arc(tcx-5*sz+sway,tcy-4*sz,5*sz,0,Math.PI*2);ctx.fill();
+    ctx.beginPath();ctx.arc(tcx+8*sz+sway,tcy+3*sz,4*sz,0,Math.PI*2);ctx.fill();
+    // Leaf shadow on ground beneath tree
+    ctx.fillStyle='rgba(0,40,0,0.08)';ctx.beginPath();ctx.ellipse(tcx+2,sy+ST+2,20*sz,7*sz,0,0,Math.PI*2);ctx.fill();
   }
   else if(d.type==='bush'){
-    ctx.fillStyle='#2A5A1A';ctx.beginPath();ctx.arc(sx+ST/2,sy+ST/2+4,12,0,Math.PI*2);ctx.fill();
-    ctx.fillStyle='#3A7028';ctx.beginPath();ctx.arc(sx+ST/2+4,sy+ST/2,8,0,Math.PI*2);ctx.fill();
+    // More organic bush — overlapping leaf clusters
+    ctx.fillStyle='rgba(0,0,0,0.1)';ctx.beginPath();ctx.ellipse(sx+ST/2+2,sy+ST/2+8,14,6,0,0,Math.PI*2);ctx.fill(); // shadow
+    ctx.fillStyle='#1E4A14';ctx.beginPath();ctx.ellipse(sx+ST/2,sy+ST/2+4,14,12,0,0,Math.PI*2);ctx.fill();
+    ctx.fillStyle='#2A5A1A';ctx.beginPath();ctx.ellipse(sx+ST/2-4,sy+ST/2+2,10,9,0,0,Math.PI*2);ctx.fill();
+    ctx.fillStyle='#3A7028';ctx.beginPath();ctx.ellipse(sx+ST/2+5,sy+ST/2-1,9,8,0,0,Math.PI*2);ctx.fill();
+    // Highlight
+    ctx.fillStyle='rgba(80,160,50,0.2)';ctx.beginPath();ctx.arc(sx+ST/2+2,sy+ST/2-2,5,0,Math.PI*2);ctx.fill();
   }
   else if(d.type==='rock'){
     ctx.fillStyle=C.stone[d.v];
