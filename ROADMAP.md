@@ -248,3 +248,37 @@ As documented above — prototype → Early Access → full release → console 
 - The game that taught a generation about sound money
 
 ---
+
+---
+
+## 🎨 Current Priority: Visual Polish Sprint (before new regions)
+
+**Philosophy:** Don't expand until the valley is BEAUTIFUL. Every tile, every building, every character should feel like home. Bitcoin isn't just a game mechanic — it's the soul of this place.
+
+### Visual Polish Checklist
+- [ ] Path textures — worn cobblestone feel, wagon tracks, flower borders
+- [ ] Building facades — unique style per building, warm lived-in look
+- [ ] Character sprites — proper walk cycles, unique silhouettes per NPC
+- [ ] Grass detail — wildflowers, mushroom clusters, fallen leaves by season
+- [ ] Water — reflection, shoreline detail, lily pads, fish jumping
+- [ ] Garden — tilled rows, growth stages with visible progress
+- [ ] Mining shed — industrial detail, cable runs, exhaust pipes
+- [ ] Citadel — unique exterior per tier, flags, lighting
+- [ ] Signage — hand-painted wooden signs, ₿ details throughout
+- [ ] Ambient world — wind effects on vegetation, chimney smoke, lamp light
+- [ ] Night lighting — warm window glow, torch pools of light, stars
+
+### Quest Depth Checklist  
+- [ ] Quest dialogue should feel personal, not transactional
+- [ ] Multi-step quests with story beats between steps
+- [ ] Quests reveal Bitcoin history naturally through gameplay
+- [ ] Emotional moments — NPC backstories, Uncle Toshi memories
+- [ ] Choices that matter — some quests should have branching outcomes
+
+### The "Lived-In" Feel
+- [ ] Footpath wear patterns (grass worn down where NPCs walk)
+- [ ] Market stalls with displayed goods
+- [ ] Smoke from chimneys, steam from cooking
+- [ ] Animal sounds (distant mooing, chicken clucks)
+- [ ] Village notice board (shows current events, quest hints)
+- [ ] Seasonal decorations (market flags, harvest displays)
