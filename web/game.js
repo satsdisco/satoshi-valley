@@ -2800,8 +2800,9 @@ function drawTile(x,y,tile){
       const hasEdge=edgeN||edgeS||edgeW||edgeE;
       
       if(!hasEdge){
-        // SOLID CENTER — use one consistent tile for seamless tiling
-        drawSpr('grass',64,32,sx,sy,SCALE);
+        // SOLID CENTER — alternate 2 similar tiles in checkerboard to hide seams
+        const gAlt=((x+y)%2===0);
+        drawSpr('grass',gAlt?64:80,32,sx,sy,SCALE);
       } else {
         // Edge tile — pick based on which neighbors are non-grass
         let gsx=64,gsy=32; // default center
@@ -2816,20 +2817,16 @@ function drawTile(x,y,tile){
         drawSpr('grass',gsx,gsy,sx,sy,SCALE);
       }
       
-      // Overlay decorations from biome sheet
+      // Sparse decorations — only on specific tiles, not every one
       if(tile===T.FLOWER && spriteReady('biome')){
-        const fi=(x+y*3)%4;
-        // Flowers at row 2 of biome sheet: small flowers scattered
-        drawSpr('biome',(4+fi)*16,32,sx,sy,SCALE);
-      }
-      if(tile===T.TALLGRASS && spriteReady('biome')){
-        // Grass tufts from biome sheet row 2
-        const ti=(x+y)%3;
-        drawSpr('biome',ti*16,32,sx,sy,SCALE);
+        // Small flowers — only from biome row 2, tiny subtle ones
+        drawSpr('biome',((x*3+y*7)%3)*16+112,16,sx,sy,SCALE);
       }
       if(tile===T.MUSHROOM && spriteReady('biome')){
-        drawSpr('biome',64,0,sx,sy,SCALE); // mushroom/red item
+        drawSpr('biome',64,0,sx,sy,SCALE);
       }
+      // Tallgrass: no overlay, just a slightly different grass center
+      // (the grass sprite already looks fine on its own)
       return;
     }
     
