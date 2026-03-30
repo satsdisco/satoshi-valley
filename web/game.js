@@ -4391,7 +4391,16 @@ function draw(){
 // GAME LOOP
 // ============================================================
 function gameLoop(now){
-  const dt=Math.min(.1,(now-lastTime)/1000);lastTime=now;
-  update(dt);draw();requestAnimationFrame(gameLoop);
+  try{
+    const dt=Math.min(.1,(now-lastTime)/1000);lastTime=now;
+    update(dt);draw();
+  }catch(e){
+    ctx.fillStyle='#F00';ctx.font='16px Courier New';ctx.textAlign='left';
+    ctx.fillText('ERROR: '+e.message,20,30);
+    ctx.fillText('Stack: '+e.stack.split('\n')[1],20,50);
+    console.error('GAME ERROR:',e);
+    return; // stop loop
+  }
+  requestAnimationFrame(gameLoop);
 }
 requestAnimationFrame(gameLoop);
