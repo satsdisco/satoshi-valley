@@ -2787,9 +2787,9 @@ function drawTile(x,y,tile){
     const isGrassN=TERRAIN_GRASS.has(tN),isGrassS=TERRAIN_GRASS.has(tS),isGrassW=TERRAIN_GRASS.has(tW),isGrassE=TERRAIN_GRASS.has(tE);
     
     if(tile===T.GRASS||tile===T.TALLGRASS||tile===T.FLOWER||tile===T.MUSHROOM){
-      // Pick from 6 grass center variants for natural look
-      const grassCenters=[[32,16],[48,16],[64,16],[32,32],[48,32],[64,32]];
-      const gi=Math.abs((x*7+y*13)%6);
+      // Solid grass centers: columns 3-5, rows 1-3 (px: 48-80, 16-48) — NO transparency
+      const grassCenters=[[48,16],[64,16],[80,16],[48,32],[64,32],[80,32],[48,48],[64,48],[80,48]];
+      const gi=Math.abs((x*7+y*13)%9);
       drawSpr('grass',grassCenters[gi][0],grassCenters[gi][1],sx,sy,SCALE);
       
       // Overlay decorations from biome sheet
@@ -2810,31 +2810,31 @@ function drawTile(x,y,tile){
     }
     
     if(tile===T.PATH||tile===T.BRIDGE){
-      // Dirt/path: use the dirt tileset with auto-edge detection
-      // Grass tile as base, then dirt overlay where path meets grass
       if(spriteReady('dirt')){
-        // Simple approach: use dirt center tiles
-        const dirtCenters=[[32,16],[48,16],[64,16],[32,32],[48,32],[64,32]];
-        const di=Math.abs((x*3+y*11)%6);
+        // Solid dirt centers: same layout as grass (cols 3-5, rows 1-3)
+        const dirtCenters=[[48,16],[64,16],[80,16],[48,32],[64,32],[80,32],[48,48],[64,48],[80,48]];
+        const di=Math.abs((x*3+y*11)%9);
         drawSpr('dirt',dirtCenters[di][0],dirtCenters[di][1],sx,sy,SCALE);
-      }else{
-        drawSpr('grass',48,32,sx,sy,SCALE); // fallback grass
       }
       return;
     }
     
     if(tile===T.DIRT){
       if(spriteReady('dirt')){
-        const dirtCenters=[[32,16],[48,16],[64,16],[32,32],[48,32],[64,32]];
-        const di=Math.abs((x*5+y*9)%6);
+        const dirtCenters=[[48,16],[64,16],[80,16],[48,32],[64,32],[80,32],[48,48],[64,48],[80,48]];
+        const di=Math.abs((x*5+y*9)%9);
         drawSpr('dirt',dirtCenters[di][0],dirtCenters[di][1],sx,sy,SCALE);
       }
       return;
     }
     
     if(tile===T.SAND){
-      // Use a warm grass variant as sand placeholder
-      drawSpr('grass',64,32,sx,sy,SCALE);
+      // Sand: use a lighter dirt tile
+      if(spriteReady('dirt')){
+        drawSpr('dirt',64,32,sx,sy,SCALE);
+      }else{
+        drawSpr('grass',64,32,sx,sy,SCALE);
+      }
       return;
     }
     
@@ -2848,10 +2848,11 @@ function drawTile(x,y,tile){
     }
     
     if(tile===T.STONE||tile===T.CLIFF){
-      // Use hills tileset for stone/cliff
+      // Use solid hill center tiles (cols 3-5, rows 1-3 like grass)
       if(spriteReady('hills')){
-        const si=Math.abs((x*7+y*3)%4);
-        drawSpr('hills',(2+si)*16,16,sx,sy,SCALE);
+        const hillCenters=[[48,16],[64,16],[80,16],[48,32],[64,32],[80,32]];
+        const si=Math.abs((x*7+y*3)%6);
+        drawSpr('hills',hillCenters[si][0],hillCenters[si][1],sx,sy,SCALE);
       }
       return;
     }
