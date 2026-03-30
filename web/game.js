@@ -1704,15 +1704,32 @@ function update(dt) {
   if(doorCooldown>0) doorCooldown-=dt;
   if (!interior && !transition && doorCooldown<=0) {
     const ptx = Math.floor(player.x / TILE), pty = Math.floor(player.y / TILE);
-    if (map[pty] && (map[pty][ptx] === T.FLOOR || map[pty][ptx] === T.SHOP)) {
-      let buildingType = null;
-      const ct = CITADEL_TIERS[citadelTier];
-      const homeCx = homeX-Math.floor(ct.w/2), homeCy = homeY-Math.floor(ct.h/2);
-      if (ptx>=homeCx && ptx<homeCx+ct.w && pty>=homeCy && pty<homeCy+ct.h) buildingType='home';
-      else if (ptx>=homeX-18 && ptx<homeX-12 && pty>=homeY-6 && pty<homeY-1) buildingType='shed';
-      else if (ptx>=homeX+4 && ptx<homeX+12 && pty>=homeY+16 && pty<homeY+22) buildingType='shop';
-      else if (ptx>=homeX+20 && ptx<homeX+27 && pty>=homeY+12 && pty<homeY+18) buildingType='tavern';
-      else if (ptx>=homeX+12 && ptx<homeX+20 && pty>=homeY-10 && pty<homeY-4) buildingType='hall';
+    // Detect door positions for each building (bottom-center tile of each building)
+    // Buildings use buildBuilding() which puts doors at bottom row center
+    const ct = CITADEL_TIERS[citadelTier];
+    const homeCx = homeX-Math.floor(ct.w/2), homeCy = homeY-Math.floor(ct.h/2);
+    
+    // Check if player is at or near a door position (within 1 tile of door)
+    let buildingType = null;
+    const doorChecks = [
+      { type:'home', dx: homeCx+Math.floor(ct.w/2), dy: homeCy+ct.h-1 },
+      { type:'shed', dx: homeX-18+3, dy: homeY-6+5-1 },   // shed door: x=homeX-15, y=homeY-2
+      { type:'shop', dx: homeX+4+4, dy: homeY+16+6-1 },    // shop door: x=homeX+8, y=homeY+21
+      { type:'tavern', dx: homeX+20+3, dy: homeY+12+6-1 },  // tavern door: x=homeX+23, y=homeY+17
+      { type:'hall', dx: homeX+12+4, dy: homeY-10+6-1 },    // hall door: x=homeX+16, y=homeY-5
+    ];
+    
+    for (const dc of doorChecks) {
+      // Enter if player is within 1 tile of door position (and walking toward it)
+      if (Math.abs(ptx - dc.dx) <= 1 && Math.abs(pty - dc.dy) <= 1) {
+        // Also check the tile is floor, path, or shop (not a wall)
+        const tile = map[pty] ? map[pty][ptx] : -1;
+        if (tile === T.FLOOR || tile === T.SHOP || tile === T.PATH) {
+          buildingType = dc.type;
+          break;
+        }
+      }
+    }
 
       if (buildingType && INTERIOR_MAPS[buildingType]) {
         mouseTarget = null; clickIndicator = null; // Clear mouse state when entering
@@ -1732,17 +1749,20 @@ function update(dt) {
 
   // ---- BUILDING EXIT (interior) ----
   if (interior && !transition) {
-    const pty = Math.floor(player.y / TILE);
-    // Exit when player walks into the door at the very bottom
-    if (player.y >= (interior.h - 2) * TILE + TILE/2) {
+    // Exit when player walks near the bottom of the interior (door area)
+    // OR when they press E near the door area
+    const nearDoor = player.y >= (interior.h - 2) * TILE;
+    const atDoor = player.y >= (interior.h - 1) * TILE - 4;
+    
+    if (atDoor || (nearDoor && jp['e'])) {
       const rx = interior.returnX, ry = interior.returnY;
-      startTransition('fadeOut', 0.4, () => {
+      startTransition('fadeOut', 0.3, () => {
         interior = null;
-        doorCooldown = 1.5; // prevent instant re-entry
+        doorCooldown = 1.0;
         player.x = rx; player.y = ry;
         cam.x = player.x * SCALE - canvas.width / 2;
         cam.y = player.y * SCALE - canvas.height / 2;
-        startTransition('fadeIn', 0.4, null);
+        startTransition('fadeIn', 0.3, null);
       });
     }
   }
@@ -2744,6 +2764,30 @@ function drawDecor(d) {
         ctx.fillStyle='rgba(255,0,0,0.2)';
         ctx.beginPath();ctx.arc(rx+rw*0.2,ry-2,7,0,Math.PI*2);ctx.fill();
       }
+      
+      // Show rig count and status on shed exterior
+      const shedRigs = rigs.filter(r => r.interior === 'shed');
+      const activeRigs = shedRigs.filter(r => r.powered && r.dur > 0 && !r.oh);
+      if (shedRigs.length > 0) {
+        // Status panel above door
+        ctx.fillStyle = 'rgba(0,0,0,0.6)';
+        ctx.fillRect(dX4-10, dY4-22, dW4+20, 20);
+        ctx.fillStyle = activeRigs.length > 0 ? C.ledGreen : C.red;
+        ctx.font = `bold 11px ${FONT}`; ctx.textAlign = 'center';
+        ctx.fillText(`⛏️ ${activeRigs.length}/${shedRigs.length} mining`, rx+rw/2, dY4-8);
+        // Hash indicator
+        const shedHash = activeRigs.reduce((s,r) => s + r.hr, 0);
+        if (shedHash > 0) {
+          ctx.fillStyle = C.orange; ctx.font = `10px ${FONT}`;
+          ctx.fillText(`${shedHash.toFixed(1)} TH/s`, rx+rw/2, dY4+4);
+        }
+      }
+      // "Enter" prompt when player is near
+      const playerDist = Math.hypot(player.x - (d.x*TILE+d.w*TILE/2), player.y - ((d.y+d.bh)*TILE));
+      if (playerDist < TILE * 4 && !interior) {
+        ctx.fillStyle = C.orange; ctx.font = `bold 12px ${FONT}`; ctx.textAlign = 'center';
+        ctx.fillText('Walk to door to enter', rx+rw/2, ry+bh+16);
+      }
     }
 
     // ── HALL (Town Hall) ──────────────────────────────────────────────────
@@ -3210,6 +3254,10 @@ function drawHUD(){
     const iName={home:'🏠 Home',shop:"🏪 Ruby's Shop",tavern:'🍺 Hodl Tavern',shed:'⛏️ Mining Shed',hall:'🏛️ Town Hall'};
     ctx.fillStyle=C.hud;ctx.font=`bold 14px ${FONT}`;ctx.textAlign='left';
     ctx.fillText(iName[interior.type]||interior.type, p+12, y+28);
+    // Exit prompt at bottom of screen
+    ctx.fillStyle='rgba(0,0,0,0.5)';ctx.fillRect(canvas.width/2-80,canvas.height-90,160,24);
+    ctx.fillStyle=C.orange;ctx.font=`bold 13px ${FONT}`;ctx.textAlign='center';
+    ctx.fillText('↓ Walk south to exit ↓',canvas.width/2,canvas.height-73);
   }
   
   // Hotbar
