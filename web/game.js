@@ -422,7 +422,10 @@ const ITEMS = {
   advanced_rig_part:{name:'Advanced Rig Part',desc:'High-performance mining component',icon:'⚙️',type:'mat',buy:0,sell:1000,stack:true},
   shed_upgrade:{name:'Shed Expansion Kit',desc:'Doubles mining shed capacity',icon:'🏗️',type:'quest',buy:0,sell:0,stack:false},
   citadel_materials:{name:'Citadel Materials',desc:'Reduces next citadel upgrade cost by 25%',icon:'🏰',type:'quest',buy:0,sell:0,stack:false},
-  fishing_rod:{name:'Fishing Rod',desc:'Cast into water to catch fish. Coming soon!',icon:'🎣',type:'tool',buy:500,sell:200,stack:true},
+  fishing_rod:{name:'Fishing Rod',desc:'Cast into water. Press R facing water!',icon:'🎣',type:'tool',buy:500,sell:200,stack:true},
+  salmon:{name:'Salmon',desc:'Fresh-caught salmon. Sell or eat.',icon:'🐟',type:'food',buy:0,sell:300,stack:true},
+  trout:{name:'Trout',desc:'Rainbow trout. Tasty.',icon:'🐠',type:'food',buy:0,sell:200,stack:true},
+  bitcoin_fish:{name:'Bitcoin Fish',desc:'A legendary golden fish with a ₿ mark. Extremely rare!',icon:'🐡',type:'food',buy:0,sell:2000,stack:true},
 };
 
 // ============================================================
@@ -475,6 +478,7 @@ let titleMenuOpen = false;
 let titleCur = 0;
 let titleTip = '';
 let interiorNPCs = []; // NPCs present in current interior
+let fishing = null; // null or {timer, barPos, barDir, catchZone, catchSize, fish, biting}
 const INTERIOR_MAPS = {}; // generated once, keyed by building type
 
 const INTRO_SLIDES = [
@@ -767,19 +771,40 @@ function generateMap() {
     {x:homeX+10,y:homeY+18},  // Behind shop
     {x:homeX+22,y:homeY+14},  // Near tavern
     {x:homeX-3,y:homeY-10},   // In the garden
-    // Forest (west)
+    // Forest (west) — hidden among trees, reward exploration
     {x:15,y:20},{x:8,y:40},{x:20,y:55},{x:12,y:65},{x:6,y:30},
-    // Mountains (north)
+    // Mountains (north) — high altitude finds
     {x:40,y:8},{x:70,y:6},{x:90,y:12},
-    // Lake & beaches (east)
+    // Lake & beaches (east) — shoreline discoveries
     {x:95,y:45},{x:100,y:60},{x:85,y:75},
-    // Map edges & corners (reward exploration)
+    // Map edges & corners — reward deep exploration
     {x:5,y:80},{x:110,y:10},{x:105,y:80},{x:60,y:5},
-    // Unique terrain spots
+    // Scattered across the valley
     {x:35,y:25},{x:75,y:35},{x:50,y:70},{x:30,y:50},{x:80,y:25},
+    // Near buildings — some easier to find
+    {x:homeX+25,y:homeY},{x:homeX-8,y:homeY+15},
+    // Deep south and northeast
+    {x:45,y:82},{x:108,y:30},
   ];
   for (const loc of fragLocations) {
-    decor.push({ x: loc.x, y: loc.y, type: 'seed_fragment' });
+    // Make sure fragment lands on walkable ground
+    const fx = Math.max(2, Math.min(MAP_W-3, loc.x));
+    const fy = Math.max(2, Math.min(MAP_H-3, loc.y));
+    if (map[fy] && SOLID.has(map[fy][fx])) {
+      // Move to nearest grass/path
+      for (let r = 1; r < 5; r++) {
+        for (const [dx,dy] of [[r,0],[-r,0],[0,r],[0,-r]]) {
+          const nx=fx+dx, ny=fy+dy;
+          if (ny>=0&&ny<MAP_H&&nx>=0&&nx<MAP_W && !SOLID.has(map[ny][nx])) {
+            decor.push({ x: nx, y: ny, type: 'seed_fragment' });
+            break;
+          }
+        }
+        if (decor[decor.length-1]?.type === 'seed_fragment' && decor[decor.length-1]?.x !== fx) break;
+      }
+    } else {
+      decor.push({ x: fx, y: fy, type: 'seed_fragment' });
+    }
   }
   
   // Border
@@ -2189,6 +2214,19 @@ function update(dt) {
           sfx.place();notify('🌾 Tilled soil!',1.5);addXP('farming',2);
         } else { notify("Can only till grass!",1.5);sfx.error(); }
       }
+      // FISHING ROD — cast into water
+      else if(sel.id==='fishing_rod'){
+        if(!useEnergy(3))return;
+        const tx=Math.floor((player.x+player.facing.x*20)/TILE),ty=Math.floor((player.y+player.facing.y*20)/TILE);
+        if(map[ty]&&(map[ty][tx]===T.WATER||map[ty][tx]===T.DEEP)){
+          // Start fishing minigame
+          const skill=skills.foraging?skills.foraging.level:1;
+          const catchSize=0.15+skill*0.02; // Higher skill = bigger catch zone
+          fishing={timer:0,barPos:0.5,barDir:1,catchZone:0.3+Math.random()*0.4,catchSize,fish:null,biting:false,biteTimer:1+Math.random()*3,caught:false};
+          notify('🎣 Casting... wait for a bite!',2);
+          sfx.interact();
+        } else { notify('Face water to fish!',1.5);sfx.error(); }
+      }
       // SHOVEL — pick up placed items and rigs
       else if(sel.id==='shovel'){
         if(!useEnergy(2))return;
@@ -2383,6 +2421,51 @@ function update(dt) {
     } else {
       p.x += p.vx * dt; p.y += p.vy * dt;
     }
+  }
+
+  // ---- FISHING MINIGAME ----
+  if(fishing){
+    fishing.timer+=dt;
+    if(!fishing.biting){
+      // Waiting for bite
+      fishing.biteTimer-=dt;
+      if(fishing.biteTimer<=0){
+        fishing.biting=true;
+        // Determine fish type
+        const roll=Math.random();
+        if(roll<0.02) fishing.fish='bitcoin_fish';
+        else if(roll<0.35) fishing.fish='salmon';
+        else fishing.fish='trout';
+        notify('🐟 Something\'s biting! Press E to reel in!',2);
+        sfx.coin();
+      }
+    }else if(!fishing.caught){
+      // Moving catch bar
+      fishing.barPos+=fishing.barDir*dt*1.5;
+      if(fishing.barPos>1){fishing.barPos=1;fishing.barDir=-1;}
+      if(fishing.barPos<0){fishing.barPos=0;fishing.barDir=1;}
+      
+      // Press E to try catching
+      if(jp['e']){
+        const inZone=Math.abs(fishing.barPos-fishing.catchZone)<fishing.catchSize;
+        if(inZone){
+          fishing.caught=true;
+          if(addItem(fishing.fish)){
+            const fishItem=ITEMS[fishing.fish];
+            notify(`🎣 Caught a ${fishItem.name}! (${fmt(fishItem.sell)} sats)`,3,true);
+            sfx.block();addXP('foraging',fishing.fish==='bitcoin_fish'?25:10);
+          }else{notify('Inventory full!',1.5);sfx.error();}
+          fishing=null;
+        }else{
+          notify('Missed! Fish got away.',2);sfx.error();
+          fishing=null;
+        }
+      }
+      // Auto-fail after 3 seconds
+      if(fishing&&fishing.timer>6){notify('Fish got bored and swam away.',2);fishing=null;}
+    }
+    // Cancel with Escape
+    if(jp['escape']){fishing=null;notify('Stopped fishing.',1);}
   }
 
   for(const k in jp)jp[k]=false;
@@ -4167,6 +4250,31 @@ function drawHUD(){
   // Shop
   if(shopOpen) drawShop();
   if(craftOpen) drawCraftMenu();
+  
+  // Fishing minigame UI
+  if(fishing&&fishing.biting&&!fishing.caught){
+    const fw=200,fh=40;
+    const fx=(canvas.width-fw)/2,fy=canvas.height*0.3;
+    // Background bar
+    panel(fx-4,fy-4,fw+8,fh+8);
+    ctx.fillStyle='#1A3050';ctx.fillRect(fx,fy,fw,fh);
+    // Catch zone (green)
+    const zoneX=fx+fishing.catchZone*fw-fishing.catchSize*fw;
+    const zoneW=fishing.catchSize*2*fw;
+    ctx.fillStyle='rgba(68,255,68,0.3)';ctx.fillRect(Math.max(fx,zoneX),fy,Math.min(zoneW,fw),fh);
+    // Moving bar (orange indicator)
+    const barX=fx+fishing.barPos*fw;
+    ctx.fillStyle=C.orange;ctx.fillRect(barX-3,fy-2,6,fh+4);
+    // Label
+    ctx.fillStyle=C.white;ctx.font=`bold 14px ${FONT}`;ctx.textAlign='center';
+    ctx.fillText('🐟 Press E in the green zone!',canvas.width/2,fy-12);
+    // Fish type hint
+    ctx.fillStyle=C.gold;ctx.font=`12px ${FONT}`;
+    ctx.fillText(fishing.fish==='bitcoin_fish'?'✨ LEGENDARY BITE! ✨':'Reel it in!',canvas.width/2,fy+fh+20);
+  }else if(fishing&&!fishing.biting){
+    ctx.fillStyle=C.gray;ctx.font=`bold 14px ${FONT}`;ctx.textAlign='center';
+    ctx.fillText('🎣 Waiting for a bite...',canvas.width/2,canvas.height*0.3);
+  }
   if(citadelMenuOpen) drawCitadelMenu();
   if(invOpen) drawInv();
   if(chestOpen) drawChest();
