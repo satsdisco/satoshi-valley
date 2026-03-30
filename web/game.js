@@ -840,7 +840,10 @@ function upgradeCitadel() {
   player.wallet -= next.cost;
   citadelTier++;
   rebuildCitadel();
+  // Teleport player outside the new footprint to prevent getting trapped (#70)
   const t = CITADEL_TIERS[citadelTier];
+  player.x = homeX * TILE + 8;
+  player.y = (homeY + Math.floor(t.h/2) + 2) * TILE + 8;
   notify(`🏰 Upgraded to ${t.icon} ${t.name}! (Tier ${citadelTier})`, 4, true);
   sfx.block();
   completeObjective('upgrade_citadel');
@@ -4742,7 +4745,9 @@ function drawNPCHearts(npc) {
 }
 
 function draw(){
-  if(gameState==='intro'){drawIntro();return;}
+  // Reset render state at frame start (#67 globalAlpha leak, #68 shadowBlur leak)
+  ctx.globalAlpha=1;ctx.shadowBlur=0;ctx.shadowColor='transparent';
+  if(gameState==='intro'){drawIntro();ctx.globalAlpha=1;ctx.shadowBlur=0;return;}
   
   ctx.fillStyle='#0a0a0a';ctx.fillRect(0,0,canvas.width,canvas.height);
   
