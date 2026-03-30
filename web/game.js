@@ -423,14 +423,14 @@ function lerp(a,b,t){return a+(b-a)*t;}
 const SEASON_PALETTES = {
   // Accumulation = Spring: fresh greens, flowers blooming
   0: {
-    grass:['#1F4D0F','#2A5E18','#347020','#3E8228','#489430'],
-    treeLeaf:['#1A4A10','#2A5A1A','#1E5014','#2E6020','#3A7028'],
-    treeLeafLight:['#3A7028','#4A8035','#5A9040'],
+    grass:['#5A8F29','#64A02E','#6DAA2C','#7EC631','#8AD43A'],
+    treeLeaf:['#3D7A1A','#4A8B22','#5A9A2A','#6DAA2C','#7EC631'],
+    treeLeafLight:['#7EC631','#8AD43A','#A5D64C'],
     flower:['#E8C840','#D04040','#7070E0','#E870B0','#70D0A0','#F0A030'],
   },
   // Hype = Summer: bright, lush, vibrant
   1: {
-    grass:['#1A5A08','#2A6A14','#3A7A20','#4A8A2C','#5A9A38'],
+    grass:['#64A02E','#6DAA2C','#7EC631','#8AD43A','#A5D64C'],
     treeLeaf:['#1A5A08','#2A6A14','#1E6010','#2E7020','#3A8028'],
     treeLeafLight:['#4A9030','#5AA040','#6AB050'],
     flower:['#FFD040','#FF5050','#8080FF','#FF80C0','#80E0B0','#FFB040'],
@@ -2786,123 +2786,25 @@ function drawTile(x,y,tile){
     const tN=getTile(x,y-1),tS=getTile(x,y+1),tW=getTile(x-1,y),tE=getTile(x+1,y);
     const isGrassN=TERRAIN_GRASS.has(tN),isGrassS=TERRAIN_GRASS.has(tS),isGrassW=TERRAIN_GRASS.has(tW),isGrassE=TERRAIN_GRASS.has(tE);
     
-    // Solid earth base — grass transparency reveals this warm dirt color
-    ctx.fillStyle='#8B7355';ctx.fillRect(sx,sy,ST,ST);
-    
-    if(tile===T.GRASS||tile===T.TALLGRASS||tile===T.FLOWER||tile===T.MUSHROOM){
-      // Only trigger grass edges at REAL terrain boundaries (path, water, sand, dirt)
-      // Buildings (WALL, FLOOR, SHOP, FENCE) should NOT cause grass edges
-      const EDGE_TRIGGERS=new Set([T.PATH,T.WATER,T.DEEP,T.SAND,T.DIRT,T.BRIDGE,T.STONE,T.CLIFF]);
-      const edgeN=EDGE_TRIGGERS.has(tN);
-      const edgeS=EDGE_TRIGGERS.has(tS);
-      const edgeW=EDGE_TRIGGERS.has(tW);
-      const edgeE=EDGE_TRIGGERS.has(tE);
-      const hasEdge=edgeN||edgeS||edgeW||edgeE;
-      
-      if(!hasEdge){
-        // SOLID CENTER — alternate 2 similar tiles in checkerboard to hide seams
-        const gAlt=((x+y)%2===0);
-        drawSpr('grass',gAlt?64:80,32,sx,sy,SCALE);
-      } else {
-        // Edge tile — pick based on which neighbors are non-grass
-        let gsx=64,gsy=32; // default center
-        if(edgeN&&edgeW) {gsx=0;gsy=0;}
-        else if(edgeN&&edgeE) {gsx=96;gsy=0;}
-        else if(edgeS&&edgeW) {gsx=0;gsy=64;}
-        else if(edgeS&&edgeE) {gsx=96;gsy=64;}
-        else if(edgeN) {gsx=48;gsy=0;}
-        else if(edgeS) {gsx=48;gsy=64;}
-        else if(edgeW) {gsx=0;gsy=32;}
-        else if(edgeE) {gsx=96;gsy=32;}
-        drawSpr('grass',gsx,gsy,sx,sy,SCALE);
-      }
-      
-      // Sparse decorations — only on specific tiles, not every one
-      if(tile===T.FLOWER && spriteReady('biome')){
-        // Small flowers — only from biome row 2, tiny subtle ones
-        drawSpr('biome',((x*3+y*7)%3)*16+112,16,sx,sy,SCALE);
-      }
-      if(tile===T.MUSHROOM && spriteReady('biome')){
-        drawSpr('biome',64,0,sx,sy,SCALE);
-      }
-      // Tallgrass: no overlay, just a slightly different grass center
-      // (the grass sprite already looks fine on its own)
-      return;
-    }
-    
-    if(tile===T.PATH||tile===T.BRIDGE){
-      if(spriteReady('dirt')){
-        // Solid dirt centers: same layout as grass (cols 3-5, rows 1-3)
-        const dirtCenters=[[48,16],[64,16],[80,16],[48,32],[64,32],[80,32],[48,48],[64,48],[80,48]];
-        const di=Math.abs((x*3+y*11)%9);
-        drawSpr('dirt',dirtCenters[di][0],dirtCenters[di][1],sx,sy,SCALE);
-      }
-      return;
-    }
-    
-    if(tile===T.DIRT){
-      if(spriteReady('dirt')){
-        const dirtCenters=[[48,16],[64,16],[80,16],[48,32],[64,32],[80,32],[48,48],[64,48],[80,48]];
-        const di=Math.abs((x*5+y*9)%9);
-        drawSpr('dirt',dirtCenters[di][0],dirtCenters[di][1],sx,sy,SCALE);
-      }
-      return;
-    }
-    
-    if(tile===T.SAND){
-      // Sand: use a lighter dirt tile
-      if(spriteReady('dirt')){
-        drawSpr('dirt',64,32,sx,sy,SCALE);
-      }else{
-        drawSpr('grass',64,32,sx,sy,SCALE);
-      }
-      return;
-    }
-    
-    if(tile===T.WATER||tile===T.DEEP){
-      if(spriteReady('water')){
-        // 4-frame animated water
-        const wFrame=Math.floor(performance.now()/400)%4;
-        drawSpr('water',wFrame*16,0,sx,sy,SCALE);
-      }
-      return;
-    }
-    
-    if(tile===T.STONE||tile===T.CLIFF){
-      // Use solid hill center tiles (cols 3-5, rows 1-3 like grass)
-      if(spriteReady('hills')){
-        const hillCenters=[[48,16],[64,16],[80,16],[48,32],[64,32],[80,32]];
-        const si=Math.abs((x*7+y*3)%6);
-        drawSpr('hills',hillCenters[si][0],hillCenters[si][1],sx,sy,SCALE);
-      }
-      return;
-    }
-    
-    if(tile===T.FENCE){
-      drawSpr('grass',48,16,sx,sy,SCALE); // grass base
-      if(spriteReady('fences')){
-        drawSpr('fences',16,16,sx,sy,SCALE); // fence overlay
-      }
-      return;
-    }
-    
-    // Wall/Floor/Shop tiles — use grass base so they're not black
-    if(tile===T.WALL||tile===T.FLOOR||tile===T.SHOP){
-      // Don't sprite these — let the canvas building renderer handle them
-    }
+    // ---- USE SPROUT LANDS PALETTE WITH PERLIN CANVAS RENDERING ----
+    // Sprite tiles at 3x show seams. Instead: use the Sprout Lands COLOR PALETTE
+    // with our smooth Perlin noise canvas rendering. Best of both worlds.
+    // Sprout Lands grass palette: #5A8F29 (dark), #6DAA2C (mid), #7EC631 (light), #A5D64C (highlight)
+    // Sprout Lands dirt palette: #8B7355 (dark), #A6894A (mid), #C4A265 (light)
+    // Sprout Lands water palette: #3F7CB6 (deep), #5B9BD5 (mid), #7AB8E0 (light)
+    // We skip the rest and let it fall through to the canvas renderer below with these colors
   }
   
   switch(tile){
     case T.GRASS:{
-      // Use Perlin noise for smooth, organic color blending (no checkerboard!)
-      const gn=fbm(x*0.15+0.5,y*0.15+0.5,2); // smooth noise 0-1
-      const gn2=fbm(x*0.3+10,y*0.3+10,2); // finer detail layer
-      // Seasonal color shift based on market phase
-      const sR=[0,0,20,0][econ.phase]; // Euphoria adds warmth
-      const sG=[0,10,-10,-20][econ.phase]; // Capitulation desaturates
-      const sB=[0,0,0,10][econ.phase]; // Capitulation adds blue
-      const baseR=Math.floor(30+gn*30+sR);const baseG=Math.floor(90+gn*50+gn2*20+sG);const baseB=Math.floor(15+gn*20+sB);
-      ctx.fillStyle=`rgb(${Math.max(0,Math.min(255,baseR))},${Math.max(0,Math.min(255,baseG))},${Math.max(0,Math.min(255,baseB))})`;ctx.fillRect(sx,sy,ST,ST);
+      // Sprout Lands palette + Perlin noise = seamless beautiful grass
+      const gn=fbm(x*0.15+0.5,y*0.15+0.5,2);
+      const gn2=fbm(x*0.3+10,y*0.3+10,2);
+      // Sprout Lands greens: #5A8F29 → #A5D64C (warm bright greens)
+      const baseR=Math.floor(80+gn*40+gn2*10);
+      const baseG=Math.floor(140+gn*45+gn2*20);
+      const baseB=Math.floor(30+gn*20+gn2*8);
+      ctx.fillStyle=`rgb(${baseR},${baseG},${baseB})`;ctx.fillRect(sx,sy,ST,ST);
       // Subtle lighter patches using second noise octave
       if(gn2>0.55){ctx.fillStyle=`rgba(80,160,50,${(gn2-0.55)*0.4})`;ctx.fillRect(sx,sy,ST,ST);}
       // Darker patches for depth
@@ -3031,7 +2933,8 @@ function drawTile(x,y,tile){
     case T.WATER:{const wt=t*1.5+x*.5+y*.3;
       // Smooth Perlin-based water — no checkerboard
       const wn=fbm(x*0.12+t*0.08,y*0.12+t*0.05,2);
-      const wR=Math.floor(25+wn*15);const wG=Math.floor(80+wn*30);const wB=Math.floor(140+wn*25);
+      // Sprout Lands water: #3F7CB6 → #7AB8E0 (bright inviting blue)
+      const wR=Math.floor(55+wn*30);const wG=Math.floor(115+wn*35);const wB=Math.floor(170+wn*25);
       ctx.fillStyle=`rgb(${wR},${wG},${wB})`;ctx.fillRect(sx,sy,ST,ST);
       // Animated shimmer layer
       ctx.fillStyle=`rgba(100,180,240,${0.06+Math.sin(wt)*0.04})`;ctx.fillRect(sx,sy,ST,ST);
@@ -3078,9 +2981,9 @@ function drawTile(x,y,tile){
       if((x*13+y*7)%11<3){ctx.fillStyle='rgba(210,190,140,0.15)';ctx.fillRect(sx+4,sy+12,ST-8,2);ctx.fillRect(sx+8,sy+28,ST-16,2);}
       break;}
     case T.PATH:{
-      // Smooth dirt path with subtle noise variation
+      // Sprout Lands warm dirt palette + Perlin noise
       const pn=fbm(x*0.2+5,y*0.2+5,2);
-      const pR=Math.floor(130+pn*20);const pG=Math.floor(115+pn*15);const pB=Math.floor(90+pn*15);
+      const pR=Math.floor(155+pn*25);const pG=Math.floor(125+pn*20);const pB=Math.floor(75+pn*15);
       ctx.fillStyle=`rgb(${pR},${pG},${pB})`;ctx.fillRect(sx,sy,ST,ST);
       // Subtle pebble/texture details
       const pSeed=(x*23+y*11)%29;
