@@ -169,6 +169,19 @@ canvas.addEventListener('click', e => {
     }
     if (TUTORIAL_STEPS[tutorialStep].trigger==='press'){tutorialStep++;tutTimer=0;if(tutorialStep>=TUTORIAL_STEPS.length)tutorialDone=true;return;}
   }
+  // Crafting layer
+  if (craftOpen) {
+    const cw=580,ch=480,cx2=(canvas.width-cw)/2,cy2=(canvas.height-ch)/2;
+    if(e.clientX<cx2||e.clientX>cx2+cw||e.clientY<cy2||e.clientY>cy2+ch){craftOpen=false;sfx.menuClose();return;}
+    const ly2=cy2+68,rowH2=46;
+    if(e.clientY>=ly2){
+      const row=Math.floor((e.clientY-ly2)/rowH2);
+      if(row>=0&&row<RECIPES.length){
+        if(craftCur===row){doCraft(RECIPES[row]);}else{craftCur=row;}
+      }
+    }
+    return;
+  }
   // Shop layer
   if (shopOpen) {
     const sw=560,sh=460,sx=(canvas.width-sw)/2,sy=(canvas.height-sh)/2;
@@ -394,6 +407,17 @@ const ITEMS = {
   egg:{name:'Farm Eggs',desc:'Free-range eggs. Two per chicken per day.',icon:'🥚',type:'food',buy:0,sell:80,stack:true},
   honey:{name:'Raw Honey',desc:'Local wildflower honey. Nature\'s gold.',icon:'🍯',type:'food',buy:0,sell:350,stack:true},
   feed:{name:'Animal Feed',desc:'Keeps your animals happy and productive.',icon:'🌾',type:'supply',buy:30,sell:10,stack:true},
+  wood:{name:'Wood',desc:'Chopped from trees. Used in crafting.',icon:'🪵',type:'mat',buy:0,sell:15,stack:true},
+  fiber:{name:'Fiber',desc:'Plant fiber from grass and bushes.',icon:'🎋',type:'mat',buy:0,sell:5,stack:true},
+  fence_post:{name:'Fence Post',desc:'Place with R to contain animals',icon:'🪵',type:'placeable',buy:0,sell:30,stack:true},
+  flower_pot:{name:'Flower Pot',desc:'Decorative planter',icon:'🌸',type:'deco',buy:0,sell:40,stack:true},
+  torch_item:{name:'Torch',desc:'Light up your citadel at night',icon:'🔥',type:'deco',buy:0,sell:25,stack:true},
+  cheese:{name:'Cheese',desc:'Aged goat cheese. Fancy.',icon:'🧀',type:'food',buy:0,sell:300,stack:true},
+  circuit_board:{name:'Circuit Board',desc:'Electronics component',icon:'🔌',type:'mat',buy:0,sell:400,stack:true},
+  advanced_rig_part:{name:'Advanced Rig Part',desc:'High-performance mining component',icon:'⚙️',type:'mat',buy:0,sell:1000,stack:true},
+  shed_upgrade:{name:'Shed Expansion Kit',desc:'Doubles mining shed capacity',icon:'🏗️',type:'quest',buy:0,sell:0,stack:false},
+  citadel_materials:{name:'Citadel Materials',desc:'Reduces next citadel upgrade cost by 25%',icon:'🏰',type:'quest',buy:0,sell:0,stack:false},
+  fishing_rod:{name:'Fishing Rod',desc:'Cast into water to catch fish. Coming soon!',icon:'🎣',type:'tool',buy:500,sell:200,stack:true},
 };
 
 // ============================================================
@@ -895,7 +919,9 @@ function isSolid(tx,ty){
   const mw=interior?interior.w:MAP_W;
   const mh=interior?interior.h:MAP_H;
   if(tx<0||ty<0||tx>=mw||ty>=mh)return true;
-  return SOLID.has(m[ty][tx]);
+  if(SOLID.has(m[ty][tx]))return true;
+  if(!interior&&fences.some(f=>f.x===tx&&f.y===ty))return true;
+  return false;
 }
 
 // ============================================================
@@ -1088,6 +1114,44 @@ const ITEM_SPRITES = {
 let shopOpen=false, shopCur=0, shopMode='buy', shopNpcRole='shop', shopScroll=0;
 
 // ============================================================
+// CRAFTING SYSTEM
+// ============================================================
+const RECIPES = [
+  { id:'fence_post',    result:{id:'fence_post',qty:1},    ingredients:[{id:'wood',qty:2}],                                          xp:3  },
+  { id:'flower_pot',   result:{id:'flower_pot',qty:1},   ingredients:[{id:'wood',qty:1},{id:'fiber',qty:1}],                         xp:5  },
+  { id:'torch_item',   result:{id:'torch_item',qty:1},   ingredients:[{id:'wood',qty:1},{id:'fiber',qty:1}],                         xp:5  },
+  { id:'cheese',       result:{id:'cheese',qty:1},       ingredients:[{id:'milk',qty:2}],                                            xp:8  },
+  { id:'circuit_board',result:{id:'circuit_board',qty:1},ingredients:[{id:'copper_ore',qty:1},{id:'silicon',qty:1}],                 xp:20 },
+  { id:'advanced_rig_part',result:{id:'advanced_rig_part',qty:1},ingredients:[{id:'circuit_board',qty:1},{id:'wood',qty:2}],         xp:40 },
+  { id:'shed_upgrade', result:{id:'shed_upgrade',qty:1}, ingredients:[{id:'wood',qty:10},{id:'copper_ore',qty:5}],                   xp:50 },
+  { id:'citadel_materials',result:{id:'citadel_materials',qty:1},ingredients:[{id:'wood',qty:20},{id:'copper_ore',qty:10},{id:'silicon',qty:5}], xp:80 },
+];
+let craftOpen=false, craftCur=0;
+
+function canCraft(recipe){
+  return recipe.ingredients.every(ing=>inv.some(s=>s&&s.id===ing.id&&s.qty>=ing.qty));
+}
+function doCraft(recipe){
+  if(!canCraft(recipe)){sfx.error();notify('Missing ingredients!',1.5);return;}
+  for(const ing of recipe.ingredients){removeItem(ing.id,ing.qty);}
+  if(addItem(recipe.result.id,recipe.result.qty)){
+    addXP('engineering',recipe.xp);
+    sfx.buy();
+    const it=ITEMS[recipe.result.id];
+    notify(`${it.icon} Crafted ${it.name}!`,2);
+  }else{
+    // Undo removal if inventory full
+    for(const ing of recipe.ingredients){addItem(ing.id,ing.qty);}
+    notify('Inventory full!',1.5);sfx.error();
+  }
+}
+
+// ============================================================
+// FENCES
+// ============================================================
+const fences=[]; // [{x,y}] tile coords
+
+// ============================================================
 // UI STATE
 // ============================================================
 let dlg = null; // {name, text, role, displayedChars, done, fullText}
@@ -1259,6 +1323,7 @@ const CONTROLS_LIST = [
   ['1-9, 0', 'Select hotbar slot'],
   ['I / Tab', 'Open inventory'],
   ['B', 'Open shop (near Ruby)'],
+  ['T', 'Open Workbench (crafting)'],
   ['O', 'View objectives'],
   ['H', 'Harvest crop (when near ready crop)'],
   ['K', 'Skills overview'],
@@ -1392,7 +1457,7 @@ const cam = {x:0,y:0};
 // ============================================================
 // SAVE / LOAD
 // ============================================================
-function saveGame(){try{localStorage.setItem('sv_save',JSON.stringify({v:7,p:{x:player.x,y:player.y,w:player.wallet,te:player.totalEarned,e:player.energy},inv:inv.map(s=>s?{id:s.id,q:s.qty}:null),ss:selSlot,rigs:rigs.map(r=>({x:r.x,y:r.y,t:r.tier,p:r.powered,tp:r.temp,d:r.dur,m:r.mined,int:r.interior||null})),placed:placed.map(i=>({x:i.x,y:i.y,t:i.type})),econ:{...econ},time:{...time},pwr:{p:pwr.panels,b:pwr.batts},obj:objectives.map(o=>o.done),tut:tutorialDone,skills,crops:crops.map(c=>({x:c.x,y:c.y,type:c.type,dayAge:c.dayAge,stage:c.stage})),rels:relationships,citadelTier,animals:animals.map(a=>({x:a.x,y:a.y,t:a.type,hx:a.homeX,hy:a.homeY,hp:a.happiness,fed:a.fed,dsp:a.daysSinceProd,pr:a.prodReady,dir:a.dir})),weather:{c:weather.current},chest:chestInv.map(s=>s?{id:s.id,q:s.qty}:null),fw:foundWords}));notify('💾 Saved!',2);sfx.buy();}catch(e){notify('❌ Save failed!',2);}}
+function saveGame(){try{localStorage.setItem('sv_save',JSON.stringify({v:8,p:{x:player.x,y:player.y,w:player.wallet,te:player.totalEarned,e:player.energy},inv:inv.map(s=>s?{id:s.id,q:s.qty}:null),ss:selSlot,rigs:rigs.map(r=>({x:r.x,y:r.y,t:r.tier,p:r.powered,tp:r.temp,d:r.dur,m:r.mined,int:r.interior||null})),placed:placed.map(i=>({x:i.x,y:i.y,t:i.type})),fences:[...fences],econ:{...econ},time:{...time},pwr:{p:pwr.panels,b:pwr.batts},obj:objectives.map(o=>o.done),tut:tutorialDone,skills,crops:crops.map(c=>({x:c.x,y:c.y,type:c.type,dayAge:c.dayAge,stage:c.stage})),rels:relationships,citadelTier,animals:animals.map(a=>({x:a.x,y:a.y,t:a.type,hx:a.homeX,hy:a.homeY,hp:a.happiness,fed:a.fed,dsp:a.daysSinceProd,pr:a.prodReady,dir:a.dir})),weather:{c:weather.current},chest:chestInv.map(s=>s?{id:s.id,q:s.qty}:null),fw:foundWords}));notify('💾 Saved!',2);sfx.buy();}catch(e){notify('❌ Save failed!',2);}}
 function loadGame(){try{const d=JSON.parse(localStorage.getItem('sv_save'));if(!d)return notify('No save found!',2),false;player.x=d.p.x;player.y=d.p.y;player.wallet=d.p.w;player.totalEarned=d.p.te;player.energy=d.p.e||100;inv.length=0;d.inv.forEach(s=>inv.push(s?{id:s.id,qty:s.q}:null));selSlot=d.ss||0;rigs.length=0;d.rigs.forEach(r=>{const ri=new Rig(r.x,r.y,r.t);ri.powered=r.p;ri.temp=r.tp;ri.dur=r.d;ri.mined=r.m;ri.interior=r.int||null;rigs.push(ri);});placed.length=0;(d.placed||[]).forEach(i=>placed.push(i));Object.assign(econ,d.econ);Object.assign(time,d.time);pwr.panels=d.pwr?.p||[];pwr.batts=d.pwr?.b||[];if(d.obj)d.obj.forEach((done,i)=>{if(objectives[i])objectives[i].done=done;});tutorialDone=d.tut||false;
     if(d.skills)Object.assign(skills,d.skills);
     crops.length=0;if(d.crops)d.crops.forEach(c=>crops.push(c));
@@ -1402,6 +1467,7 @@ function loadGame(){try{const d=JSON.parse(localStorage.getItem('sv_save'));if(!
     if(d.weather)weather.current=d.weather.c;
     chestInv.length=0;(d.chest||[]).forEach(s=>chestInv.push(s?{id:s.id,qty:s.q}:null));
     foundWords=(d.fw||[]);
+    fences.length=0;(d.fences||[]).forEach(f=>fences.push(f));
     gameState='playing';notify('📂 Loaded!',2);sfx.buy();return true;}catch(e){notify('❌ Load failed!',2);return false;}}
 
 // ============================================================
@@ -1429,7 +1495,7 @@ const existingSave = localStorage.getItem('sv_save');
 if (existingSave) {
   try {
     const d = JSON.parse(existingSave);
-    if (!d.v || d.v < 6) {
+    if (!d.v || d.v < 8) {
       localStorage.removeItem('sv_save');
       console.log('Cleared old save (version mismatch)');
     }
@@ -1710,6 +1776,7 @@ function update(dt) {
   if(jp['?']) showControls = !showControls;
   if(jp['n']) minimapOpen = !minimapOpen;
   if(jp['m']) toggleMusic();
+  if(jp['t']){craftOpen=!craftOpen;craftOpen?sfx.menuOpen():sfx.menuClose();craftCur=0;}
   if(jp['c']){if(isNearHome()){citadelMenuOpen=!citadelMenuOpen;citadelMenuOpen?sfx.menuOpen():sfx.menuClose();}else{notify('Get near your home to open the Citadel menu [C]',2);sfx.error();}}
   if(jp['h'] && !shopOpen && !invOpen) {
     // Harvest nearest crop
@@ -1732,10 +1799,18 @@ function update(dt) {
     }else if(shopOpen){shopOpen=false;sfx.menuClose();}
   }
   if(jp['i']||jp['tab']){if(!shopOpen){invOpen=!invOpen;invOpen?sfx.menuOpen():sfx.menuClose();}}
-  if(jp['escape']){if(pauseOpen){pauseOpen=false;sfx.menuClose();}else if(chestOpen){chestOpen=false;sfx.menuClose();}else if(shopOpen){shopOpen=false;sfx.menuClose();}else if(citadelMenuOpen){citadelMenuOpen=false;sfx.menuClose();}else if(invOpen){invOpen=false;sfx.menuClose();}else if(dlg){if(!dlg.done){dlg.displayedChars=dlg.fullText.length;dlg.done=true;}else{dlg=null;}}else if(showObjectives)showObjectives=false;else if(showControls)showControls=false;else if(showSkills)showSkills=false;else{pauseOpen=true;pauseCur=0;sfx.menuOpen();}}
+  if(jp['escape']){if(pauseOpen){pauseOpen=false;sfx.menuClose();}else if(craftOpen){craftOpen=false;sfx.menuClose();}else if(chestOpen){chestOpen=false;sfx.menuClose();}else if(shopOpen){shopOpen=false;sfx.menuClose();}else if(citadelMenuOpen){citadelMenuOpen=false;sfx.menuClose();}else if(invOpen){invOpen=false;sfx.menuClose();}else if(dlg){if(!dlg.done){dlg.displayedChars=dlg.fullText.length;dlg.done=true;}else{dlg=null;}}else if(showObjectives)showObjectives=false;else if(showControls)showControls=false;else if(showSkills)showSkills=false;else{pauseOpen=true;pauseCur=0;sfx.menuOpen();}}
   if(jp['p'])saveGame();if(jp['l'])loadGame();
   for(let n=0;n<=9;n++)if(jp[n.toString()])selSlot=n===0?9:n-1;
   
+  // ---- CRAFTING MENU NAV ----
+  if(craftOpen){
+    if(jp['arrowup']||jp['w'])craftCur=Math.max(0,craftCur-1);
+    if(jp['arrowdown']||jp['s'])craftCur=Math.min(RECIPES.length-1,craftCur+1);
+    if(jp['enter']||jp['e'])doCraft(RECIPES[craftCur]);
+    for(const k in jp)jp[k]=false;return;
+  }
+
   // ---- CITADEL MENU NAV ----
   if(citadelMenuOpen){
     if(jp['enter']||jp['e']||jp['u']){upgradeCitadel();}
@@ -2006,6 +2081,7 @@ function update(dt) {
       else if(sel.id==='milk'){removeItem('milk');player.energy=Math.min(player.maxEnergy,player.energy+25);sfx.coin();notify('🥛 Fresh milk! +25 energy',1.5);}
       else if(sel.id==='egg'){removeItem('egg');player.energy=Math.min(player.maxEnergy,player.energy+15);sfx.coin();notify('🥚 Farm fresh! +15 energy',1.5);}
       else if(sel.id==='honey'){removeItem('honey');player.energy=Math.min(player.maxEnergy,player.energy+35);player.boost=20;sfx.coin();notify('🍯 Sweet honey! +35 energy, speed boost!',2);}
+      else if(sel.id==='cheese'){removeItem('cheese');player.energy=Math.min(player.maxEnergy,player.energy+40);sfx.coin();notify('🧀 Aged cheese! +40 energy',1.5);}
       else if(sel.id==='pickaxe'){
         const tx=Math.floor((player.x+player.facing.x*16)/TILE),ty=Math.floor((player.y+player.facing.y*16)/TILE);
         if(map[ty]&&(map[ty][tx]===T.STONE||map[ty][tx]===T.CLIFF)){
@@ -2066,7 +2142,7 @@ function update(dt) {
         for(let i=placed.length-1;i>=0;i--){
           if(Math.hypot(placed[i].x-ix,placed[i].y-iy)<24){
             const p=placed[i];
-            const itemMap={solar_panel:'solar_panel',battery:'battery',cooling_fan:'cooling_fan',chest:'chest'};
+            const itemMap={solar_panel:'solar_panel',battery:'battery',cooling_fan:'cooling_fan',chest:'chest',flower_pot:'flower_pot',torch_item:'torch_item',bitcoin_sign:'bitcoin_sign'};
             if(itemMap[p.type]){addItem(itemMap[p.type]);notify(`⚒️ Picked up ${p.type.replace('_',' ')}`,2);}
             // Remove from power arrays too
             if(p.type==='solar_panel') pwr.panels=pwr.panels.filter(pp=>pp.x!==p.x||pp.y!==p.y);
@@ -2095,9 +2171,27 @@ function update(dt) {
             }
           }
         }
+        // Check fences
+        if(!picked){
+          const ftx=Math.floor(ix/TILE),fty=Math.floor(iy/TILE);
+          const fi=fences.findIndex(f=>f.x===ftx&&f.y===fty);
+          if(fi>=0){fences.splice(fi,1);addItem('fence_post');sfx.repair();notify('⚒️ Picked up fence post',1.5);picked=true;}
+        }
         if(!picked){notify('Nothing to pick up',1.5);sfx.error();}
       }
-    }
+      // FENCE POST placement
+      else if(sel.id==='fence_post'){
+        const tx=Math.floor((player.x+player.facing.x*20)/TILE),ty=Math.floor((player.y+player.facing.y*20)/TILE);
+        if(!isSolid(tx,ty)&&!fences.some(f=>f.x===tx&&f.y===ty)){
+          removeItem('fence_post');fences.push({x:tx,y:ty});sfx.place();notify('🪵 Fence placed!',1.5);
+        }else{sfx.error();notify("Can't place fence here!",1.5);}
+      }
+      // DECORATION placement (flower_pot, torch_item, bitcoin_sign)
+      else if(sel.id==='flower_pot'||sel.id==='torch_item'||sel.id==='bitcoin_sign'){
+        if(!isSolid(ptx,pty)&&!placed.some(i=>Math.abs(i.x-px)<TILE&&Math.abs(i.y-py)<TILE)){
+          removeItem(sel.id);placed.push({x:px,y:py,type:sel.id});sfx.place();notify(`${it.icon} ${it.name} placed!`,1.5);
+        }else{sfx.error();notify("Can't place here!",1.5);}
+      }
     } // end interior check
   }
   
@@ -3069,6 +3163,69 @@ function drawPlaced(item){
     ctx.fillStyle='#5A3A10';ctx.fillRect(sx-3,sy-ST/2+12,6,4);
     ctx.fillStyle='#AA8A40';ctx.fillRect(sx-2,sy-ST/2+13,4,2);
   }
+  else if(item.type==='flower_pot'){
+    // Pot body
+    ctx.fillStyle='#A0522D';ctx.fillRect(sx-8,sy,16,12);
+    ctx.fillStyle='#8B4513';ctx.fillRect(sx-10,sy-2,20,4);
+    // Soil
+    ctx.fillStyle='#4A3010';ctx.fillRect(sx-7,sy+1,14,4);
+    // Flower
+    ctx.fillStyle='#228B22';ctx.fillRect(sx-1,sy-14,2,14); // stem
+    ctx.fillStyle='#FF69B4';ctx.beginPath();ctx.arc(sx,sy-16,6,0,Math.PI*2);ctx.fill();
+    ctx.fillStyle='#FFD700';ctx.beginPath();ctx.arc(sx,sy-16,2.5,0,Math.PI*2);ctx.fill();
+    // Extra leaf
+    ctx.fillStyle='#32CD32';ctx.beginPath();ctx.ellipse(sx+5,sy-10,4,2,0.5,0,Math.PI*2);ctx.fill();
+  }
+  else if(item.type==='torch_item'){
+    const t=performance.now()/1000;
+    const isNight=getHour()<6||getHour()>20;
+    // Glow at night
+    if(isNight){
+      const glow=0.15+Math.sin(t*3)*0.05;
+      ctx.fillStyle=`rgba(255,150,50,${glow})`;
+      ctx.beginPath();ctx.arc(sx,sy-10,30+Math.sin(t*2)*4,0,Math.PI*2);ctx.fill();
+    }
+    // Stick
+    ctx.fillStyle='#8B4513';ctx.fillRect(sx-3,sy-4,6,20);
+    // Flame base
+    ctx.fillStyle='#FF4400';ctx.beginPath();ctx.arc(sx,sy-8,7,0,Math.PI*2);ctx.fill();
+    // Flame animated
+    const fl=Math.sin(t*8)*2;
+    ctx.fillStyle='#FF8800';ctx.beginPath();ctx.arc(sx+fl,sy-14,5,0,Math.PI*2);ctx.fill();
+    ctx.fillStyle='#FFDD00';ctx.beginPath();ctx.arc(sx+fl*0.5,sy-18,3,0,Math.PI*2);ctx.fill();
+    ctx.fillStyle='rgba(255,255,200,0.6)';ctx.beginPath();ctx.arc(sx,sy-20,2,0,Math.PI*2);ctx.fill();
+  }
+  else if(item.type==='bitcoin_sign'){
+    const t=performance.now()/1000;
+    const glow=0.5+Math.sin(t*2)*0.2;
+    // Post
+    ctx.fillStyle='#6A4A2A';ctx.fillRect(sx-3,sy-4,6,20);
+    // Sign board
+    ctx.fillStyle=`rgba(247,147,26,${glow})`;
+    ctx.beginPath();ctx.arc(sx,sy-14,14,0,Math.PI*2);ctx.fill();
+    ctx.fillStyle='#FFD700';ctx.font=`bold 18px ${FONT}`;ctx.textAlign='center';
+    ctx.fillText('₿',sx,sy-9);
+    // Outer ring
+    ctx.strokeStyle=`rgba(255,200,50,${glow})`;ctx.lineWidth=2;
+    ctx.beginPath();ctx.arc(sx,sy-14,16,0,Math.PI*2);ctx.stroke();
+    ctx.textAlign='left';
+  }
+}
+
+function drawFence(fence){
+  const sx=fence.x*ST-cam.x,sy=fence.y*ST-cam.y;
+  if(sx>canvas.width+ST||sy>canvas.height+ST||sx<-ST||sy<-ST)return;
+  // Ground tile already drawn — draw fence posts and rails on top
+  ctx.fillStyle='#8B6340'; // post color
+  // Center vertical post
+  ctx.fillRect(sx+ST/2-3,sy,6,ST);
+  // Horizontal rails
+  ctx.fillStyle='#A07850';
+  ctx.fillRect(sx,sy+8,ST,5);
+  ctx.fillRect(sx,sy+ST-16,ST,5);
+  // Post highlight
+  ctx.fillStyle='#C09060';
+  ctx.fillRect(sx+ST/2-2,sy+2,2,ST-4);
 }
 
 function drawPlayer(){
@@ -3400,7 +3557,7 @@ function drawHUD(){
   const cbY = canvas.height - 18;
   ctx.fillStyle='rgba(0,0,0,0.6)';ctx.fillRect(0,cbY-4,canvas.width,22);
   ctx.fillStyle='#999';ctx.font=`bold 12px ${FONT}`;ctx.textAlign='center';
-  ctx.fillText('WASD:Move  E:Interact  R:Use/Plant  H:Harvest  I:Inventory  B:Shop  C:Citadel  O:Quests  K:Skills  M:Music  ?:Help  P:Save',canvas.width/2,cbY+8);
+  ctx.fillText('WASD:Move  E:Interact  R:Use/Plant  T:Craft  H:Harvest  I:Inventory  B:Shop  C:Citadel  O:Quests  K:Skills  M:Music  ?:Help  P:Save',canvas.width/2,cbY+8);
   
   // Energy
   const ebW=100,ebX=canvas.width-ebW-p-10,ebY=hbY-18;
@@ -3526,6 +3683,7 @@ function drawHUD(){
   
   // Shop
   if(shopOpen) drawShop();
+  if(craftOpen) drawCraftMenu();
   if(citadelMenuOpen) drawCitadelMenu();
   if(invOpen) drawInv();
   if(chestOpen) drawChest();
@@ -3674,6 +3832,68 @@ function drawCitadelMenu(){
   }
   ctx.fillStyle=C.gray;ctx.font=`12px ${FONT}`;ctx.textAlign='center';
   ctx.fillText('[C] or [Esc] Close',x+w/2,y+h-10);
+}
+
+function drawCraftMenu(){
+  const w=580,h=480,x=(canvas.width-w)/2,y=(canvas.height-h)/2;
+  panel(x,y,w,h);
+  ctx.fillStyle=C.hud;ctx.font=`bold 20px ${FONT}`;ctx.textAlign='center';
+  ctx.fillText('🔨 Workbench',x+w/2,y+30);
+  ctx.fillStyle=C.gray;ctx.font=`12px ${FONT}`;
+  ctx.fillText('T: Toggle | ↑↓ Navigate | E/Enter: Craft | Esc: Close',x+w/2,y+50);
+
+  // Balance
+  ctx.fillStyle=C.hud;ctx.font=`bold 13px ${FONT}`;ctx.textAlign='right';
+  ctx.fillText(`₿ ${fmt(player.wallet)} sats`,x+w-14,y+50);
+  ctx.textAlign='left';
+
+  const ly=y+68,rowH=46;
+  // Clipping
+  ctx.save();ctx.beginPath();ctx.rect(x+4,ly-4,w-8,h-80);ctx.clip();
+
+  RECIPES.forEach((recipe,i)=>{
+    const iy=ly+i*rowH;
+    const it=ITEMS[recipe.result.id];
+    const canDo=canCraft(recipe);
+
+    // Selection bg
+    if(i===craftCur){ctx.fillStyle='rgba(247,147,26,0.15)';ctx.fillRect(x+8,iy-2,w-16,rowH-4);}
+    else{ctx.fillStyle='rgba(20,20,25,0.4)';ctx.fillRect(x+8,iy-2,w-16,rowH-4);}
+
+    // Result icon + name
+    ctx.font='22px serif';ctx.fillStyle=C.white;ctx.textAlign='left';
+    ctx.fillText(it.icon,x+16,iy+22);
+    ctx.font=`bold 13px ${FONT}`;ctx.fillStyle=i===craftCur?C.hud:C.white;
+    ctx.fillText(it.name,x+46,iy+14);
+
+    // Ingredients
+    const ingStr=recipe.ingredients.map(ing=>{
+      const iit=ITEMS[ing.id];
+      const have=inv.find(s=>s&&s.id===ing.id);
+      const qty=have?have.qty:0;
+      return `${ing.qty}x${iit?iit.icon:'?'}(${qty})`;
+    }).join(' + ');
+    ctx.font=`11px ${FONT}`;ctx.fillStyle=canDo?'#4F4':'#888';
+    ctx.fillText(ingStr,x+46,iy+30);
+
+    // Sell value hint
+    if(it.sell>0){ctx.fillStyle='#777';ctx.font=`10px ${FONT}`;ctx.fillText(`Sell: ${fmt(it.sell)}`,x+46,iy+42);}
+
+    // Status badge
+    ctx.textAlign='right';
+    if(canDo){ctx.fillStyle=i===craftCur?C.gold:C.green;ctx.font=`bold 13px ${FONT}`;ctx.fillText('[CRAFT]',x+w-14,iy+14);}
+    else{
+      const missing=recipe.ingredients.filter(ing=>!inv.some(s=>s&&s.id===ing.id&&s.qty>=ing.qty));
+      const missTxt=missing.map(m=>`${m.qty}x${ITEMS[m.id]?ITEMS[m.id].icon:'?'}`).join(', ');
+      ctx.fillStyle='#666';ctx.font=`11px ${FONT}`;ctx.fillText(`Need: ${missTxt}`,x+w-14,iy+14);
+    }
+    ctx.textAlign='left';
+  });
+  ctx.restore();
+
+  // Footer hint
+  ctx.fillStyle=C.gray;ctx.font=`11px ${FONT}`;ctx.textAlign='center';
+  ctx.fillText('Craft items to earn Engineering XP',x+w/2,y+h-10);
 }
 
 function drawShop(){
@@ -4071,6 +4291,7 @@ function draw(){
       entities.push({y:sortY, draw:()=>drawDecor(d)});
     }
     for(const i of placed)entities.push({y:i.y,draw:()=>drawPlaced(i)});
+    for(const f of fences)entities.push({y:f.y*TILE+TILE,draw:()=>drawFence(f)});
     for(const r of rigs){ if(!r.interior) entities.push({y:r.y,draw:()=>drawRig(r)}); }
     for(const n of npcs)entities.push({y:n.y,draw:()=>drawNPC(n)});
     for(const a of animals)entities.push({y:a.y,draw:()=>drawAnimal(a)});
