@@ -2422,31 +2422,86 @@ function drawTile(x,y,tile){
       for(let i=0;i<3;i++){const ox=6+i*12-sw*0.7;ctx.fillRect(sx+ox,sy+6,1,ST-8);}
       break;}
     case T.FLOWER:{
+      // Grass base
       const fgn=fbm(x*0.15+0.5,y*0.15+0.5,2);
       ctx.fillStyle=`rgb(${Math.floor(30+fgn*30)},${Math.floor(90+fgn*50)},${Math.floor(15+fgn*20)})`;ctx.fillRect(sx,sy,ST,ST);
-      // Pretty flowers
-      const fc=C.flower[(x+y*3)%6];
-      ctx.fillStyle='#3A7020';ctx.fillRect(sx+14,sy+16,2,18); // stem
-      ctx.fillStyle=fc;ctx.beginPath();ctx.arc(sx+15,sy+14,5,0,Math.PI*2);ctx.fill();
-      ctx.fillStyle='#FFE060';ctx.beginPath();ctx.arc(sx+15,sy+14,2,0,Math.PI*2);ctx.fill();
-      if((x+y)%2===0){ctx.fillStyle='#3A7020';ctx.fillRect(sx+32,sy+22,2,14);
-        ctx.fillStyle=C.flower[(x+y*7)%6];ctx.beginPath();ctx.arc(sx+33,sy+20,4,0,Math.PI*2);ctx.fill();}
+      // Multiple flowers in a meadow cluster
+      const fSeed=(x*13+y*7);
+      const flowerCount=2+(fSeed%3);
+      for(let fi=0;fi<flowerCount;fi++){
+        const fx=sx+8+((fSeed+fi*17)%30);
+        const fy=sy+6+((fSeed+fi*11)%32);
+        const fc=C.flower[(fSeed+fi)%6];
+        const fSize=3+((fSeed+fi)%3);
+        // Stem
+        ctx.fillStyle='#3A7020';ctx.fillRect(fx,fy+fSize,2,10+fi*2);
+        // Leaf
+        if(fi%2===0){ctx.fillStyle='#4A8A2A';ctx.fillRect(fx+2,fy+fSize+4,4,2);}
+        // Petals (small circles around center)
+        ctx.fillStyle=fc;
+        for(let p=0;p<5;p++){
+          const pa=p/5*Math.PI*2;
+          ctx.beginPath();ctx.arc(fx+1+Math.cos(pa)*(fSize-1),fy+Math.sin(pa)*(fSize-1),fSize*0.5,0,Math.PI*2);ctx.fill();
+        }
+        // Center
+        ctx.fillStyle='#FFE060';ctx.beginPath();ctx.arc(fx+1,fy,fSize*0.35,0,Math.PI*2);ctx.fill();
+      }
       break;}
     case T.MUSHROOM:{
+      // Grass base
       const mgn=fbm(x*0.15+0.5,y*0.15+0.5,2);
       ctx.fillStyle=`rgb(${Math.floor(30+mgn*30)},${Math.floor(90+mgn*50)},${Math.floor(15+mgn*20)})`;ctx.fillRect(sx,sy,ST,ST);
-      ctx.fillStyle='#B08040';ctx.fillRect(sx+20,sy+28,4,12); // stem
-      ctx.fillStyle='#DD3030';ctx.beginPath();ctx.arc(sx+22,sy+26,8,Math.PI,0);ctx.fill();
-      ctx.fillStyle='#FFEECC';ctx.fillRect(sx+19,sy+22,2,2);ctx.fillRect(sx+25,sy+24,2,2);
+      // Main mushroom
+      ctx.fillStyle='#C4A070';ctx.fillRect(sx+19,sy+28,6,12); // thick stem
+      ctx.fillStyle='#B09060';ctx.fillRect(sx+20,sy+29,4,10); // stem highlight
+      ctx.fillStyle='#DD3030';ctx.beginPath();ctx.ellipse(sx+22,sy+26,10,7,0,Math.PI,0);ctx.fill(); // cap
+      ctx.fillStyle='#EE4040';ctx.beginPath();ctx.ellipse(sx+22,sy+25,8,5,0,Math.PI,0);ctx.fill(); // cap highlight
+      ctx.fillStyle='#FFEECC';ctx.fillRect(sx+18,sy+22,3,3);ctx.fillRect(sx+24,sy+20,2,2);ctx.fillRect(sx+21,sy+18,2,2); // spots
+      // Small second mushroom
+      ctx.fillStyle='#C4A070';ctx.fillRect(sx+10,sy+34,3,8);
+      ctx.fillStyle='#CC8030';ctx.beginPath();ctx.ellipse(sx+11,sy+33,5,4,0,Math.PI,0);ctx.fill();
+      ctx.fillStyle='#DD9040';ctx.beginPath();ctx.ellipse(sx+11,sy+32,4,3,0,Math.PI,0);ctx.fill();
       break;}
-    case T.DIRT:ctx.fillStyle=C.dirt[v];ctx.fillRect(sx,sy,ST,ST);
-      if(v2%3===0){ctx.fillStyle=C.richDirt;ctx.fillRect(sx+8,sy+12,8,6);}break;
-    case T.STONE:{ctx.fillStyle=C.stone[v];ctx.fillRect(sx,sy,ST,ST);
-      ctx.fillStyle=C.darkStone;ctx.fillRect(sx+4,sy+4,14,10);ctx.fillRect(sx+24,sy+20,16,12);
-      ctx.fillStyle=C.stone[(v+1)%3];ctx.fillRect(sx+6,sy+6,10,6);break;}
-    case T.CLIFF:{ctx.fillStyle=C.darkStone;ctx.fillRect(sx,sy,ST,ST);
-      ctx.fillStyle='#353540';ctx.fillRect(sx,sy,ST,ST/3);
-      ctx.fillStyle='#4A4A55';ctx.fillRect(sx+4,sy+ST/3,ST-8,4);break;}
+    case T.DIRT:{
+      // Rich tilled soil with Perlin variation
+      const dn=fbm(x*0.2+7,y*0.2+7,2);
+      const dR=Math.floor(85+dn*25);const dG=Math.floor(60+dn*20);const dB=Math.floor(25+dn*15);
+      ctx.fillStyle=`rgb(${dR},${dG},${dB})`;ctx.fillRect(sx,sy,ST,ST);
+      // Furrow lines (tilled rows)
+      ctx.fillStyle='rgba(50,35,15,0.18)';
+      for(let i=0;i<4;i++){ctx.fillRect(sx,sy+6+i*10,ST,2);}
+      // Occasional small rocks/clumps in dirt
+      const dSeed=(x*19+y*23)%31;
+      if(dSeed<3){ctx.fillStyle='rgba(100,80,50,0.3)';ctx.beginPath();ctx.arc(sx+12+dSeed*8,sy+20+dSeed*4,3,0,Math.PI*2);ctx.fill();}
+      if(dSeed===10){ctx.fillStyle='rgba(60,45,20,0.25)';ctx.fillRect(sx+28,sy+14,5,3);}
+      break;}
+    case T.STONE:{
+      // Smooth Perlin stone with embedded rock details
+      const stn=fbm(x*0.15+20,y*0.15+20,2);
+      const stR=Math.floor(70+stn*20);const stG=Math.floor(70+stn*18);const stB=Math.floor(78+stn*20);
+      ctx.fillStyle=`rgb(${stR},${stG},${stB})`;ctx.fillRect(sx,sy,ST,ST);
+      // Embedded rock shapes (not rectangles — rounded)
+      ctx.fillStyle='rgba(50,50,58,0.35)';
+      ctx.beginPath();ctx.ellipse(sx+12,sy+10,8,5,0.3,0,Math.PI*2);ctx.fill();
+      ctx.beginPath();ctx.ellipse(sx+32,sy+28,10,6,0.5,0,Math.PI*2);ctx.fill();
+      // Lighter mineral veins
+      ctx.fillStyle='rgba(110,108,118,0.25)';
+      ctx.beginPath();ctx.ellipse(sx+20,sy+20,6,4,0,0,Math.PI*2);ctx.fill();
+      // Tiny cracks
+      ctx.strokeStyle='rgba(40,40,48,0.2)';ctx.lineWidth=1;
+      ctx.beginPath();ctx.moveTo(sx+8,sy+18);ctx.lineTo(sx+20,sy+22);ctx.lineTo(sx+26,sy+18);ctx.stroke();
+      break;}
+    case T.CLIFF:{
+      // Layered cliff face with depth
+      const cln=fbm(x*0.12+15,y*0.12+15,2);
+      ctx.fillStyle=`rgb(${Math.floor(50+cln*15)},${Math.floor(50+cln*12)},${Math.floor(58+cln*15)})`;ctx.fillRect(sx,sy,ST,ST);
+      // Horizontal strata layers
+      ctx.fillStyle='rgba(35,35,42,0.3)';ctx.fillRect(sx,sy+ST*0.2,ST,3);ctx.fillRect(sx,sy+ST*0.55,ST,3);ctx.fillRect(sx,sy+ST*0.8,ST,2);
+      // Lighter top edge (catching light)
+      ctx.fillStyle='rgba(90,88,100,0.3)';ctx.fillRect(sx,sy,ST,4);
+      // Shadow at base
+      ctx.fillStyle='rgba(20,20,28,0.2)';ctx.fillRect(sx,sy+ST-5,ST,5);
+      break;}
     case T.WATER:{const wt=t*1.5+x*.5+y*.3;
       // Smooth Perlin-based water — no checkerboard
       const wn=fbm(x*0.12+t*0.08,y*0.12+t*0.05,2);
@@ -2612,10 +2667,22 @@ function drawDecor(d) {
     ctx.fillStyle='rgba(80,160,50,0.2)';ctx.beginPath();ctx.arc(sx+ST/2+2,sy+ST/2-2,5,0,Math.PI*2);ctx.fill();
   }
   else if(d.type==='rock'){
+    // Shadow
+    ctx.fillStyle='rgba(0,0,0,0.12)';ctx.beginPath();ctx.ellipse(sx+ST/2+3,sy+ST/2+10,16,7,0.1,0,Math.PI*2);ctx.fill();
+    // Main rock body
     ctx.fillStyle=C.stone[d.v];
-    ctx.beginPath();ctx.ellipse(sx+ST/2,sy+ST/2+6,14,10,0,0,Math.PI*2);ctx.fill();
+    ctx.beginPath();ctx.ellipse(sx+ST/2,sy+ST/2+4,16,12,0,0,Math.PI*2);ctx.fill();
+    // Lighter top face
     ctx.fillStyle=C.stone[(d.v+1)%3];
-    ctx.beginPath();ctx.ellipse(sx+ST/2-2,sy+ST/2+4,10,7,0,0,Math.PI*2);ctx.fill();
+    ctx.beginPath();ctx.ellipse(sx+ST/2-1,sy+ST/2+1,13,9,0,0,Math.PI*2);ctx.fill();
+    // Highlight (top-left, catching light)
+    ctx.fillStyle='rgba(180,178,188,0.25)';
+    ctx.beginPath();ctx.ellipse(sx+ST/2-4,sy+ST/2-2,7,5,0,0,Math.PI*2);ctx.fill();
+    // Crack detail
+    ctx.strokeStyle='rgba(40,40,48,0.2)';ctx.lineWidth=1;
+    ctx.beginPath();ctx.moveTo(sx+ST/2-5,sy+ST/2+2);ctx.lineTo(sx+ST/2+3,sy+ST/2+5);ctx.stroke();
+    // Moss (on some rocks)
+    if(d.v===0){ctx.fillStyle='rgba(60,120,40,0.25)';ctx.beginPath();ctx.ellipse(sx+ST/2+6,sy+ST/2+6,5,3,0,0,Math.PI*2);ctx.fill();}
   }
   else if(d.type==='sign'){
     ctx.fillStyle='#6A4A2A';ctx.fillRect(sx+ST/2-2,sy+ST/2,4,ST/2);
