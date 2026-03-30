@@ -7,11 +7,11 @@
 
 ## 🏗️ Current State
 
-**Last updated:** 2026-03-30 13:55 CET
-**Last dev:** Bender (shift 2)
+**Last updated:** 2026-03-30 20:20 CET
+**Last dev:** Bender (shift 2 — extended)
 **Repo:** `Bender21m/satoshi-valley` | Fork: `satsdisco/satoshi-valley`
 **Live demo:** https://bender21m.github.io/satoshi-valley
-**game.js lines:** ~4,200 | **Save version:** v8
+**game.js lines:** ~4,700 | **Save version:** v8 | **Sprints complete:** 13
 
 ### What's Working ✅
 - Full mining loop (3 rig tiers, power grid, durability, overheating)
@@ -35,18 +35,19 @@
 - Decorative items (torch, flower pot, bitcoin sign)
 
 ### Known Bugs 🐛
-- **20 seed fragments not placed** — only 4 of 24 are in the world
-- **Energy never depletes** — `player.energy` exists but no actions cost energy
-- **Building entry detection** uses tile type, not explicit bounds (can be finicky)
-- **Click indicator visible through building interiors**
+- **Art direction needs work** — Grafton wants Stardew Valley quality, we're getting closer but not there yet
+- **Building interiors don't change with citadel tier** (#34)
+- **Click indicator may show through building interiors**
 - **No sound effects** for building entry/exit
-- **NPC sprites** are basic colored rectangles
+- **game.js is 4700 lines** — needs modularization badly (Claude Code can't process it)
 
-### What's NOT Working ❌
-- Crop products just added (af2e779) — **needs PR merged to Bender21m**
-  - `potato_crop`, `tomato_crop`, `corn_crop`, `pumpkin_crop` items
-  - `pumpkin_seed` in shops + planting
-  - Without this, harvested crops silently disappear from inventory
+### What's NOT Working / Next Up ❌
+- **NPC quest/request system** — no way for NPCs to ask for items or chain quests
+- **Circular economy** — crafting exists but no demand-driven economy (NPC orders, tavern menu)
+- **Tavern has no function** — barkeep talks but can't buy food/beer
+- **Drunk effect** — not implemented yet (too many beers should affect player)
+- **NPC daily schedules** — NPCs don't move between buildings on a routine
+- **No gift system** — can't give items to NPCs for hearts
 
 ---
 
@@ -66,12 +67,13 @@
 - Can't create PRs via CLI (fine-grained token missing pull_requests:write)
 - Fix is on satsdisco/satoshi-valley fork, needs manual PR + merge
 
-**Next up (priority order):**
-1. Merge crop products fix from satsdisco fork → Bender21m
-2. Place remaining 20 seed fragments across the map
-3. Wire up energy depletion (actions should cost energy)
-4. Fix building entry detection (use explicit bounds)
-5. Start Phase 1 Sprint 13: Code modularization (game.js is 4200 lines)
+**Next up (Sprint 14 — NPC Quests & Circular Economy):**
+1. NPC request system — NPCs ask for items, give rewards
+2. Pizza Pete quest chain (wheat → dough, tomatoes → sauce, cheese → pizza)
+3. Tavern menu — buy food/beer from barkeep, drunk effect
+4. Crafting chains tied to NPC requests (unlock recipes by fulfilling orders)
+5. Continue visual polish (building shadows, night window glow, art direction)
+6. Code modularization (game.js is 4700 lines — painful for devs)
 
 ### Shift 1 — Flexo (2026-03-29/30, overnight)
 **Did:**

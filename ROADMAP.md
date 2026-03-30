@@ -79,46 +79,70 @@ Core engine, 120x90 Perlin world, 5 buildings, paths, bridges, day/night cycle.
 ### Sprint 7-8: Citadel + Circular Economy
 5-tier citadel upgrade, terraforming (axe/hoe/shovel), Farmer Pete market, Seed Sally, 20+ new items.
 
-### Sprint 9: Living World (collaborator)
+### Sprint 9: Living World
 Animals (cow/goat/chicken/bee), weather (rain/storms), ambient particles, storage chests, BIP39 seed words, minimap, click-to-move, sleep mechanic, building facades.
 
 ### Sprint 10: Audit + Bug Fixes
-Full codebase audit, 3 bugs fixed, 8 enhancements filed, particle bounds, ROADMAP updated.
+Full codebase audit, bugs fixed, enhancements filed, particle bounds, ROADMAP updated.
+
+### Sprint 11: Quality of Life ✅
+Quest markers (!) above NPCs, NPCs inside building interiors, pause menu with settings, title screen (New Game/Continue), terrain-specific footstep sounds, NPC walk animations.
+
+### Sprint 12: Crafting + Fencing ✅
+Crafting bench (8 recipes: fence posts, cheese, circuit boards, shed upgrade, citadel materials), fencing system (craft from wood, place with R, animals respect fences), decorative items (torch, flower pot, bitcoin sign).
+
+### Sprint 13: Visual Polish ✅ (2026-03-30)
+- Perlin noise terrain rendering (grass, paths, sand, stone, dirt — no more checkerboard)
+- Stardew-style edge blending (soft grass↔path↔dirt transitions, corner arcs)
+- Ground clutter (twigs, pebbles, weeds scattered on grass)
+- Beautiful water (Perlin colors, animated caustic light patterns, curved wave highlights)
+- Lush trees (tapered trunks with bark detail, 5-layer elliptical canopies, dappled light, root bumps)
+- Animated shoreline foam
+- Rich stone/cliff/mushroom/flower/rock detail
+- 9 unique NPC pixel art characters with personality (Saylor has laser eyes!)
+- Building interaction fixes (no ghost rigs, shop works inside, less sensitive doors)
+- Energy system with depletion (actions cost energy, passive drain, speed penalty at 0)
+- Missing crop products fixed (potato/tomato/corn/pumpkin harvesting works)
 
 ---
 
-## 🔨 In Progress: Sprint 11 — Quality of Life
+## 🔨 In Progress: Sprint 14 — NPC Quests & Circular Economy
 
-- [ ] #29 Quest markers (! ?) above NPCs with quests
-- [ ] #28 NPCs inside building interiors
-- [ ] #32 Pause menu with settings
-- [ ] #30 Title screen / main menu
-- [ ] #35 Terrain-specific footstep sounds
-- [ ] Proper 4-direction walk animation cycling
+> 🎯 Goal: Meaningful NPC interactions, request chains, and a self-sustaining Bitcoin circular economy
+
+- [ ] **NPC request system** — NPCs ask for specific items, reward with sats/hearts/recipes
+- [ ] **Pizza Pete quest chain** — needs wheat → dough, tomatoes → sauce, cheese → pizza
+- [ ] **Tavern menu** — buy food/beer from barkeep, too many beers = drunk effect
+- [ ] **Crafting chains** — wheat + tomato + cheese = pizza, milk → cheese → dishes
+- [ ] **Recipe unlocks** — fulfilling NPC requests unlocks new crafting recipes
+- [ ] **Circular economy loop** — farm → craft → sell/trade → unlock → expand
+- [ ] **NPC daily schedules** — NPCs walk between locations (home → work → tavern → sleep)
+- [ ] **Gift system** — give items to NPCs, each has preferences (+/- hearts)
+- [ ] **Seasonal crops** — different crops available per season
 
 ---
 
 ## 📋 Upcoming Sprints
 
-### Sprint 12: Crafting + Progression
-Crafting bench, animal fencing, citadel interiors by tier, shed upgrades, achievements, seasonal crops.
-
-### Sprint 13: P2P Trading
+### Sprint 15: P2P Trading
 Haggle mechanic, Lightning invoices, barter, traveling merchant, black market, fiat inflation visualization.
 
-### Sprint 14: The Mines (Dungeon)
+### Sprint 16: The Mines (Dungeon)
 Abandoned data center, procedural floors, hardware loot, combat (malware bots), boss (Pool Operator).
 
-### Sprint 15: Bitcoin World
+### Sprint 17: Bitcoin World
 Fiatropolis (dystopian city), Cypherpunk Underground, Volcano mining, Lightning fast travel, conferences.
 
-### Sprint 16: Story Completion
+### Sprint 18: Story Completion
 24 seed fragments with history flashbacks, Uncle Toshi's journal, 4 endings, Blocksize Wars quest.
 
-### Sprint 17: Custom Art
-Original 16x16 sprites, character animations, seasonal repaints, pixel art soundtrack.
+### Sprint 19: Custom Art
+Original 16x16 sprite sheets, proper character animations (4-dir walk cycles), seasonal repaints, pixel art soundtrack.
 
-### Sprint 18: Godot Port
+### Sprint 20: Code Modularization
+Split game.js (~4600 lines) into modules: engine, world, entities, systems, ui, data. ES modules, event system, data-driven configs.
+
+### Sprint 21: Godot Port
 Port to Godot 4, native builds, controller support, Steam integration.
 
 ---
