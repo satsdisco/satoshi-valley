@@ -2366,30 +2366,32 @@ function drawTile(x,y,tile){
   
   switch(tile){
     case T.GRASS:{
-      const gi=(x*7+y*13)%5;
-      ctx.fillStyle=C.grass[gi];ctx.fillRect(sx,sy,ST,ST);
-      // Soft edge blending with neighbors (overlap slightly)
-      ctx.fillStyle=C.grass[(gi+1)%5];ctx.globalAlpha=0.15;
-      ctx.fillRect(sx,sy,ST/2,ST);ctx.globalAlpha=1;
-      // Organic noise patches (irregular shapes, not squares)
+      // Use Perlin noise for smooth, organic color blending (no checkerboard!)
+      const gn=fbm(x*0.15+0.5,y*0.15+0.5,2); // smooth noise 0-1
+      const gn2=fbm(x*0.3+10,y*0.3+10,2); // finer detail layer
+      // Blend between 2-3 greens smoothly based on noise
+      const baseR=Math.floor(30+gn*30);const baseG=Math.floor(90+gn*50+gn2*20);const baseB=Math.floor(15+gn*20);
+      ctx.fillStyle=`rgb(${baseR},${baseG},${baseB})`;ctx.fillRect(sx,sy,ST,ST);
+      // Subtle lighter patches using second noise octave
+      if(gn2>0.55){ctx.fillStyle=`rgba(80,160,50,${(gn2-0.55)*0.4})`;ctx.fillRect(sx,sy,ST,ST);}
+      // Darker patches for depth
+      if(gn<0.4){ctx.fillStyle=`rgba(15,50,10,${(0.4-gn)*0.25})`;ctx.fillRect(sx,sy,ST,ST);}
+      // Sparse grass tufts (use noise-based seeding, not modulo)
       const gSeed=(x*31+y*17)%37;
-      if(gSeed<8){
-        ctx.fillStyle=C.grass[(gi+2)%5];ctx.globalAlpha=0.2;
-        ctx.beginPath();ctx.arc(sx+12+gSeed*3,sy+14+gSeed%4*5,8+gSeed%3*4,0,Math.PI*2);ctx.fill();ctx.globalAlpha=1;
+      if(gSeed<4){
+        ctx.fillStyle=`rgba(60,140,40,0.6)`;
+        ctx.fillRect(sx+10+gSeed*6,sy+8+gSeed*3,1,7);
+        ctx.fillRect(sx+14+gSeed*5,sy+12+gSeed*2,1,5);
       }
-      // Grass tufts (thin blades)
-      ctx.fillStyle=C.grass[4];
-      if(gSeed%5===0){ctx.fillRect(sx+10,sy+8,1,7);ctx.fillRect(sx+13,sy+10,1,5);}
-      if(gSeed%7===0){ctx.fillRect(sx+30,sy+12,1,6);ctx.fillRect(sx+33,sy+15,1,4);}
-      // Tiny wildflower (very sparse)
+      // Very sparse wildflowers
       if(gSeed===1){ctx.fillStyle='#E8C840';ctx.fillRect(sx+22,sy+18,2,2);}
-      if(gSeed===11){ctx.fillStyle='#D0D0F0';ctx.fillRect(sx+14,sy+28,2,2);}
+      if(gSeed===17){ctx.fillStyle='#D0D0F0';ctx.fillRect(sx+14,sy+28,2,2);}
       break;}
     case T.TALLGRASS:{
-      const gi2=(x*7+y*13)%5;
-      ctx.fillStyle=C.grass[gi2];ctx.fillRect(sx,sy,ST,ST);
-      // Soft base blend
-      ctx.fillStyle=C.grass[(gi2+1)%5];ctx.globalAlpha=0.12;ctx.fillRect(sx,sy,ST,ST/2);ctx.globalAlpha=1;
+      // Same smooth Perlin base as regular grass
+      const tgn=fbm(x*0.15+0.5,y*0.15+0.5,2);
+      const tgR=Math.floor(30+tgn*30);const tgG=Math.floor(90+tgn*50);const tgB=Math.floor(15+tgn*20);
+      ctx.fillStyle=`rgb(${tgR},${tgG},${tgB})`;ctx.fillRect(sx,sy,ST,ST);
       const sw=Math.sin(t*1.8+x*.7+y*.5)*3;
       ctx.fillStyle='#4A9030';
       for(let i=0;i<5;i++){const ox=4+i*8+sw*(i%2?1:-1);ctx.fillRect(sx+ox,sy+4,1,ST-6);}
@@ -2399,7 +2401,8 @@ function drawTile(x,y,tile){
       for(let i=0;i<3;i++){const ox=6+i*12-sw*0.7;ctx.fillRect(sx+ox,sy+6,1,ST-8);}
       break;}
     case T.FLOWER:{
-      ctx.fillStyle=C.grass[v2%4];ctx.fillRect(sx,sy,ST,ST);
+      const fgn=fbm(x*0.15+0.5,y*0.15+0.5,2);
+      ctx.fillStyle=`rgb(${Math.floor(30+fgn*30)},${Math.floor(90+fgn*50)},${Math.floor(15+fgn*20)})`;ctx.fillRect(sx,sy,ST,ST);
       // Pretty flowers
       const fc=C.flower[(x+y*3)%6];
       ctx.fillStyle='#3A7020';ctx.fillRect(sx+14,sy+16,2,18); // stem
@@ -2409,7 +2412,8 @@ function drawTile(x,y,tile){
         ctx.fillStyle=C.flower[(x+y*7)%6];ctx.beginPath();ctx.arc(sx+33,sy+20,4,0,Math.PI*2);ctx.fill();}
       break;}
     case T.MUSHROOM:{
-      ctx.fillStyle=C.grass[v2%4];ctx.fillRect(sx,sy,ST,ST);
+      const mgn=fbm(x*0.15+0.5,y*0.15+0.5,2);
+      ctx.fillStyle=`rgb(${Math.floor(30+mgn*30)},${Math.floor(90+mgn*50)},${Math.floor(15+mgn*20)})`;ctx.fillRect(sx,sy,ST,ST);
       ctx.fillStyle='#B08040';ctx.fillRect(sx+20,sy+28,4,12); // stem
       ctx.fillStyle='#DD3030';ctx.beginPath();ctx.arc(sx+22,sy+26,8,Math.PI,0);ctx.fill();
       ctx.fillStyle='#FFEECC';ctx.fillRect(sx+19,sy+22,2,2);ctx.fillRect(sx+25,sy+24,2,2);
@@ -2432,10 +2436,25 @@ function drawTile(x,y,tile){
       break;}
     case T.DEEP:{ctx.fillStyle=C.deepWater;ctx.fillRect(sx,sy,ST,ST);
       ctx.fillStyle=`rgba(40,100,180,${.1+Math.sin(t+x+y)*.08})`;ctx.fillRect(sx,sy,ST,ST);break;}
-    case T.SAND:ctx.fillStyle=C.sand[v];ctx.fillRect(sx,sy,ST,ST);
-      if(v2%4===0){ctx.fillStyle=C.sand[(v+1)%3];ctx.fillRect(sx+10,sy+8,12,6);}break;
-    case T.PATH:ctx.fillStyle=C.path[v];ctx.fillRect(sx,sy,ST,ST);
-      if((x+y)%4===0){ctx.fillStyle=C.path[(v+1)%3];ctx.fillRect(sx+8,sy+8,8,8);}break;
+    case T.SAND:{
+      const sn=fbm(x*0.18+3,y*0.18+3,2);
+      const sR=Math.floor(180+sn*20);const sG=Math.floor(155+sn*20);const sB=Math.floor(95+sn*15);
+      ctx.fillStyle=`rgb(${sR},${sG},${sB})`;ctx.fillRect(sx,sy,ST,ST);
+      // Subtle sand ripples
+      if((x*13+y*7)%11<3){ctx.fillStyle='rgba(210,190,140,0.15)';ctx.fillRect(sx+4,sy+12,ST-8,2);ctx.fillRect(sx+8,sy+28,ST-16,2);}
+      break;}
+    case T.PATH:{
+      // Smooth dirt path with subtle noise variation
+      const pn=fbm(x*0.2+5,y*0.2+5,2);
+      const pR=Math.floor(130+pn*20);const pG=Math.floor(115+pn*15);const pB=Math.floor(90+pn*15);
+      ctx.fillStyle=`rgb(${pR},${pG},${pB})`;ctx.fillRect(sx,sy,ST,ST);
+      // Subtle pebble/texture details
+      const pSeed=(x*23+y*11)%29;
+      if(pSeed<5){ctx.fillStyle=`rgba(100,85,65,0.3)`;ctx.fillRect(sx+8+pSeed*5,sy+10+pSeed*4,6,4);}
+      if(pSeed>22){ctx.fillStyle=`rgba(170,150,120,0.25)`;ctx.fillRect(sx+12+pSeed%5*6,sy+20,8,5);}
+      // Worn center line (paths get lighter in the middle from foot traffic)
+      ctx.fillStyle='rgba(180,165,140,0.12)';ctx.fillRect(sx+ST/4,sy,ST/2,ST);
+      break;}
     case T.WALL:{
       // Detailed log cabin walls
       ctx.fillStyle=C.woodWall;ctx.fillRect(sx,sy,ST,ST);
