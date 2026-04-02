@@ -5945,45 +5945,33 @@ function drawMine(){
     ctx.fillRect(sx+4,sy,(ST-8)*hpPct,4);
     if(info.boss){ctx.fillStyle=C.gold;ctx.font=`bold 10px ${FONT}`;ctx.fillText('BOSS',sx+ST/2,sy-4);}
   }
-  // Draw wall torches with light pools
+  // Draw player
+  drawPlayer();
+  
+  // Wall torches — drawn on top with warm glow
   if(f.torches){
     for(const tc of f.torches){
       const tsx=tc.x*ST-cam.x,tsy=tc.y*ST-cam.y;
-      // Torch bracket
       ctx.fillStyle='#5A3A1A';ctx.fillRect(tsx+ST/2-2,tsy+4,4,12);
-      // Flame
       const flicker=Math.sin(performance.now()/200+tc.x*3+tc.y*7)*3;
       ctx.fillStyle='#FF8830';ctx.fillRect(tsx+ST/2-3+flicker,tsy,6,6);
       ctx.fillStyle='#FFCC40';ctx.fillRect(tsx+ST/2-2+flicker,tsy+1,4,3);
-      // Light pool on floor
-      ctx.fillStyle='rgba(255,180,80,0.08)';
-      ctx.beginPath();ctx.arc(tsx+ST/2,tsy+ST,60,0,Math.PI*2);ctx.fill();
+      // Warm light pool
+      ctx.fillStyle='rgba(255,170,60,0.06)';
+      ctx.beginPath();ctx.arc(tsx+ST/2,tsy+ST,80,0,Math.PI*2);ctx.fill();
     }
   }
   
-  // Dark overlay — lighter so you can see more
-  ctx.fillStyle='rgba(0,0,0,0.45)';ctx.fillRect(0,0,canvas.width,canvas.height);
-  // Cut light circle around player (BIG)
+  // Subtle ambient shadow at edges (no black halo — just gentle vignette)
   const px=player.x*SCALE-cam.x,py=player.y*SCALE-cam.y;
-  const lightR=260+Math.sin(performance.now()/300)*15;
-  ctx.save();ctx.globalCompositeOperation='destination-out';
-  const grad=ctx.createRadialGradient(px,py,0,px,py,lightR);
-  grad.addColorStop(0,'rgba(0,0,0,1)');grad.addColorStop(0.6,'rgba(0,0,0,0.9)');grad.addColorStop(1,'rgba(0,0,0,0)');
-  ctx.fillStyle=grad;ctx.beginPath();ctx.arc(px,py,lightR,0,Math.PI*2);ctx.fill();
-  // Also cut light around torches
-  if(f.torches){for(const tc of f.torches){
-    const tsx=tc.x*ST-cam.x+ST/2,tsy=tc.y*ST-cam.y+ST/2;
-    const tGrad=ctx.createRadialGradient(tsx,tsy,0,tsx,tsy,70);
-    tGrad.addColorStop(0,'rgba(0,0,0,0.7)');tGrad.addColorStop(1,'rgba(0,0,0,0)');
-    ctx.fillStyle=tGrad;ctx.beginPath();ctx.arc(tsx,tsy,70,0,Math.PI*2);ctx.fill();
-  }}
-  ctx.restore();
+  const vigGrad=ctx.createRadialGradient(px,py,canvas.width*0.3,px,py,canvas.width*0.7);
+  vigGrad.addColorStop(0,'rgba(0,0,0,0)');
+  vigGrad.addColorStop(1,'rgba(0,0,0,0.4)');
+  ctx.fillStyle=vigGrad;
+  ctx.fillRect(0,0,canvas.width,canvas.height);
   
-  // Draw player ON TOP of darkness (always visible)
-  drawPlayer();
-  
-  // Warm glow around player
-  ctx.fillStyle='rgba(255,180,80,0.04)';ctx.beginPath();ctx.arc(px,py,lightR*0.5,0,Math.PI*2);ctx.fill();
+  // Warm glow around player (subtle)
+  ctx.fillStyle='rgba(255,180,80,0.03)';ctx.beginPath();ctx.arc(px,py,150,0,Math.PI*2);ctx.fill();
   // Level indicator
   // Mine HUD
   ctx.fillStyle='rgba(0,0,0,0.6)';ctx.fillRect(8,8,220,70);
