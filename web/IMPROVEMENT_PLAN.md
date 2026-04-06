@@ -360,3 +360,31 @@ Line 1560: The code tries to detect if a seed fragment was successfully moved bu
 10. **Null reference guards** (5 minutes, crash prevention)
 
 Total estimated time: ~2-3 hours for all Top 10 changes.
+
+---
+
+## ✅ COMPLETED (Sprint 17 — Hermes, 2026-04-06)
+
+### Wave 1:
+- [x] T.FLOWERS bug fix (hoe works on flower tiles)
+- [x] Frame cache for performance.now() and trig
+- [x] fbm() terrain color cache (Float32Array)
+- [x] Fence Set for O(1) collision
+- [x] Entity insertion sort
+- [x] Star field at night (100 twinkling stars)
+- [x] Screen shake for tree chop + tilling
+- [x] Inventory sort (Q key)
+- [x] Null reference guards (shop, chest)
+- [x] initRelationships removed from render loop
+- [x] screenShake decay moved to main update
+
+### Wave 2:
+- [x] Warm window light pools (home + tavern) at night
+- [x] Replaced ALL remaining performance.now() in render with cached _now/_t
+- [x] Replaced getHour() in drawing with cached _hour/_isNight
+
+### Wave 3:
+- [x] HUD shows sats/second mining rate
+- [x] Improved energy bar (larger, color-coded, low energy warning flash)
+- [x] Quick eat (G key) — eats best food, handles boosts
+- [x] Updated controls bar with G:Eat and Q:Sort
