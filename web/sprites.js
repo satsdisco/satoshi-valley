@@ -783,34 +783,392 @@ function initSprites() {
   });
 
 
-  // ---- MINE ENEMIES ----
+  // ---- MINE ENEMIES (detailed pixel art) ----
   
+  // MALWARE BOT — Chunky robot, antenna twitches, red LED eye
   createSprite('enemy_malware_bot', S*2, (cx, s) => {
-    // Robot body
-    cx.fillStyle='#556';cx.fillRect(6,10,20,18);
-    cx.fillStyle='#445';cx.fillRect(6,10,20,6);
-    // Red scanning eye
-    cx.fillStyle='#F33';cx.fillRect(13,14,6,4);
-    cx.fillStyle='#F66';cx.fillRect(14,15,4,2);
+    // Feet/treads
+    cx.fillStyle='#444';cx.fillRect(6,28,6,4);cx.fillRect(20,28,6,4);
+    cx.fillStyle='#555';cx.fillRect(7,28,4,3);cx.fillRect(21,28,4,3);
     // Legs
-    cx.fillStyle='#667';cx.fillRect(8,28,5,6);cx.fillRect(19,28,5,6);
-    // Antenna
-    cx.fillStyle='#778';cx.fillRect(15,4,2,8);
-    cx.fillStyle='#F33';cx.fillRect(14,2,4,4);
+    cx.fillStyle='#667';cx.fillRect(8,24,5,5);cx.fillRect(19,24,5,5);
+    // Body — chunky box
+    cx.fillStyle='#556';cx.fillRect(5,10,22,15);
+    cx.fillStyle='#667';cx.fillRect(6,11,20,13);
+    // Chest plate detail
+    cx.fillStyle='#445';cx.fillRect(6,10,20,4);
+    cx.fillStyle='#4A4A55';cx.fillRect(8,14,16,2);
+    // Rivets
+    cx.fillStyle='#889';cx.fillRect(7,12,2,2);cx.fillRect(23,12,2,2);cx.fillRect(7,22,2,2);cx.fillRect(23,22,2,2);
+    // Red scanning eye (big)
+    cx.fillStyle='#A00';cx.fillRect(10,16,12,5);
+    cx.fillStyle='#F33';cx.fillRect(11,17,10,3);
+    cx.fillStyle='#F66';cx.fillRect(13,17,6,3);
+    cx.fillStyle='#FCC';cx.fillRect(15,18,2,1);
+    // Mouth grille
+    cx.fillStyle='#333';cx.fillRect(11,22,10,2);
+    cx.fillStyle='#444';cx.fillRect(12,22,2,1);cx.fillRect(16,22,2,1);cx.fillRect(20,22,1,1);
+    // Arms
+    cx.fillStyle='#556';cx.fillRect(2,14,4,8);cx.fillRect(26,14,4,8);
+    cx.fillStyle='#667';cx.fillRect(3,22,3,3);cx.fillRect(26,22,3,3);
+    // Antenna base
+    cx.fillStyle='#778';cx.fillRect(15,6,2,5);
+    // Antenna top — LED blinks
+    cx.fillStyle='#F33';cx.fillRect(14,4,4,3);
+    cx.fillStyle='#F66';cx.fillRect(15,5,2,1);
+    // Shoulder bolts
+    cx.fillStyle='#889';cx.fillRect(5,13,2,2);cx.fillRect(25,13,2,2);
+  });
+  createSprite('enemy_malware_bot_atk', S*2, (cx, s) => {
+    // Attack frame: eye bright, sparks
+    cx.fillStyle='#444';cx.fillRect(6,28,6,4);cx.fillRect(20,28,6,4);
+    cx.fillStyle='#667';cx.fillRect(8,24,5,5);cx.fillRect(19,24,5,5);
+    cx.fillStyle='#556';cx.fillRect(5,10,22,15);
+    cx.fillStyle='#667';cx.fillRect(6,11,20,13);
+    cx.fillStyle='#445';cx.fillRect(6,10,20,4);
+    cx.fillStyle='#F33';cx.fillRect(10,16,12,5);
+    cx.fillStyle='#FF6';cx.fillRect(11,17,10,3);
+    cx.fillStyle='#FFF';cx.fillRect(13,17,6,3);
+    cx.fillStyle='#778';cx.fillRect(15,6,2,5);
+    cx.fillStyle='#FF0';cx.fillRect(14,3,4,4);
+    // Spark effects
+    cx.fillStyle='#FF0';cx.fillRect(2,10,2,2);cx.fillRect(28,10,2,2);
+    cx.fillStyle='#F80';cx.fillRect(0,14,2,1);cx.fillRect(30,14,2,1);
+    cx.fillStyle='#556';cx.fillRect(2,14,4,8);cx.fillRect(26,14,4,8);
   });
 
+  // PHISHING WORM — Segmented body, undulating
+  createSprite('enemy_phishing_worm', S*2, (cx, s) => {
+    // Segments (5 body parts, different green shades)
+    const greens = ['#5F5','#4E4','#3D3','#4C4','#3B3'];
+    for(let i=0;i<5;i++){
+      cx.fillStyle=greens[i];
+      cx.beginPath();cx.arc(16+Math.sin(i*0.7)*4,8+i*5,4-i*0.3,0,Math.PI*2);cx.fill();
+      cx.fillStyle='#2A2';cx.fillRect(14+Math.sin(i*0.7)*4,8+i*5,1,1);
+    }
+    // Head (bigger)
+    cx.fillStyle='#6F6';cx.beginPath();cx.arc(16,6,5,0,Math.PI*2);cx.fill();
+    // Eyes
+    cx.fillStyle='#F00';cx.fillRect(13,4,2,2);cx.fillRect(17,4,2,2);
+    // Mouth (closed)
+    cx.fillStyle='#2A2';cx.fillRect(14,8,4,1);
+    // Tail
+    cx.fillStyle='#2A2';cx.fillRect(15,28,2,3);
+  });
+
+  // SCRIPT KIDDIE — Hoodie figure with laptop, matrix code
   createSprite('enemy_script_kiddie', S*2, (cx, s) => {
-    // Hoodie
-    cx.fillStyle='#424';cx.fillRect(6,14,20,16);
-    cx.fillStyle='#535';cx.fillRect(8,8,16,10);
-    // Face glow (screen reflection)
-    cx.fillStyle='#0F0';cx.fillRect(10,14,12,6);
-    cx.fillStyle='#0A0';cx.fillRect(11,15,10,4);
     // Legs
-    cx.fillStyle='#313';cx.fillRect(8,30,6,4);cx.fillRect(18,30,6,4);
+    cx.fillStyle='#313';cx.fillRect(9,27,5,5);cx.fillRect(18,27,5,5);
+    // Shoes
+    cx.fillStyle='#222';cx.fillRect(8,30,6,2);cx.fillRect(17,30,6,2);
+    // Body (hoodie)
+    cx.fillStyle='#424';cx.fillRect(7,15,18,13);
+    cx.fillStyle='#535';cx.fillRect(8,16,16,11);
+    // Hoodie pouch
+    cx.fillStyle='#3A3';cx.fillRect(11,22,10,4);
+    // Arms
+    cx.fillStyle='#424';cx.fillRect(4,16,4,10);cx.fillRect(24,16,4,10);
+    // Hands on laptop
+    cx.fillStyle='#FFD5A0';cx.fillRect(4,25,4,2);cx.fillRect(24,25,4,2);
+    // Hood
+    cx.fillStyle='#535';cx.fillRect(8,8,16,9);
+    cx.fillStyle='#646';cx.fillRect(9,6,14,5);
+    // Hood peak
+    cx.fillStyle='#535';cx.fillRect(12,5,8,3);
+    // Face glow (screen reflection)
+    cx.fillStyle='#0F0';cx.fillRect(11,12,10,5);
+    cx.fillStyle='#0A0';cx.fillRect(12,13,8,3);
+    // Eyes (glowing green)
+    cx.fillStyle='#0F0';cx.fillRect(12,13,3,2);cx.fillRect(17,13,3,2);
+    cx.fillStyle='#AFA';cx.fillRect(13,13,1,1);cx.fillRect(18,13,1,1);
     // Laptop
-    cx.fillStyle='#333';cx.fillRect(4,22,10,6);
-    cx.fillStyle='#0F0';cx.fillRect(5,23,8,4);
+    cx.fillStyle='#222';cx.fillRect(3,25,12,5);
+    cx.fillStyle='#333';cx.fillRect(4,25,10,4);
+    // Screen glow
+    cx.fillStyle='#0F0';cx.fillRect(5,26,8,2);
+    // Matrix code drips
+    cx.fillStyle='rgba(0,255,0,0.5)';
+    cx.fillRect(10,1,1,4);cx.fillRect(15,2,1,3);cx.fillRect(20,0,1,5);cx.fillRect(7,3,1,2);
+  });
+
+  // CRYPTOJACKER — Dark hooded figure with glowing orange pickaxe
+  createSprite('enemy_cryptojacker', S*2, (cx, s) => {
+    // Feet
+    cx.fillStyle='#1A0A00';cx.fillRect(9,28,5,4);cx.fillRect(18,28,5,4);
+    // Legs
+    cx.fillStyle='#2A1A0A';cx.fillRect(10,24,4,5);cx.fillRect(18,24,4,5);
+    // Body (dark cloak)
+    cx.fillStyle='#2A1A0A';cx.fillRect(7,12,18,14);
+    cx.fillStyle='#3A2A1A';cx.fillRect(8,13,16,12);
+    // Cloak trim
+    cx.fillStyle='#F7931A';cx.fillRect(7,25,18,1);
+    // Hood
+    cx.fillStyle='#3A2A1A';cx.fillRect(9,6,14,9);
+    cx.fillStyle='#2A1A0A';cx.fillRect(10,4,12,5);
+    cx.fillStyle='#1A0A00';cx.fillRect(12,3,8,3);
+    // Face shadow
+    cx.fillStyle='#0A0500';cx.fillRect(11,10,10,4);
+    // Orange glowing eyes
+    cx.fillStyle='#F7931A';cx.fillRect(12,11,3,2);cx.fillRect(17,11,3,2);
+    cx.fillStyle='#FFB84D';cx.fillRect(13,11,1,1);cx.fillRect(18,11,1,1);
+    // Right arm with pickaxe
+    cx.fillStyle='#2A1A0A';cx.fillRect(24,12,4,10);
+    // Pickaxe handle
+    cx.fillStyle='#664';cx.fillRect(27,8,2,14);
+    // Pickaxe head (orange glow)
+    cx.fillStyle='#F7931A';cx.fillRect(24,6,8,3);
+    cx.fillStyle='#FFB84D';cx.fillRect(25,7,6,1);
+    // Left arm
+    cx.fillStyle='#2A1A0A';cx.fillRect(4,12,4,10);
+    // Mining particles
+    cx.fillStyle='rgba(247,147,26,0.6)';cx.fillRect(6,8,2,2);cx.fillRect(22,4,2,2);cx.fillRect(14,2,2,2);
+  });
+
+  // RANSOMWARE — Floating skull with lock symbol, chain links
+  createSprite('enemy_ransomware', S*2, (cx, s) => {
+    // Red aura circle
+    cx.fillStyle='rgba(255,0,0,0.1)';cx.beginPath();cx.arc(16,16,14,0,Math.PI*2);cx.fill();
+    // Skull base
+    cx.fillStyle='#622';cx.beginPath();cx.arc(16,14,10,0,Math.PI*2);cx.fill();
+    cx.fillStyle='#733';cx.beginPath();cx.arc(16,14,8,0,Math.PI*2);cx.fill();
+    // Jaw
+    cx.fillStyle='#622';cx.fillRect(9,20,14,6);
+    cx.fillStyle='#511';cx.fillRect(10,21,12,4);
+    // Teeth
+    cx.fillStyle='#FFF';for(let i=0;i<5;i++)cx.fillRect(11+i*2,21,1,2);
+    // Eye sockets (glowing)
+    cx.fillStyle='#000';cx.fillRect(10,11,5,5);cx.fillRect(17,11,5,5);
+    cx.fillStyle='#F44';cx.fillRect(11,12,3,3);cx.fillRect(18,12,3,3);
+    cx.fillStyle='#F88';cx.fillRect(12,12,1,1);cx.fillRect(19,12,1,1);
+    // Lock symbol on forehead
+    cx.fillStyle='#FF0';cx.fillRect(14,7,4,4);
+    cx.fillStyle='#CC0';cx.fillRect(14,5,4,3);
+    cx.fillStyle='#622';cx.fillRect(15,6,2,2);
+    // Chain links (orbiting)
+    cx.fillStyle='#888';
+    cx.fillRect(2,12,3,2);cx.fillRect(4,14,2,3);
+    cx.fillRect(27,12,3,2);cx.fillRect(26,14,2,3);
+    cx.fillRect(14,28,4,2);cx.fillRect(12,26,2,3);cx.fillRect(18,26,2,3);
+  });
+
+  // FIAT PRINTER — Mechanical box on legs with money flying out
+  createSprite('enemy_fiat_printer', S*2, (cx, s) => {
+    // Legs (mechanical)
+    cx.fillStyle='#666';cx.fillRect(8,26,4,6);cx.fillRect(20,26,4,6);
+    cx.fillStyle='#555';cx.fillRect(7,30,6,2);cx.fillRect(19,30,6,2);
+    // Body (industrial printer box)
+    cx.fillStyle='#555';cx.fillRect(5,12,22,15);
+    cx.fillStyle='#666';cx.fillRect(6,13,20,13);
+    // Top panel
+    cx.fillStyle='#777';cx.fillRect(5,10,22,4);
+    // Paper slot (output)
+    cx.fillStyle='#444';cx.fillRect(8,14,16,3);
+    cx.fillStyle='#333';cx.fillRect(9,14,14,2);
+    // Control panel
+    cx.fillStyle='#333';cx.fillRect(8,20,16,4);
+    // Buttons
+    cx.fillStyle='#F00';cx.fillRect(9,21,2,2);
+    cx.fillStyle='#0F0';cx.fillRect(12,21,2,2);
+    cx.fillStyle='#FF0';cx.fillRect(15,21,2,2);
+    // Warning lights
+    cx.fillStyle='#F00';cx.fillRect(20,21,2,2);
+    // Exhaust pipe
+    cx.fillStyle='#444';cx.fillRect(24,14,4,6);
+    cx.fillStyle='#333';cx.fillRect(25,14,2,5);
+    // Money flying out
+    cx.fillStyle='#6C6';cx.fillRect(10,8,8,4);
+    cx.fillStyle='#4A4';cx.fillRect(11,9,6,2);
+    cx.fillStyle='#6C6';cx.fillRect(6,4,6,3);
+    cx.fillStyle='#4A4';cx.fillRect(7,5,4,1);
+    cx.fillStyle='#6C6';cx.fillRect(18,2,7,3);
+    // Dollar signs
+    cx.fillStyle='#060';cx.font='6px sans-serif';cx.textAlign='center';
+    cx.fillText('$',14,11);cx.fillText('$',9,6);cx.fillText('$',21,4);
+    // Smoke from exhaust
+    cx.fillStyle='rgba(150,150,150,0.3)';cx.beginPath();cx.arc(27,12,3,0,Math.PI*2);cx.fill();
+    cx.fillStyle='rgba(150,150,150,0.2)';cx.beginPath();cx.arc(29,8,4,0,Math.PI*2);cx.fill();
+  });
+
+  // ZERO DAY — Spider-like with 8 legs, purple/dark, glitch effect
+  createSprite('enemy_zero_day', S*2, (cx, s) => {
+    // Body (dark purple/black)
+    cx.fillStyle='#1A0A1A';cx.beginPath();cx.arc(16,16,7,0,Math.PI*2);cx.fill();
+    cx.fillStyle='#2A1A2A';cx.beginPath();cx.arc(16,16,5,0,Math.PI*2);cx.fill();
+    // Abdomen
+    cx.fillStyle='#1A0A1A';cx.beginPath();cx.arc(16,22,5,0,Math.PI*2);cx.fill();
+    // 8 legs
+    cx.strokeStyle='#3A2A3A';cx.lineWidth=1.5;
+    for(let leg=0;leg<8;leg++){
+      const side=leg<4?-1:1;const idx=leg%4;
+      const angles=[0.3,0.8,1.3,1.8];
+      const angle=angles[idx]*side;
+      cx.beginPath();
+      cx.moveTo(16+Math.cos(angle)*5,16+Math.sin(angle)*3);
+      cx.lineTo(16+Math.cos(angle)*14,16+Math.sin(angle)*12);
+      cx.stroke();
+      // Leg joints
+      cx.fillStyle='#4A3A4A';
+      cx.fillRect(15+Math.cos(angle)*10,15+Math.sin(angle)*8,2,2);
+    }
+    // Eyes (multiple, spider-like, red)
+    cx.fillStyle='#F00';
+    cx.fillRect(13,13,2,2);cx.fillRect(17,13,2,2);
+    cx.fillRect(12,15,2,1);cx.fillRect(18,15,2,1);
+    // Fangs
+    cx.fillStyle='#806';cx.fillRect(14,17,2,3);cx.fillRect(16,17,2,3);
+    // Digital glitch marks
+    cx.fillStyle='rgba(128,0,255,0.3)';
+    cx.fillRect(4,10,3,1);cx.fillRect(24,8,4,1);cx.fillRect(8,24,5,1);
+    cx.fillRect(20,22,3,1);cx.fillRect(2,16,2,1);
+  });
+
+  // POOL OPERATOR (BOSS) — Tall imposing figure, golden crown, cape
+  createSprite('enemy_pool_operator', S*2, (cx, s) => {
+    // Cape (billowing)
+    cx.fillStyle='#400';cx.fillRect(4,14,24,16);
+    cx.fillStyle='#500';cx.fillRect(5,15,22,14);
+    cx.fillStyle='#300';cx.fillRect(3,18,2,10);cx.fillRect(27,18,2,10);
+    // Boots
+    cx.fillStyle='#222';cx.fillRect(9,28,5,4);cx.fillRect(18,28,5,4);
+    // Body (dark armor)
+    cx.fillStyle='#222';cx.fillRect(8,14,16,15);
+    cx.fillStyle='#333';cx.fillRect(9,15,14,13);
+    // Armor details
+    cx.fillStyle='#FFD700';cx.fillRect(14,16,4,2); // chest emblem
+    cx.fillStyle='#444';cx.fillRect(10,20,12,1);
+    cx.fillStyle='#444';cx.fillRect(10,24,12,1);
+    // Shoulders (pauldrons)
+    cx.fillStyle='#444';cx.fillRect(5,13,6,4);cx.fillRect(21,13,6,4);
+    cx.fillStyle='#555';cx.fillRect(6,14,4,2);cx.fillRect(22,14,4,2);
+    // Arms
+    cx.fillStyle='#333';cx.fillRect(4,16,4,10);cx.fillRect(24,16,4,10);
+    // Gauntlets
+    cx.fillStyle='#FFD700';cx.fillRect(4,24,4,3);cx.fillRect(24,24,4,3);
+    // Head
+    cx.fillStyle='#1A1A1A';cx.fillRect(10,6,12,9);
+    cx.fillStyle='#222';cx.fillRect(11,7,10,7);
+    // Face
+    cx.fillStyle='#F70';cx.fillRect(12,9,3,3);cx.fillRect(17,9,3,3); // orange eyes
+    cx.fillStyle='#FFA500';cx.fillRect(13,10,1,1);cx.fillRect(18,10,1,1); // eye highlight
+    cx.fillStyle='#F00';cx.fillRect(13,13,6,1); // mouth
+    // Crown (golden)
+    cx.fillStyle='#FFD700';cx.fillRect(9,3,14,4);
+    cx.fillStyle='#FFC800';cx.fillRect(10,4,12,2);
+    // Crown points
+    cx.fillStyle='#FFD700';
+    cx.fillRect(10,1,3,4);cx.fillRect(15,0,3,5);cx.fillRect(20,1,3,4);
+    // Crown gems
+    cx.fillStyle='#F00';cx.fillRect(11,2,1,1);cx.fillRect(16,1,1,1);cx.fillRect(21,2,1,1);
+    // Golden aura
+    cx.fillStyle='rgba(255,215,0,0.08)';cx.beginPath();cx.arc(16,16,15,0,Math.PI*2);cx.fill();
+  });
+  createSprite('enemy_pool_operator_p2', S*2, (cx, s) => {
+    // Phase 2: enraged — red crown, fire eyes, cracked ground
+    // Cape (red, billowing wider)
+    cx.fillStyle='#800';cx.fillRect(2,14,28,16);
+    cx.fillStyle='#A00';cx.fillRect(3,15,26,14);
+    // Boots
+    cx.fillStyle='#222';cx.fillRect(9,28,5,4);cx.fillRect(18,28,5,4);
+    // Body
+    cx.fillStyle='#222';cx.fillRect(8,14,16,15);
+    cx.fillStyle='#333';cx.fillRect(9,15,14,13);
+    cx.fillStyle='#F00';cx.fillRect(14,16,4,2); // red chest
+    cx.fillStyle='#444';cx.fillRect(10,20,12,1);
+    // Shoulders
+    cx.fillStyle='#444';cx.fillRect(5,13,6,4);cx.fillRect(21,13,6,4);
+    // Arms
+    cx.fillStyle='#333';cx.fillRect(4,16,4,10);cx.fillRect(24,16,4,10);
+    cx.fillStyle='#F00';cx.fillRect(4,24,4,3);cx.fillRect(24,24,4,3);
+    // Head
+    cx.fillStyle='#1A1A1A';cx.fillRect(10,6,12,9);
+    cx.fillStyle='#222';cx.fillRect(11,7,10,7);
+    // Fire eyes
+    cx.fillStyle='#F00';cx.fillRect(12,9,3,3);cx.fillRect(17,9,3,3);
+    cx.fillStyle='#FF0';cx.fillRect(13,9,1,2);cx.fillRect(18,9,1,2);
+    cx.fillStyle='#F00';cx.fillRect(12,7,3,2);cx.fillRect(17,7,3,2); // fire above eyes
+    cx.fillStyle='#F00';cx.fillRect(13,13,6,1);
+    // Red Crown
+    cx.fillStyle='#F00';cx.fillRect(9,3,14,4);
+    cx.fillStyle='#D00';cx.fillRect(10,4,12,2);
+    cx.fillStyle='#F00';cx.fillRect(10,1,3,4);cx.fillRect(15,0,3,5);cx.fillRect(20,1,3,4);
+    cx.fillStyle='#FF0';cx.fillRect(11,2,1,1);cx.fillRect(16,1,1,1);cx.fillRect(21,2,1,1);
+    // Red aura
+    cx.fillStyle='rgba(255,0,0,0.12)';cx.beginPath();cx.arc(16,16,16,0,Math.PI*2);cx.fill();
+    // Ground cracks
+    cx.fillStyle='#F40';cx.fillRect(6,30,2,2);cx.fillRect(12,31,3,1);cx.fillRect(22,30,2,2);
+  });
+
+  // ---- DUNGEON DECORATIONS ----
+  
+  createSprite('deco_server_rack', S*2, (cx, s) => {
+    cx.fillStyle='#2A2A30';cx.fillRect(4,2,24,28);
+    cx.fillStyle='#3A3A44';cx.fillRect(5,3,22,26);
+    // Drive bays
+    for(let i=0;i<5;i++){
+      cx.fillStyle='#222';cx.fillRect(6,4+i*5,20,4);
+      cx.fillStyle='#333';cx.fillRect(7,5+i*5,18,2);
+      // LEDs
+      cx.fillStyle=i%2?'#0F0':'#F7931A';cx.fillRect(22,5+i*5,2,1);
+    }
+    cx.fillStyle='#444';cx.fillRect(4,2,24,2);cx.fillRect(4,28,24,2);
+  });
+  
+  createSprite('deco_broken_monitor', S*2, (cx, s) => {
+    cx.fillStyle='#333';cx.fillRect(4,6,24,18);
+    cx.fillStyle='#444';cx.fillRect(5,7,22,16);
+    // Cracked screen (dark with crack lines)
+    cx.fillStyle='#111';cx.fillRect(6,8,20,14);
+    cx.fillStyle='#0A0A20';cx.fillRect(7,9,18,12);
+    // Cracks
+    cx.fillStyle='#444';cx.fillRect(10,9,1,6);cx.fillRect(10,14,5,1);cx.fillRect(15,12,1,4);cx.fillRect(15,12,4,1);
+    // Sparks
+    cx.fillStyle='#FF0';cx.fillRect(16,10,2,1);
+    // Stand
+    cx.fillStyle='#555';cx.fillRect(12,24,8,4);cx.fillRect(10,27,12,2);
+  });
+  
+  createSprite('deco_cables', S, (cx, s) => {
+    cx.strokeStyle='#445';cx.lineWidth=2;
+    cx.beginPath();cx.moveTo(0,4);cx.quadraticCurveTo(8,10,16,6);cx.stroke();
+    cx.strokeStyle='#F7931A';cx.lineWidth=1;
+    cx.beginPath();cx.moveTo(0,10);cx.quadraticCurveTo(8,14,16,8);cx.stroke();
+    cx.strokeStyle='#344';cx.lineWidth=1.5;
+    cx.beginPath();cx.moveTo(2,14);cx.quadraticCurveTo(10,8,14,14);cx.stroke();
+  });
+  
+  createSprite('deco_vent_grate', S, (cx, s) => {
+    cx.fillStyle='#3A3A40';cx.fillRect(1,1,14,14);
+    cx.fillStyle='#2A2A30';
+    for(let i=0;i<5;i++)cx.fillRect(2,2+i*3,12,1);
+  });
+
+  createSprite('deco_loot_chest', S*2, (cx, s) => {
+    // Chest body
+    cx.fillStyle='#6A4A2A';cx.fillRect(4,12,24,14);
+    cx.fillStyle='#8A6A3A';cx.fillRect(5,13,22,12);
+    // Lid
+    cx.fillStyle='#7A5A30';cx.fillRect(3,8,26,6);
+    cx.fillStyle='#9A7A48';cx.fillRect(4,9,24,4);
+    // Metal bands
+    cx.fillStyle='#888';cx.fillRect(4,8,24,2);cx.fillRect(4,20,24,2);
+    // Lock
+    cx.fillStyle='#FFD700';cx.fillRect(14,13,4,4);
+    cx.fillStyle='#CCA000';cx.fillRect(15,11,2,3);
+    cx.fillStyle='#6A4A2A';cx.fillRect(15,12,2,1);
+    // Gems
+    cx.fillStyle='#F44';cx.fillRect(8,15,2,2);
+    cx.fillStyle='#44F';cx.fillRect(22,15,2,2);
+  });
+  
+  createSprite('deco_crate', S*2, (cx, s) => {
+    cx.fillStyle='#6A5A3A';cx.fillRect(4,4,24,24);
+    cx.fillStyle='#8A7A5A';cx.fillRect(5,5,22,22);
+    // Cross boards
+    cx.fillStyle='#5A4A2A';
+    cx.fillRect(4,15,24,2);cx.fillRect(15,4,2,24);
+    // Nails
+    cx.fillStyle='#AAA';cx.fillRect(6,16,1,1);cx.fillRect(25,16,1,1);cx.fillRect(16,6,1,1);cx.fillRect(16,25,1,1);
   });
 
   // ---- OVERWORLD DECORATIONS ----

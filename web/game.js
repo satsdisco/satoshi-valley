@@ -247,7 +247,7 @@ canvas.addEventListener('click', e => {
 canvas.addEventListener('click', e => {
   if(e.shiftKey)return; // Shift+click handled by placement handler above
   // Mine combat: LEFT-CLICK = melee attack (Diablo-style)
-  if(mineFloor&&gameState==='playing'&&!shopOpen&&!invOpen&&!dlg&&!combat){
+  if(mineFloor&&gameState==='playing'&&!shopOpen&&!invOpen&&!dlg){
     const wx=(e.clientX+cam.x)/SCALE, wy=(e.clientY+cam.y)/SCALE;
     // Find nearest enemy near click point (generous range)
     let closest=null,closestDist=TILE*5;
@@ -717,34 +717,48 @@ let mineAutoAttackTarget = null; // auto-approach and attack
 let deathParticles = []; // {x, y, vx, vy, life, color, size}
 
 function mineAttackEnemy(en){
+  // Attack cooldown check
+  if(attackCooldown>0)return;
+  attackCooldown=0.4;
   playerSwing=0.3;
   const info=MINE_ENEMIES[en.type];
   const pAtk=10+skills.mining.level*3+(hasItem('pickaxe')?8:0);
-  const dmg=pAtk+Math.floor(Math.random()*6);
-  const isCrit=Math.random()<0.1;
-  const finalDmg=isCrit?dmg*2:dmg;
+  let rawDmg=pAtk+Math.floor(Math.random()*6);
+  // Apply enemy armor
+  let finalDmg=Math.max(1,rawDmg-(info.armor||0));
+  // Critical hit scales with mining level
+  const critChance=Math.min(0.20,0.05+skills.mining.level*0.01);
+  const isCrit=Math.random()<critChance;
+  if(isCrit)finalDmg*=2;
+  // Combo system
+  comboSystem.hits++;comboSystem.timer=1.5;
+  let isCombo=false;
+  if(comboSystem.hits>=3){
+    finalDmg*=3;isCombo=true;comboSystem.hits=0;
+    screenShake=0.25;
+  }
+  finalDmg=Math.floor(finalDmg);
   en.hp-=finalDmg;en._hitFlash=0.2;
   // Knockback
   const kbx=Math.sign(en.x*TILE-player.x),kby=Math.sign(en.y*TILE-player.y);
-  en.x+=kbx;en.y+=kby;
-  en.x=Math.max(1,Math.min(MINE_W-2,en.x));en.y=Math.max(1,Math.min(MINE_H-2,en.y));
+  const nkx=en.x+kbx,nky=en.y+kby;
+  if(nkx>=1&&nkx<MINE_W-1&&nky>=1&&nky<MINE_H-1&&mineFloor.map[nky]&&mineFloor.map[nky][nkx]!==T.CLIFF){en.x=nkx;en.y=nky;}
   // Damage number
-  damageNumbers.push({x:en.x*ST+ST/2,y:en.y*ST,text:(isCrit?'CRIT! -':'-')+finalDmg,life:isCrit?1.5:1.0,color:isCrit?'#FF4444':'#FFDD44'});
+  const dmgText=isCombo?'COMBO! -'+finalDmg:(isCrit?'CRIT! -':'-')+finalDmg;
+  const dmgColor=isCombo?'#FF00FF':(isCrit?'#FF4444':'#FFDD44');
+  damageNumbers.push({x:en.x*ST+ST/2,y:en.y*ST,text:dmgText,life:isCombo?2.0:(isCrit?1.5:1.0),color:dmgColor});
   // Hit sound
   tone(250+Math.random()*200,.06,'square',.05);tone(180,.04,'sawtooth',.03);
-  screenShake=isCrit?0.15:0.08;
+  if(!isCombo)screenShake=isCrit?0.15:0.08;
   if(en.hp<=0){
     en.alive=false;
     const info2=MINE_ENEMIES[en.type];
-    // Death explosion particles!
     for(let i=0;i<12;i++){
-      const angle=Math.random()*Math.PI*2;const spd=60+Math.random()*80;
-      deathParticles.push({x:en.x*ST+ST/2,y:en.y*ST+ST/2,vx:Math.cos(angle)*spd,vy:Math.sin(angle)*spd,life:0.6+Math.random()*0.4,color:info2.boss?'#FFD700':'#FF6644',size:3+Math.random()*3});
+      const angle=Math.random()*Math.PI*2;const spd2=60+Math.random()*80;
+      deathParticles.push({x:en.x*ST+ST/2,y:en.y*ST+ST/2,vx:Math.cos(angle)*spd2,vy:Math.sin(angle)*spd2,life:0.6+Math.random()*0.4,color:info2.boss?'#FFD700':'#FF6644',size:3+Math.random()*3});
     }
-    // Loot drop
     if(info2.loot){
       addItem(info2.loot);
-      // Loot sparkle
       for(let i=0;i<6;i++){
         deathParticles.push({x:en.x*ST+ST/2,y:en.y*ST+ST/2,vx:(Math.random()-0.5)*40,vy:-40-Math.random()*60,life:0.8+Math.random()*0.3,color:C.orange,size:2+Math.random()*2});
       }
@@ -758,6 +772,27 @@ function mineAttackEnemy(en){
     screenShake=0.2;
     mineAutoAttackTarget=null;
   }
+}
+function mineAttackCrate(tx,ty){
+  if(attackCooldown>0)return false;
+  const ci=mineCrates.findIndex(c=>c.x===tx&&c.y===ty);
+  if(ci===-1)return false;
+  attackCooldown=0.4;playerSwing=0.3;
+  const crate=mineCrates[ci];
+  crate.hp--;
+  damageNumbers.push({x:tx*ST+ST/2,y:ty*ST,text:'-1',life:0.8,color:'#DDAA44'});
+  tone(300,.05,'square',.04);screenShake=0.05;
+  if(crate.hp<=0){
+    if(crate.loot&&addItem(crate.loot)){
+      const it=ITEMS[crate.loot];
+      notify('📦 Crate dropped '+it.icon+' '+it.name+'!',2);sfx.coin();
+    }
+    for(let i=0;i<8;i++){
+      deathParticles.push({x:tx*ST+ST/2,y:ty*ST+ST/2,vx:(Math.random()-0.5)*60,vy:(Math.random()-0.5)*60,life:0.5,color:'#AA8844',size:2+Math.random()*2});
+    }
+    mineCrates.splice(ci,1);
+  }
+  return true;
 }
 let skillCooldowns = {orangePill:0, lightning:0, hashAttack:0};
 
@@ -785,17 +820,34 @@ const COMBAT_SKILLS = {
   },
 };
 
-const MINE_W = 30, MINE_H = 22; // bigger dungeon
+// Mine dimensions — bigger for regular floors, even bigger for boss
+const MINE_W_NORMAL = 50, MINE_H_NORMAL = 40;
+const MINE_W_BOSS = 60, MINE_H_BOSS = 50;
+let MINE_W = MINE_W_NORMAL, MINE_H = MINE_H_NORMAL;
+
+// New tile types for dungeon hazards
+const T_LAVA = 100, T_ELECTRIC = 101, T_CRATE = 102, T_FIREWALL = 103;
+
+// Danger state and combat systems
+let dangerState = null; // {timer:2, active:true} when HP below 15%
+let dodgeRoll = {active:false, timer:0, dir:{x:0,y:0}, cooldown:0}; // dodge roll state
+let comboSystem = {hits:0, timer:0}; // combo tracker
+let attackCooldown = 0; // 0.4s melee cooldown
+let lastTapDir = {key:'',time:0}; // for double-tap dodge detection
+let mineParticles = []; // ambient dungeon particles
+let enemyProjectiles = []; // projectiles from enemies (script_kiddie, boss)
+let mineCrates = []; // destructible crates {x,y,hp,loot}
+let mineFirewalls = []; // temporary wall tiles {x,y,timer}
 
 const MINE_ENEMIES = {
-  malware_bot: {name:'Malware Bot',hp:20,atk:5,icon:'🤖',xp:10,loot:'copper_ore',desc:'A corrupted maintenance bot.'},
-  script_kiddie: {name:'Script Kiddie',hp:30,atk:8,icon:'👾',xp:15,loot:'silicon',desc:'Annoying but persistent.'},
-  ransomware: {name:'Ransomware',hp:50,atk:12,icon:'💀',xp:25,loot:'old_gpu',desc:'Pay up or lose your data.'},
-  pool_operator: {name:'The Pool Operator',hp:150,atk:20,icon:'👹',xp:100,loot:'rare_chip',boss:true,desc:'Controls 51% of the abandoned hashrate.'},
-  phishing_worm: {name:'Phishing Worm',hp:15,atk:3,icon:'🪱',xp:8,loot:'fiber_optic',desc:'Slithers through corrupted data cables. Fast but fragile.'},
-  cryptojacker: {name:'Cryptojacker',hp:40,atk:10,icon:'⛏️',xp:20,loot:'silicon',desc:'Hijacks hashrate for its own mining pool.'},
-  fiat_printer: {name:'Fiat Printer',hp:60,atk:8,icon:'🖨️',xp:30,loot:'server_rack',desc:'Spawns worthless tokens. Inflation personified.',special:'spawn'},
-  zero_day: {name:'Zero Day Exploit',hp:80,atk:18,icon:'🕷️',xp:40,loot:'rare_chip',desc:'Silent. Deadly. You won\'t see it until too late.',special:'stealth'},
+  malware_bot: {name:'Malware Bot',hp:30,atk:6,armor:1,icon:'🤖',xp:10,loot:'copper_ore',desc:'A corrupted maintenance bot.',moveSpeed:0.7,aggroRange:6},
+  phishing_worm: {name:'Phishing Worm',hp:22,atk:4,armor:0,icon:'🪱',xp:8,loot:'fiber_optic',desc:'Fast and erratic. Annoying.',moveSpeed:0.3,aggroRange:7},
+  script_kiddie: {name:'Script Kiddie',hp:45,atk:8,armor:2,icon:'👾',xp:15,loot:'silicon',desc:'Keeps distance. Throws code.',moveSpeed:0.6,aggroRange:8},
+  cryptojacker: {name:'Cryptojacker',hp:60,atk:14,armor:3,icon:'⛏️',xp:20,loot:'silicon',desc:'Charges and grabs you.',moveSpeed:0.5,aggroRange:7},
+  ransomware: {name:'Ransomware',hp:90,atk:16,armor:5,icon:'💀',xp:25,loot:'old_gpu',desc:'Slow. Tanky. Traps you.',moveSpeed:1.2,aggroRange:6},
+  fiat_printer: {name:'Fiat Printer',hp:75,atk:8,armor:2,icon:'🖨️',xp:30,loot:'server_rack',desc:'Spawns minions. Runs away.',special:'spawn',moveSpeed:0.8,aggroRange:8},
+  zero_day: {name:'Zero Day Exploit',hp:120,atk:22,armor:3,icon:'🕷️',xp:40,loot:'rare_chip',desc:'Invisible. Backstabs. Deadly.',special:'stealth',moveSpeed:0.6,aggroRange:5},
+  pool_operator: {name:'The Pool Operator',hp:225,atk:24,armor:6,icon:'👹',xp:100,loot:'rare_chip',boss:true,desc:'Controls 51% of the hashrate.',moveSpeed:0.9,aggroRange:12},
 };
 
 const MINE_LOOT_TABLES = [
@@ -807,43 +859,127 @@ const MINE_LOOT_TABLES = [
 ];
 
 function generateMineFloor(level) {
-  const w=MINE_W, h=MINE_H;
-  // Start with all walls
+  const isBoss = level >= 4;
+  const w = isBoss ? MINE_W_BOSS : MINE_W_NORMAL;
+  const h = isBoss ? MINE_H_BOSS : MINE_H_NORMAL;
+  MINE_W = w; MINE_H = h;
+  
   const m=[];
   for(let y=0;y<h;y++){m[y]=[];for(let x=0;x<w;x++)m[y][x]=T.CLIFF;}
   
-  // Carve rooms (bigger)
   const rooms=[];
   const torches=[];
-  for(let i=0;i<5+Math.floor(level*0.7);i++){
-    const rw=4+Math.floor(Math.random()*5);
-    const rh=3+Math.floor(Math.random()*4);
-    const rx=1+Math.floor(Math.random()*(w-rw-2));
-    const ry=1+Math.floor(Math.random()*(h-rh-2));
-    for(let y=ry;y<ry+rh;y++)for(let x=rx;x<rx+rw;x++)m[y][x]=T.STONE;
-    rooms.push({x:rx+Math.floor(rw/2),y:ry+Math.floor(rh/2),w:rw,h:rh});
-    // Place torches on walls of each room
+  const decorations=[]; // {x,y,type} for server racks, monitors, etc.
+  const roomCount = 8 + Math.floor(Math.random()*5) + (isBoss?2:0); // 8-12 rooms
+  
+  // Room type generator: arena, corridor, treasure, ambush, normal
+  const roomTypes = ['normal','normal','normal','arena','corridor','treasure','ambush'];
+  
+  for(let i=0;i<roomCount;i++){
+    const rtype = i===0 ? 'normal' : (i===roomCount-1 && isBoss ? 'arena' : roomTypes[Math.floor(Math.random()*roomTypes.length)]);
+    let rw, rh;
+    if(rtype==='arena'){rw=10+Math.floor(Math.random()*5);rh=8+Math.floor(Math.random()*4);}
+    else if(rtype==='corridor'){rw=Math.random()<0.5?2+Math.floor(Math.random()*2):8+Math.floor(Math.random()*6);rh=rw<4?8+Math.floor(Math.random()*6):2+Math.floor(Math.random()*2);}
+    else if(rtype==='treasure'){rw=4+Math.floor(Math.random()*2);rh=4+Math.floor(Math.random()*2);}
+    else if(rtype==='ambush'){rw=6+Math.floor(Math.random()*3);rh=6+Math.floor(Math.random()*3);}
+    else{rw=5+Math.floor(Math.random()*5);rh=4+Math.floor(Math.random()*4);}
+    
+    const rx=2+Math.floor(Math.random()*(w-rw-4));
+    const ry=2+Math.floor(Math.random()*(h-rh-4));
+    
+    // Check overlap (allow some overlap for connected feel)
+    let overlap=false;
+    for(const r of rooms){
+      if(Math.abs(rx+rw/2-(r.x))< (rw/2+r.w/2+1) && Math.abs(ry+rh/2-(r.y))< (rh/2+r.h/2+1)){overlap=true;break;}
+    }
+    if(overlap && rooms.length > 3) continue;
+    
+    for(let y=ry;y<ry+rh&&y<h-1;y++)for(let x=rx;x<rx+rw&&x<w-1;x++)m[y][x]=T.STONE;
+    rooms.push({x:rx+Math.floor(rw/2),y:ry+Math.floor(rh/2),w:rw,h:rh,type:rtype,rx,ry});
+    
+    // Torches at room corners
     torches.push({x:rx,y:ry+1});
     torches.push({x:rx+rw-1,y:ry+1});
-    if(rw>5) torches.push({x:rx+Math.floor(rw/2),y:ry});
+    if(rw>5){torches.push({x:rx+Math.floor(rw/2),y:ry});}
+    if(rh>5){torches.push({x:rx,y:ry+rh-1});torches.push({x:rx+rw-1,y:ry+rh-1});}
+    
+    // Add decorations based on room type
+    if(rtype==='normal'||rtype==='arena'){
+      if(Math.random()<0.5)decorations.push({x:rx+1,y:ry+1,type:'server_rack'});
+      if(Math.random()<0.3)decorations.push({x:rx+rw-2,y:ry+1,type:'broken_monitor'});
+    }
   }
   
-  // Connect rooms with corridors
+  if(rooms.length < 4) {
+    // Fallback: ensure minimum rooms
+    for(let i=rooms.length;i<6;i++){
+      const rw=5+Math.floor(Math.random()*4);
+      const rh=4+Math.floor(Math.random()*3);
+      const rx=2+Math.floor(Math.random()*(w-rw-4));
+      const ry=2+Math.floor(Math.random()*(h-rh-4));
+      for(let y=ry;y<ry+rh&&y<h-1;y++)for(let x=rx;x<rx+rw&&x<w-1;x++)m[y][x]=T.STONE;
+      rooms.push({x:rx+Math.floor(rw/2),y:ry+Math.floor(rh/2),w:rw,h:rh,type:'normal',rx,ry});
+      torches.push({x:rx,y:ry+1});torches.push({x:rx+rw-1,y:ry+1});
+    }
+  }
+  
+  // Connect rooms with corridors (L-shaped connections)
   for(let i=1;i<rooms.length;i++){
-    let cx=rooms[i-1].x, cy=rooms[i-1].y;
-    const tx=rooms[i].x, ty=rooms[i].y;
-    while(cx!==tx){m[cy][cx]=T.STONE;cx+=cx<tx?1:-1;}
-    while(cy!==ty){m[cy][cx]=T.STONE;cy+=cy<ty?1:-1;}
+    let cx2=rooms[i-1].x, cy2=rooms[i-1].y;
+    const tx2=rooms[i].x, ty2=rooms[i].y;
+    while(cx2!==tx2){m[cy2][cx2]=T.STONE;cx2+=cx2<tx2?1:-1;}
+    while(cy2!==ty2){m[cy2][cx2]=T.STONE;cy2+=cy2<ty2?1:-1;}
+    // Widen corridors slightly
+    if(Math.abs(rooms[i-1].x-rooms[i].x)>8||Math.abs(rooms[i-1].y-rooms[i].y)>8){
+      let cx3=rooms[i-1].x, cy3=rooms[i-1].y+1;
+      while(cx3!==tx2){if(m[cy3])m[cy3][cx3]=T.STONE;cx3+=cx3<tx2?1:-1;}
+    }
+  }
+  // Extra connections for loops (makes dungeon less linear)
+  if(rooms.length>4){
+    const r1=rooms[0],r2=rooms[Math.floor(rooms.length/2)];
+    let cx2=r1.x,cy2=r1.y;
+    while(cx2!==r2.x){m[cy2][cx2]=T.STONE;cx2+=cx2<r2.x?1:-1;}
+    while(cy2!==r2.y){m[cy2][cx2]=T.STONE;cy2+=cy2<r2.y?1:-1;}
   }
   
-  // Place stairs
+  // Add environmental hazards
+  const hazardRooms = rooms.filter(r=>r.type==='ambush'||r.type==='arena');
+  for(const hr of hazardRooms){
+    const hazardType = level < 3 ? T_ELECTRIC : T_LAVA;
+    const count = 3+Math.floor(Math.random()*4);
+    for(let j=0;j<count;j++){
+      const hx=hr.rx+1+Math.floor(Math.random()*(hr.w-2));
+      const hy=hr.ry+1+Math.floor(Math.random()*(hr.h-2));
+      if(m[hy]&&m[hy][hx]===T.STONE)m[hy][hx]=hazardType;
+    }
+  }
+  
+  // Place destructible crates
+  const crates=[];
+  const lootTable=MINE_LOOT_TABLES[Math.min(level, MINE_LOOT_TABLES.length-1)];
+  for(const r of rooms){
+    if(r.type==='treasure'){
+      // Treasure rooms get lots of crates
+      for(let j=0;j<3+Math.floor(Math.random()*3);j++){
+        const cx2=r.rx+1+Math.floor(Math.random()*(r.w-2));
+        const cy2=r.ry+1+Math.floor(Math.random()*(r.h-2));
+        if(m[cy2]&&m[cy2][cx2]===T.STONE)crates.push({x:cx2,y:cy2,hp:3,loot:lootTable[Math.floor(Math.random()*lootTable.length)]});
+      }
+    } else if(Math.random()<0.3){
+      const cx2=r.rx+1+Math.floor(Math.random()*Math.max(1,r.w-2));
+      const cy2=r.ry+1+Math.floor(Math.random()*Math.max(1,r.h-2));
+      if(m[cy2]&&m[cy2][cx2]===T.STONE)crates.push({x:cx2,y:cy2,hp:3,loot:lootTable[Math.floor(Math.random()*lootTable.length)]});
+    }
+  }
+  
+  // Stairs
   const stairsUp={x:rooms[0].x, y:rooms[0].y};
   const stairsDown=level<4?{x:rooms[rooms.length-1].x, y:rooms[rooms.length-1].y}:null;
   
-  // Place loot
+  // Loot
   const loot=[];
-  const lootTable=MINE_LOOT_TABLES[Math.min(level, MINE_LOOT_TABLES.length-1)];
-  const lootCount=2+Math.floor(Math.random()*3);
+  const lootCount=3+Math.floor(Math.random()*4)+level;
   for(let i=0;i<lootCount;i++){
     const room=rooms[1+Math.floor(Math.random()*(rooms.length-1))];
     const lx=room.x+Math.floor(Math.random()*3)-1;
@@ -853,26 +989,55 @@ function generateMineFloor(level) {
     }
   }
   
-  // Place enemies
+  // Enemies — more enemies, placed in rooms
   const enemies=[];
-  const enemyCount=3+level*2+Math.floor(Math.random()*3); // more enemies
+  const enemyCount=5+level*3+Math.floor(Math.random()*4);
   const enemyTypes=level<1?['malware_bot','phishing_worm']:level<2?['malware_bot','phishing_worm','script_kiddie']:level<3?['script_kiddie','cryptojacker','ransomware']:level<4?['cryptojacker','ransomware','fiat_printer']:['ransomware','fiat_printer','zero_day'];
   for(let i=0;i<enemyCount;i++){
     const room=rooms[1+Math.floor(Math.random()*(rooms.length-1))];
-    const ex=room.x+Math.floor(Math.random()*3)-1;
-    const ey=room.y+Math.floor(Math.random()*2)-1;
+    const ex=room.rx+1+Math.floor(Math.random()*Math.max(1,room.w-2));
+    const ey=room.ry+1+Math.floor(Math.random()*Math.max(1,room.h-2));
     if(m[ey]&&m[ey][ex]===T.STONE){
       const type=enemyTypes[Math.floor(Math.random()*enemyTypes.length)];
-      enemies.push({x:ex,y:ey,type,hp:MINE_ENEMIES[type].hp,alive:true});
+      const info=MINE_ENEMIES[type];
+      enemies.push({x:ex,y:ey,type,hp:info.hp,maxHp:info.hp,alive:true,
+        _mt:0,_atkCd:0,_hitFlash:0,_lungeX:0,_lungeY:0,_telegraphing:0,
+        _patrolDir:Math.random()<0.5?1:-1,_spawnTimer:0,_visible:type!=='zero_day',
+        _grabbed:false,_phase:1,_shockwaveTimer:0,_zigzag:0});
+    }
+  }
+  // Ambush rooms get extra enemies
+  for(const r of rooms){
+    if(r.type==='ambush'){
+      for(let j=0;j<2+Math.floor(Math.random()*2);j++){
+        const ex=r.rx+1+Math.floor(Math.random()*Math.max(1,r.w-2));
+        const ey=r.ry+1+Math.floor(Math.random()*Math.max(1,r.h-2));
+        if(m[ey]&&m[ey][ex]===T.STONE){
+          const type=enemyTypes[Math.floor(Math.random()*enemyTypes.length)];
+          enemies.push({x:ex,y:ey,type,hp:MINE_ENEMIES[type].hp,maxHp:MINE_ENEMIES[type].hp,alive:true,
+            _mt:0,_atkCd:0,_hitFlash:0,_lungeX:0,_lungeY:0,_telegraphing:0,
+            _patrolDir:Math.random()<0.5?1:-1,_spawnTimer:0,_visible:type!=='zero_day',
+            _grabbed:false,_phase:1,_shockwaveTimer:0,_zigzag:0});
+        }
+      }
     }
   }
   // Boss on level 5
   if(level>=4&&rooms.length>2){
     const bossRoom=rooms[rooms.length-1];
-    enemies.push({x:bossRoom.x,y:bossRoom.y,type:'pool_operator',hp:MINE_ENEMIES.pool_operator.hp,alive:true});
+    enemies.push({x:bossRoom.x,y:bossRoom.y,type:'pool_operator',hp:MINE_ENEMIES.pool_operator.hp,maxHp:MINE_ENEMIES.pool_operator.hp,alive:true,
+      _mt:0,_atkCd:0,_hitFlash:0,_lungeX:0,_lungeY:0,_telegraphing:0,
+      _patrolDir:1,_spawnTimer:0,_visible:true,_grabbed:false,_phase:1,_shockwaveTimer:0,_zigzag:0});
   }
   
-  return {map:m,w,h,enemies,loot,stairsUp,stairsDown,rooms,torches};
+  // Reset combat state for new floor
+  mineCrates=crates;
+  mineFirewalls=[];
+  mineParticles=[];
+  enemyProjectiles=[];
+  dangerState=null;
+  
+  return {map:m,w,h,enemies,loot,stairsUp,stairsDown,rooms,torches,decorations,crates};
 }
 
 function enterMine(){
@@ -914,58 +1079,9 @@ function goDeeper(){
   });
 }
 
-function startCombat(enemy){
-  const info=MINE_ENEMIES[enemy.type];
-  const pMaxHp=50+skills.mining.level*10;
-  combat={
-    enemy:enemy,enemyType:enemy.type,
-    enemyHp:enemy.hp,enemyMaxHp:info.hp,
-    playerHp:pMaxHp,playerMaxHp:pMaxHp,
-    log:['⚔️ '+info.name+' attacks! '+info.desc],
-    turn:'player',
-  };
-  sfx.error(); // alert sound
-}
-
-function playerAttack(){
-  if(!combat||combat.turn!=='player')return;
-  const pAtk=10+skills.mining.level*3+(hasItem('pickaxe')?5:0);
-  const dmg=pAtk+Math.floor(Math.random()*5);
-  combat.enemyHp-=dmg;
-  combat.log.push('You deal '+dmg+' damage!');
-  sfx.repair();
-  if(combat.enemyHp<=0){
-    // Enemy defeated
-    const info=MINE_ENEMIES[combat.enemyType];
-    combat.log.push('💥 '+info.name+' defeated!');
-    if(info.loot)addItem(info.loot);
-    addXP('mining',info.xp);
-    notify('💥 Defeated '+info.name+'! +'+info.xp+' mining XP',3);
-    // Remove from floor
-    combat.enemy.alive=false;
-    combat=null;
-    sfx.block();
-    return;
-  }
-  // Enemy turn
-  combat.turn='enemy';
-  setTimeout(()=>{
-    if(!combat)return;
-    const info=MINE_ENEMIES[combat.enemyType];
-    const eDmg=info.atk+Math.floor(Math.random()*4);
-    combat.playerHp-=eDmg;
-    combat.log.push(info.icon+' deals '+eDmg+' damage!');
-    sfx.error();
-    if(combat.playerHp<=0){
-      // Player defeated
-      combat.log.push('💀 You were defeated!');
-      notify('💀 Defeated! Retreating from the mines...',3);
-      setTimeout(()=>{combat=null;exitMine();player.energy=Math.max(10,player.energy-30);},1500);
-      return;
-    }
-    combat.turn='player';
-  },600);
-}
+// Old turn-based combat removed — using real-time action combat instead
+function startCombat(enemy){/* deprecated — no-op */}
+function playerAttack(){/* deprecated — no-op */}
 const INTERIOR_MAPS = {}; // generated once, keyed by building type
 
 const INTRO_SLIDES = [
@@ -2687,7 +2803,7 @@ function update(dt) {
   if(jp['t']){craftOpen=!craftOpen;craftOpen?sfx.menuOpen():sfx.menuClose();craftCur=0;}
   if(jp['c']){if(isNearHome()){citadelMenuOpen=!citadelMenuOpen;citadelMenuOpen?sfx.menuOpen():sfx.menuClose();}else{notify('Get near your home to open the Citadel menu [C]',2);sfx.error();}}
   // Combat skills in mines (1, 2, 3 keys)
-  if(mineFloor&&!combat){
+  if(mineFloor){
     // Skill cooldown tick
     for(const k in skillCooldowns)if(skillCooldowns[k]>0)skillCooldowns[k]-=dt;
     
@@ -2793,7 +2909,7 @@ function update(dt) {
   }
   
   // X key: use stairs in mines / exit mine
-  if(jp['x']&&mineFloor&&!combat){
+  if(jp['x']&&mineFloor){
     const ptx=Math.floor(player.x/TILE),pty=Math.floor(player.y/TILE);
     if(mineFloor.stairsUp&&ptx===mineFloor.stairsUp.x&&pty===mineFloor.stairsUp.y){
       if(mineLevel===0){exitMine();}else{mineLevel--;startTransition('fadeOut',0.3,()=>{mineFloor=generateMineFloor(mineLevel);const sp=mineFloor.stairsDown||mineFloor.stairsUp;player.x=sp.x*TILE+8;player.y=sp.y*TILE+8;cam.x=player.x*SCALE-canvas.width/2;cam.y=player.y*SCALE-canvas.height/2;startTransition('fadeIn',0.3,null);notify('⬆️ Level '+(mineLevel+1),2);});}
@@ -2859,7 +2975,7 @@ function update(dt) {
     inv.length=0;for(let i=0;i<INV_SIZE;i++)inv.push(items[i]||null);
     sfx.interact();notify('📦 Inventory sorted!',1.5);
   }
-  if(jp['escape']){if(combat){combat=null;notify('🏃 Fled from combat!',2);sfx.menuClose();}else if(pauseOpen){pauseOpen=false;sfx.menuClose();}else if(craftOpen){craftOpen=false;sfx.menuClose();}else if(chestOpen){chestOpen=false;sfx.menuClose();}else if(shopOpen){shopOpen=false;sfx.menuClose();}else if(citadelMenuOpen){citadelMenuOpen=false;sfx.menuClose();}else if(invOpen){invOpen=false;sfx.menuClose();}else if(dlg){if(!dlg.done){dlg.displayedChars=dlg.fullText.length;dlg.done=true;}else{dlg=null;}}else if(showObjectives)showObjectives=false;else if(showControls)showControls=false;else if(showSkills)showSkills=false;else if(showJournal)showJournal=false;else{pauseOpen=true;pauseCur=0;sfx.menuOpen();}}
+  if(jp['escape']){if(pauseOpen){pauseOpen=false;sfx.menuClose();}else if(craftOpen){craftOpen=false;sfx.menuClose();}else if(chestOpen){chestOpen=false;sfx.menuClose();}else if(shopOpen){shopOpen=false;sfx.menuClose();}else if(citadelMenuOpen){citadelMenuOpen=false;sfx.menuClose();}else if(invOpen){invOpen=false;sfx.menuClose();}else if(dlg){if(!dlg.done){dlg.displayedChars=dlg.fullText.length;dlg.done=true;}else{dlg=null;}}else if(showObjectives)showObjectives=false;else if(showControls)showControls=false;else if(showSkills)showSkills=false;else if(showJournal)showJournal=false;else{pauseOpen=true;pauseCur=0;sfx.menuOpen();}}
   if(jp['p'])saveGame();if(jp['l'])loadGame();
   for(let n=0;n<=9;n++)if(jp[n.toString()])selSlot=n===0?9:n-1;
   
@@ -2892,10 +3008,62 @@ function update(dt) {
   }
   
   // ---- MOVEMENT ----
+  // Dodge roll cooldown tick
+  if(dodgeRoll.cooldown>0)dodgeRoll.cooldown-=dt;
+  // Attack cooldown tick
+  if(attackCooldown>0)attackCooldown-=dt;
+  // Combo timer tick
+  if(comboSystem.timer>0){comboSystem.timer-=dt;if(comboSystem.timer<=0)comboSystem.hits=0;}
+  
+  // Dodge roll active: move player at 4x speed, invincible
+  if(dodgeRoll.active){
+    dodgeRoll.timer-=dt;
+    const rollSpd=spd*4;
+    const rnx=player.x+dodgeRoll.dir.x*rollSpd*dt,rny=player.y+dodgeRoll.dir.y*rollSpd*dt;
+    const rr=5;
+    if(!isSolid(Math.floor((rnx-rr)/TILE),Math.floor((player.y-rr)/TILE))&&!isSolid(Math.floor((rnx+rr)/TILE),Math.floor((player.y+rr)/TILE)))player.x=rnx;
+    if(!isSolid(Math.floor((player.x-rr)/TILE),Math.floor((rny-rr)/TILE))&&!isSolid(Math.floor((player.x+rr)/TILE),Math.floor((rny+rr)/TILE)))player.y=rny;
+    if(dodgeRoll.timer<=0){dodgeRoll.active=false;}
+  }
+  
   if(!dlg&&!invOpen&&!showObjectives&&!chestOpen){
     let dx=0,dy=0;
     if(keys['w']||keys['arrowup'])dy-=1;if(keys['s']||keys['arrowdown'])dy+=1;
     if(keys['a']||keys['arrowleft'])dx-=1;if(keys['d']||keys['arrowright'])dx+=1;
+    
+    // Double-tap dodge detection (mines only)
+    if(mineFloor&&!dodgeRoll.active&&dodgeRoll.cooldown<=0){
+      let tapKey='';
+      if(jp['w']||jp['arrowup'])tapKey='w';
+      else if(jp['s']||jp['arrowdown'])tapKey='s';
+      else if(jp['a']||jp['arrowleft'])tapKey='a';
+      else if(jp['d']||jp['arrowright'])tapKey='d';
+      if(tapKey){
+        const now=performance.now();
+        if(lastTapDir.key===tapKey&&(now-lastTapDir.time)<300){
+          const ddx=tapKey==='a'?-1:tapKey==='d'?1:0;
+          const ddy=tapKey==='w'?-1:tapKey==='s'?1:0;
+          dodgeRoll={active:true,timer:0.3,dir:{x:ddx,y:ddy},cooldown:0.8};
+          lastTapDir={key:'',time:0};
+          // Dodge roll particles
+          for(let i=0;i<6;i++){deathParticles.push({x:player.x*SCALE,y:player.y*SCALE,vx:(Math.random()-0.5)*40,vy:(Math.random()-0.5)*40,life:0.3,color:'#88CCFF',size:2});}
+        }else{
+          lastTapDir={key:tapKey,time:now};
+        }
+      }
+    }
+    
+    // Grabbed by cryptojacker — can't move, press E to break free
+    if(mineFloor&&player._grabbed){
+      player._grabbedTimer=(player._grabbedTimer||0)-dt;
+      if(jp['e']){player._grabBreaks=(player._grabBreaks||0)+1;}
+      if(player._grabBreaks>=3||player._grabbedTimer<=0){
+        player._grabbed=false;player._grabBreaks=0;
+        notify('💪 Broke free!',1.5);
+      }
+      dx=0;dy=0; // can't move while grabbed
+    }
+    
     // Mobile joystick input
     if(touch.joyActive){dx+=touch.joyDx;dy+=touch.joyDy;}
     if(dx!==0||dy!==0) mouseTarget=null; // keyboard cancels mouse target
@@ -2906,6 +3074,8 @@ function update(dt) {
       if(md<4){mouseTarget=null;}
       else{dx=mdx/md;dy=mdy/md;}
     }
+    // Don't move during active dodge roll
+    if(dodgeRoll.active){dx=0;dy=0;}
     player.moving=dx!==0||dy!==0;
     // In mines: always face the mouse cursor for aiming
     if(mineFloor){
@@ -2937,73 +3107,362 @@ function update(dt) {
           decor.splice(i,1);completeObjective('find_seed');
         }
       }
-      // Mine: enemy AI + loot pickup
+      // Mine: enemy AI + combat mechanics + loot pickup
       if(mineFloor){
         const ptx=Math.floor(player.x/TILE),pty=Math.floor(player.y/TILE);
-        // Enemy AI — chase, attack when adjacent, animations
+        const mmap=mineFloor.map;
+        
+        // Helper: check if tile is walkable
+        const canWalk=(tx,ty)=>tx>=0&&ty>=0&&tx<MINE_W&&ty<MINE_H&&mmap[ty]&&mmap[ty][tx]!==T.CLIFF&&!mineFirewalls.some(fw=>fw.x===tx&&fw.y===ty);
+        
+        // Helper: spawn a new enemy near a position
+        const spawnMinion=(sx,sy,type)=>{
+          const ox=sx+(Math.random()<0.5?1:-1),oy=sy+(Math.random()<0.5?1:-1);
+          if(canWalk(ox,oy)){
+            const minfo=MINE_ENEMIES[type];
+            mineFloor.enemies.push({x:ox,y:oy,type,hp:minfo.hp,maxHp:minfo.hp,alive:true,
+              _mt:0,_atkCd:0,_hitFlash:0,_lungeX:0,_lungeY:0,_telegraphing:0,
+              _patrolDir:Math.random()<0.5?1:-1,_spawnTimer:0,_visible:type!=='zero_day',
+              _grabbed:false,_phase:1,_shockwaveTimer:0,_zigzag:0});
+            for(let i=0;i<4;i++){deathParticles.push({x:ox*ST+ST/2,y:oy*ST+ST/2,vx:(Math.random()-0.5)*50,vy:(Math.random()-0.5)*50,life:0.4,color:'#FF4444',size:2});}
+          }
+        };
+        
+        // --- Danger state system (replaces instant death) ---
+        const maxE=player.maxEnergy;
+        if(dangerState&&dangerState.active){
+          dangerState.timer-=dt;
+          player.energy=Math.min(maxE,player.energy+1*dt); // slow regen
+          if(player.energy<=0){
+            notify('💀 Defeated!',3,true);
+            dangerState=null;
+            setTimeout(()=>exitMine(),800);
+            player.energy=15;
+          }else if(dangerState.timer<=0){
+            dangerState=null; // survived danger
+          }
+        }else if(player.energy>0&&player.energy<maxE*0.15&&!dangerState){
+          dangerState={timer:3,active:true};
+          notify('⚠️ DANGER! Energy critical!',2,true);
+          screenShake=0.2;
+        }
+        
+        // --- Hazard tile damage ---
+        const pTile=mmap[pty]&&mmap[pty][ptx];
+        if((pTile===T_LAVA||pTile===T_ELECTRIC)&&!dodgeRoll.active){
+          player.energy=Math.max(0,player.energy-2*dt);
+          if(Math.random()<0.1)damageNumbers.push({x:player.x*SCALE,y:player.y*SCALE-10,text:pTile===T_LAVA?'🔥':  '⚡',life:0.5,color:pTile===T_LAVA?'#FF4400':'#44DDFF'});
+        }
+        
+        // --- Firewall tiles update ---
+        for(let i=mineFirewalls.length-1;i>=0;i--){
+          mineFirewalls[i].timer-=dt;
+          if(mineFirewalls[i].timer<=0)mineFirewalls.splice(i,1);
+        }
+        
+        // --- Enemy projectiles update ---
+        for(let i=enemyProjectiles.length-1;i>=0;i--){
+          const ep=enemyProjectiles[i];
+          ep.x+=ep.vx*dt;ep.y+=ep.vy*dt;ep.life-=dt;
+          if(ep.life<=0){enemyProjectiles.splice(i,1);continue;}
+          // Check collision with player (pixel coords for projectile, pixel coords for player)
+          const pdist=Math.hypot(ep.x-player.x,ep.y-player.y);
+          if(pdist<TILE&&!dodgeRoll.active){
+            const dmgP=ep.dmg||6;
+            player.energy=Math.max(0,player.energy-dmgP);
+            damageNumbers.push({x:player.x*SCALE,y:player.y*SCALE-20,text:'-'+dmgP,life:1.0,color:'#FF6644'});
+            screenShake=0.08;sfx.error();
+            enemyProjectiles.splice(i,1);
+          }
+        }
+        
+        // --- Enemy AI per type ---
         for(const en of mineFloor.enemies){
           if(!en.alive)continue;
           en._mt=(en._mt||0)+dt;
           en._atkCd=(en._atkCd||0)-dt;
           en._hitFlash=Math.max(0,(en._hitFlash||0)-dt);
-          en._lungeX=(en._lungeX||0)*0.85; en._lungeY=(en._lungeY||0)*0.85; // lunge decay
+          en._lungeX=(en._lungeX||0)*0.85;en._lungeY=(en._lungeY||0)*0.85;
+          en._spawnTimer=(en._spawnTimer||0)+dt;
+          en._shockwaveTimer=(en._shockwaveTimer||0)+dt;
+          if(en._telegraphing>0)en._telegraphing-=dt;
+          
           const dist=Math.hypot(en.x-ptx,en.y-pty);
           const info=MINE_ENEMIES[en.type];
-          const aggroRange=info.boss?8:5;
-          const moveSpeed=info.boss?1.2:0.7;
+          const aggroRange=info.aggroRange||6;
+          const moveSpd=info.moveSpeed||0.7;
           
-          // Chase player if within aggro range
-          if(dist<aggroRange&&dist>1.2&&en._mt>moveSpeed){
-            en._mt=0;
-            const dx=Math.sign(ptx-en.x),dy=Math.sign(pty-en.y);
-            // Randomly pick horizontal or vertical (not both — looks more natural)
-            let nx=en.x,ny=en.y;
-            if(Math.random()<0.5){nx+=dx;}else{ny+=dy;}
-            if(mineFloor.map[ny]&&mineFloor.map[ny][nx]!==T.CLIFF){en.x=nx;en.y=ny;}
-          }
-          
-          // Special enemy behaviors
-          if(en.type==='phishing_worm'&&dist<aggroRange&&dist>1.2&&en._mt<=0){
-            en._mt=0;
-            const dx2=Math.sign(ptx-en.x),dy2=Math.sign(pty-en.y);
-            let nx2=en.x,ny2=en.y;
-            if(Math.random()<0.5){nx2+=dx2;}else{ny2+=dy2;}
-            if(mineFloor.map[ny2]&&mineFloor.map[ny2][nx2]!==T.CLIFF){en.x=nx2;en.y=ny2;}
-          }
-          if(en.type==='zero_day'){
-            en._visible=dist<=4;
-          }
-          if(en.type==='fiat_printer'){
-            en._spawnTimer=(en._spawnTimer||0)+dt;
-            if(en._spawnTimer>=8&&mineFloor.enemies.filter(e=>e.alive).length<8){
-              en._spawnTimer=0;
-              const sx2=en.x+(Math.random()<0.5?1:-1),sy2=en.y+(Math.random()<0.5?1:-1);
-              if(mineFloor.map[sy2]&&mineFloor.map[sy2][sx2]!==T.CLIFF){
-                mineFloor.enemies.push({x:sx2,y:sy2,type:'malware_bot',hp:MINE_ENEMIES.malware_bot.hp,alive:true});
+          // --- Type-specific AI ---
+          switch(en.type){
+            case 'malware_bot': {
+              // Patrol randomly when far, chase when in range
+              if(dist<aggroRange&&dist>1.2&&en._mt>moveSpd){
+                en._mt=0;
+                const sdx=Math.sign(ptx-en.x),sdy=Math.sign(pty-en.y);
+                let mnx=en.x,mny=en.y;
+                if(Math.random()<0.5){mnx+=sdx;}else{mny+=sdy;}
+                if(canWalk(mnx,mny)){en.x=mnx;en.y=mny;}
+              }else if(dist>=aggroRange&&en._mt>1.5){
+                // Random patrol
+                en._mt=0;
+                const pd=Math.floor(Math.random()*4);
+                const dirs=[[1,0],[-1,0],[0,1],[0,-1]];
+                const mnx=en.x+dirs[pd][0],mny=en.y+dirs[pd][1];
+                if(canWalk(mnx,mny)){en.x=mnx;en.y=mny;}
+              }
+              break;
+            }
+            case 'phishing_worm': {
+              // Fast zigzag: alternates horizontal then vertical
+              if(dist<aggroRange&&dist>1.2&&en._mt>moveSpd){
+                en._mt=0;
+                en._zigzag=(en._zigzag||0)+1;
+                const sdx=Math.sign(ptx-en.x),sdy=Math.sign(pty-en.y);
+                let mnx=en.x,mny=en.y;
+                if(en._zigzag%2===0){mnx+=sdx;}else{mny+=sdy;}
+                if(canWalk(mnx,mny)){en.x=mnx;en.y=mny;}
+              }
+              break;
+            }
+            case 'script_kiddie': {
+              // Maintain 3-4 tiles distance, fire projectiles
+              if(dist<3&&en._mt>moveSpd){
+                // Too close — run away
+                en._mt=0;
+                const sdx=Math.sign(en.x-ptx),sdy=Math.sign(en.y-pty);
+                let mnx=en.x+sdx,mny=en.y+sdy;
+                if(canWalk(mnx,mny)){en.x=mnx;en.y=mny;}
+              }else if(dist>4&&dist<aggroRange&&en._mt>moveSpd){
+                // Too far — get closer
+                en._mt=0;
+                const sdx=Math.sign(ptx-en.x),sdy=Math.sign(pty-en.y);
+                let mnx=en.x,mny=en.y;
+                if(Math.random()<0.5){mnx+=sdx;}else{mny+=sdy;}
+                if(canWalk(mnx,mny)){en.x=mnx;en.y=mny;}
+              }
+              // Fire projectile every 2s
+              if(dist<aggroRange&&en._atkCd<=0){
+                en._atkCd=2;
+                const angle=Math.atan2(pty-en.y,ptx-en.x);
+                const pspd=80;
+                enemyProjectiles.push({x:en.x*TILE+8,y:en.y*TILE+8,vx:Math.cos(angle)*pspd,vy:Math.sin(angle)*pspd,life:3,dmg:6,type:'code_snippet'});
+              }
+              break;
+            }
+            case 'cryptojacker': {
+              // Charge straight at player
+              if(dist<aggroRange&&dist>1.2&&en._mt>moveSpd){
+                en._mt=0;
+                const sdx=Math.sign(ptx-en.x),sdy=Math.sign(pty-en.y);
+                // Prefer straight line: move in dominant direction
+                let mnx=en.x,mny=en.y;
+                if(Math.abs(ptx-en.x)>=Math.abs(pty-en.y)){mnx+=sdx;}else{mny+=sdy;}
+                if(canWalk(mnx,mny)){en.x=mnx;en.y=mny;}
+              }
+              break;
+            }
+            case 'ransomware': {
+              // Slow chase
+              if(dist<aggroRange&&dist>1.2&&en._mt>moveSpd){
+                en._mt=0;
+                const sdx=Math.sign(ptx-en.x),sdy=Math.sign(pty-en.y);
+                let mnx=en.x,mny=en.y;
+                if(Math.random()<0.5){mnx+=sdx;}else{mny+=sdy;}
+                if(canWalk(mnx,mny)){en.x=mnx;en.y=mny;}
+              }
+              // Create firewall tiles every 6s
+              if(en._spawnTimer>=6){
+                en._spawnTimer=0;
+                const offsets=[[-1,0],[1,0],[0,-1],[0,1],[-1,-1],[1,-1],[-1,1],[1,1]];
+                for(const o of offsets){
+                  const fwx=en.x+o[0],fwy=en.y+o[1];
+                  if(canWalk(fwx,fwy)&&!(fwx===ptx&&fwy===pty)){
+                    mineFirewalls.push({x:fwx,y:fwy,timer:8});
+                  }
+                }
+                notify('🔥 Ransomware deployed firewalls!',1.5);
+              }
+              break;
+            }
+            case 'fiat_printer': {
+              // Run away when within 4 tiles
+              if(dist<4&&en._mt>moveSpd){
+                en._mt=0;
+                const sdx=Math.sign(en.x-ptx),sdy=Math.sign(en.y-pty);
+                let mnx=en.x+sdx,mny=en.y+sdy;
+                if(canWalk(mnx,mny)){en.x=mnx;en.y=mny;}
+              }
+              // Spawn malware_bot every 5s
+              if(en._spawnTimer>=5&&mineFloor.enemies.filter(e=>e.alive).length<10){
+                en._spawnTimer=0;
+                spawnMinion(en.x,en.y,'malware_bot');
+                notify('🖨️ Fiat Printer spawned a Malware Bot!',1.5);
+              }
+              break;
+            }
+            case 'zero_day': {
+              // Invisible until within 3 tiles
+              if(!en._stealthCd)en._stealthCd=0;
+              if(en._stealthCd>0)en._stealthCd-=dt;
+              if(dist<=3){en._visible=true;}
+              else if(en._stealthCd<=0){en._visible=false;}
+              // Chase when visible
+              if(en._visible&&dist>1.2&&dist<aggroRange&&en._mt>moveSpd){
+                en._mt=0;
+                const sdx=Math.sign(ptx-en.x),sdy=Math.sign(pty-en.y);
+                let mnx=en.x,mny=en.y;
+                if(Math.random()<0.5){mnx+=sdx;}else{mny+=sdy;}
+                if(canWalk(mnx,mny)){en.x=mnx;en.y=mny;}
+              }
+              break;
+            }
+            case 'pool_operator': {
+              // Boss: Phase 1 (hp > 50%) vs Phase 2 (hp <= 50%)
+              const bossPhase=en.hp<=en.maxHp*0.5?2:1;
+              if(bossPhase===2&&en._phase===1){
+                en._phase=2;
+                notify('👹 The Pool Operator enters Phase 2!',3,true);
+                screenShake=0.3;
+              }
+              const bmoveSpd=bossPhase===1?0.9:0.4;
+              // Chase
+              if(dist>1.2&&dist<aggroRange&&en._mt>bmoveSpd){
+                en._mt=0;
+                const sdx=Math.sign(ptx-en.x),sdy=Math.sign(pty-en.y);
+                let mnx=en.x,mny=en.y;
+                if(Math.random()<0.5){mnx+=sdx;}else{mny+=sdy;}
+                if(canWalk(mnx,mny)){en.x=mnx;en.y=mny;}
+              }
+              // Spawn minion every 8s (phase 1)
+              if(bossPhase===1&&en._spawnTimer>=8&&mineFloor.enemies.filter(e=>e.alive).length<12){
+                en._spawnTimer=0;
+                const mtype=['malware_bot','script_kiddie'][Math.floor(Math.random()*2)];
+                spawnMinion(en.x,en.y,mtype);
+              }
+              // Fire projectile every 3s
+              if(en._atkCd<=0&&dist<aggroRange&&dist>1.5){
+                en._atkCd=3;
+                const angle=Math.atan2(pty-en.y,ptx-en.x);
+                const pspd2=70;
+                enemyProjectiles.push({x:en.x*TILE+8,y:en.y*TILE+8,vx:Math.cos(angle)*pspd2,vy:Math.sin(angle)*pspd2,life:4,dmg:bossPhase===2?18:12,type:'boss_orb'});
+              }
+              // Phase 2 shockwave every 4s
+              if(bossPhase===2&&en._shockwaveTimer>=4&&dist<=5){
+                en._shockwaveTimer=0;
+                // Push player back 3 tiles
+                const pushX=Math.sign(ptx-en.x)*3*TILE;
+                const pushY=Math.sign(pty-en.y)*3*TILE;
+                const pnx=player.x+pushX,pny=player.y+pushY;
+                if(!isSolid(Math.floor(pnx/TILE),Math.floor(pny/TILE))){player.x=pnx;player.y=pny;}
+                player.energy=Math.max(0,player.energy-8);
+                damageNumbers.push({x:player.x*SCALE,y:player.y*SCALE-30,text:'SHOCKWAVE! -8',life:1.5,color:'#FF00FF'});
+                screenShake=0.25;
+                notify('👹 Shockwave!',1);
+              }
+              break;
+            }
+            default: {
+              // Generic chase fallback
+              if(dist<aggroRange&&dist>1.2&&en._mt>moveSpd){
+                en._mt=0;
+                const sdx=Math.sign(ptx-en.x),sdy=Math.sign(pty-en.y);
+                let mnx=en.x,mny=en.y;
+                if(Math.random()<0.5){mnx+=sdx;}else{mny+=sdy;}
+                if(canWalk(mnx,mny)){en.x=mnx;en.y=mny;}
               }
             }
           }
           
-          // Attack when adjacent (within 1.5 tiles)
-          if(dist<=1.5&&en._atkCd<=0){
-            en._atkCd=info.boss?0.8:1.2; // boss attacks faster
-            const dmg=info.atk+Math.floor(Math.random()*4);
-            player.energy=Math.max(0,player.energy-dmg);
-            // Lunge animation toward player
-            en._lungeX=Math.sign(ptx-en.x)*6;en._lungeY=Math.sign(pty-en.y)*6;
-            // Damage number
-            damageNumbers.push({x:player.x*SCALE,y:player.y*SCALE-20,text:'-'+dmg,life:1.2,color:'#FF4444'});
-            screenShake=0.15;
-            sfx.error();
-            tone(200+Math.random()*100,.1,'sawtooth',.04); // hit sound
-            if(player.energy<=0){notify('💀 Defeated!',3);setTimeout(()=>exitMine(),1000);player.energy=15;}
+          // --- Attack when adjacent (within 1.5 tiles) — with telegraph ---
+          if(dist<=1.5&&en._atkCd<=0&&en._telegraphing<=0){
+            // Skip attack for script_kiddie (ranged only) and fiat_printer (runs away)
+            if(en.type!=='script_kiddie'&&en.type!=='fiat_printer'){
+              // Start telegraph warning
+              en._telegraphing=0.5;
+              en._atkCd=info.boss?0.8:1.2;
+            }
+          }
+          // Execute attack when telegraph expires
+          if(en._telegraphing>0&&en._telegraphing-dt<=0&&dist<=2.5){
+            en._telegraphing=0;
+            // Skip damage if player is dodge rolling (invincible)
+            if(!dodgeRoll.active){
+              let atkDmg=info.atk+Math.floor(Math.random()*4);
+              // Boss phase 2 damage boost
+              if(en.type==='pool_operator'&&en._phase===2)atkDmg=Math.floor(atkDmg*1.5);
+              player.energy=Math.max(0,player.energy-atkDmg);
+              en._lungeX=Math.sign(ptx-en.x)*6;en._lungeY=Math.sign(pty-en.y)*6;
+              damageNumbers.push({x:player.x*SCALE,y:player.y*SCALE-20,text:'-'+atkDmg,life:1.2,color:'#FF4444'});
+              screenShake=0.15;sfx.error();
+              tone(200+Math.random()*100,.1,'sawtooth',.04);
+              
+              // Cryptojacker grab mechanic
+              if(en.type==='cryptojacker'&&Math.random()<0.3&&!player._grabbed){
+                player._grabbed=true;player._grabbedTimer=1.5;player._grabBreaks=0;
+                notify('⛏️ Cryptojacker grabbed you! Press E 3x to break free!',2,true);
+              }
+              
+              // Zero-day: teleport after attacking
+              if(en.type==='zero_day'){
+                // Find random floor tile within 5 tiles
+                const candidates=[];
+                for(let oy=-5;oy<=5;oy++){for(let ox=-5;ox<=5;ox++){
+                  const tx2=en.x+ox,ty2=en.y+oy;
+                  if(Math.hypot(ox,oy)<=5&&canWalk(tx2,ty2))candidates.push({x:tx2,y:ty2});
+                }}
+                if(candidates.length>0){
+                  const dest=candidates[Math.floor(Math.random()*candidates.length)];
+                  en.x=dest.x;en.y=dest.y;
+                }
+                en._visible=false;en._stealthCd=2; // invisible for 2s
+              }
+            }
           }
         }
+        
+        // --- Danger state energy check (deferred death) ---
+        if(player.energy<=0&&(!dangerState||!dangerState.active)){
+          notify('💀 Defeated!',3,true);
+          setTimeout(()=>exitMine(),800);
+          player.energy=15;
+        }
+        
         // Update damage numbers
         for(let i=damageNumbers.length-1;i>=0;i--){damageNumbers[i].life-=dt;damageNumbers[i].y-=40*dt;if(damageNumbers[i].life<=0)damageNumbers.splice(i,1);}
         // Update player swing
         if(playerSwing>0)playerSwing-=dt;
-        // Screen shake decay moved to main update loop
+        // Update death particles
+        for(let i=deathParticles.length-1;i>=0;i--){
+          const dp=deathParticles[i];dp.x+=dp.vx*dt;dp.y+=dp.vy*dt;dp.life-=dt;
+          if(dp.life<=0)deathParticles.splice(i,1);
+        }
+        // Hazard tile damage
+        const pTileX2=Math.floor(player.x/TILE),pTileY2=Math.floor(player.y/TILE);
+        if(mineFloor.map[pTileY2]&&(mineFloor.map[pTileY2][pTileX2]===T_LAVA||mineFloor.map[pTileY2][pTileX2]===T_ELECTRIC)){
+          if(!dodgeRoll.active){player.energy=Math.max(0,player.energy-2*dt);
+            if(Math.random()<0.1)damageNumbers.push({x:player.x*SCALE,y:player.y*SCALE-10,text:'-1',life:0.6,color:mineFloor.map[pTileY2][pTileX2]===T_LAVA?'#FF6622':'#44BBFF'});}
+        }
+        // Update firewall timers
+        for(let i=mineFirewalls.length-1;i>=0;i--){mineFirewalls[i].timer-=dt;if(mineFirewalls[i].timer<=0)mineFirewalls.splice(i,1);}
+        // Update enemy projectiles
+        for(let i=enemyProjectiles.length-1;i>=0;i--){
+          const ep=enemyProjectiles[i];ep.x+=ep.vx*dt;ep.y+=ep.vy*dt;ep.life-=dt;
+          if(ep.life<=0){enemyProjectiles.splice(i,1);continue;}
+          // Check wall collision
+          const eptx=Math.floor(ep.x/TILE),epty=Math.floor(ep.y/TILE);
+          if(eptx<0||epty<0||eptx>=MINE_W||epty>=MINE_H||mineFloor.map[epty][eptx]===T.CLIFF){enemyProjectiles.splice(i,1);continue;}
+          // Check player collision
+          if(!dodgeRoll.active&&Math.hypot(ep.x-player.x,ep.y-player.y)<12){
+            player.energy=Math.max(0,player.energy-ep.dmg);
+            damageNumbers.push({x:player.x*SCALE,y:player.y*SCALE-20,text:'-'+ep.dmg,life:1,color:'#FF4444'});
+            screenShake=0.1;sfx.error();enemyProjectiles.splice(i,1);
+          }
+        }
+        // Grabbed mechanic update
+        if(player._grabbed){
+          player._grabbedTimer-=dt;
+          if(player._grabbedTimer<=0){player._grabbed=false;notify('Broke free!',1);}
+        }
         // Loot pickup (proximity)
         for(let i=mineFloor.loot.length-1;i>=0;i--){
           const l=mineFloor.loot[i];
@@ -3105,35 +3564,22 @@ function update(dt) {
     else if(!interior&&!mineFloor&&decor.find(d=>d.type==='mine_entrance'&&Math.hypot(d.x*TILE+8-player.x,d.y*TILE+8-player.y)<TILE*2)){
       enterMine();for(const k in jp)jp[k]=false;return;
     }
-    // Mine: attack nearest enemy in range (action combat — E key)
+    // Mine: attack nearest enemy or crate in range (action combat — E key)
     else if(mineFloor){
-      // Attack nearest enemy in range — with animation
+      // First check enemies
+      let attacked=false;
       for(const en of mineFloor.enemies){
         if(en.alive&&Math.hypot(en.x*TILE+8-player.x,en.y*TILE+8-player.y)<TILE*2.5){
-          playerSwing=0.3; // trigger swing animation
-          const info=MINE_ENEMIES[en.type];
-          const pAtk=10+skills.mining.level*3+(hasItem('pickaxe')?8:0);
-          const dmg=pAtk+Math.floor(Math.random()*6);
-          en.hp-=dmg;
-          en._hitFlash=0.2; // white flash
-          // Knockback
-          const kbx=Math.sign(en.x*TILE-player.x),kby=Math.sign(en.y*TILE-player.y);
-          en.x+=kbx;en.y+=kby;
-          en.x=Math.max(1,Math.min(MINE_W-2,en.x));en.y=Math.max(1,Math.min(MINE_H-2,en.y));
-          // Damage number
-          damageNumbers.push({x:en.x*ST+ST/2,y:en.y*ST,text:'-'+dmg,life:1.0,color:'#FFDD44'});
-          // Sound
-          tone(300+Math.random()*200,.08,'square',.05);tone(200,.05,'sawtooth',.03);
-          screenShake=0.1;
-          if(en.hp<=0){
-            en.alive=false;
-            if(info.loot)addItem(info.loot);
-            addXP('mining',info.xp);
-            notify(`💥 Defeated ${info.name}! +${info.xp} XP`,3,info.boss);
-            sfx.block();
-          }
+          mineAttackEnemy(en);
+          attacked=true;
           for(const k in jp)jp[k]=false;return;
         }
+      }
+      // Then check crates
+      if(!attacked){
+        const atkTx=Math.floor((player.x+player.facing.x*TILE)/TILE);
+        const atkTy=Math.floor((player.y+player.facing.y*TILE)/TILE);
+        if(mineAttackCrate(atkTx,atkTy)){for(const k in jp)jp[k]=false;return;}
       }
     }
     else if(interior && interior.type==='home'){
@@ -6405,6 +6851,41 @@ function drawMine(){
       if(fs===5){ctx.fillStyle='#2A2A34';ctx.beginPath();ctx.arc(sx+ST/2,sy+ST/2,4,0,Math.PI*2);ctx.fill();} // floor vent
       if(fs===10){ctx.fillStyle='#404048';ctx.fillRect(sx+10,sy+10,8,6);} // debris
     }
+    // Hazard tiles
+    if(f.map[y][x]===T_LAVA){
+      ctx.fillStyle='#34343E';ctx.fillRect(sx,sy,ST,ST);
+      const lavaGlow=0.5+Math.sin(_now/300+x*2+y*3)*0.3;
+      ctx.fillStyle=`rgba(255,80,20,${0.4+lavaGlow*0.3})`;ctx.fillRect(sx+2,sy+2,ST-4,ST-4);
+      ctx.fillStyle=`rgba(255,160,40,${0.2+lavaGlow*0.2})`;ctx.fillRect(sx+8,sy+8,ST-16,ST-16);
+      ctx.fillStyle=`rgba(255,200,60,${lavaGlow*0.15})`;ctx.beginPath();ctx.arc(sx+ST/2,sy+ST/2,ST*0.6,0,Math.PI*2);ctx.fill();
+    }
+    if(f.map[y][x]===T_ELECTRIC){
+      ctx.fillStyle='#34343E';ctx.fillRect(sx,sy,ST,ST);
+      const elecGlow=Math.random()>0.85?0.8:0.2;
+      ctx.fillStyle=`rgba(80,180,255,${elecGlow})`;ctx.fillRect(sx+4,sy+4,ST-8,ST-8);
+      if(elecGlow>0.5){ctx.strokeStyle='rgba(150,220,255,0.8)';ctx.lineWidth=1;ctx.beginPath();ctx.moveTo(sx+ST/2,sy+4);
+        ctx.lineTo(sx+ST/2+Math.random()*10-5,sy+ST/2);ctx.lineTo(sx+ST/2,sy+ST-4);ctx.stroke();}
+    }
+  }
+  // Draw firewall tiles
+  for(const fw of mineFirewalls){
+    const fsx=fw.x*ST-cam.x,fsy=fw.y*ST-cam.y;
+    if(fsx>canvas.width+ST||fsy>canvas.height+ST||fsx<-ST||fsy<-ST)continue;
+    const fwAlpha=Math.min(1,fw.timer/2);
+    ctx.fillStyle=`rgba(200,40,40,${0.4*fwAlpha})`;ctx.fillRect(fsx,fsy,ST,ST);
+    ctx.strokeStyle=`rgba(255,100,100,${0.6*fwAlpha})`;ctx.lineWidth=2;ctx.strokeRect(fsx+2,fsy+2,ST-4,ST-4);
+    ctx.fillStyle=`rgba(255,60,60,${0.2+Math.sin(_now/200)*0.1})`;ctx.font='14px serif';ctx.textAlign='center';ctx.fillText('🔥',fsx+ST/2,fsy+ST/2+5);
+  }
+  // Draw crates
+  for(const cr of mineCrates){
+    const csx=cr.x*ST-cam.x,csy=cr.y*ST-cam.y;
+    if(csx>canvas.width+ST||csy>canvas.height+ST||csx<-ST||csy<-ST)continue;
+    ctx.fillStyle='#6B4E2A';ctx.fillRect(csx+6,csy+8,ST-12,ST-12);
+    ctx.fillStyle='#8B6E3A';ctx.fillRect(csx+8,csy+10,ST-16,ST-16);
+    ctx.strokeStyle='#4A3520';ctx.lineWidth=1;ctx.strokeRect(csx+6,csy+8,ST-12,ST-12);
+    ctx.fillStyle='#FFD700';ctx.fillRect(csx+ST/2-3,csy+ST/2-1,6,4);
+    // Show HP dots
+    for(let ch=0;ch<cr.hp;ch++){ctx.fillStyle='#4F4';ctx.fillRect(csx+10+ch*8,csy+ST-6,4,3);}
   }
   // Draw stairs
   if(f.stairsUp){const sx=f.stairsUp.x*ST-cam.x,sy=f.stairsUp.y*ST-cam.y;
@@ -6638,6 +7119,19 @@ function drawMine(){
   }
   ctx.globalAlpha=1;
   
+  // Enemy projectiles
+  for(const ep of enemyProjectiles){
+    const epx=ep.x*SCALE-cam.x,epy=ep.y*SCALE-cam.y;
+    if(ep.type==='code_snippet'){
+      ctx.fillStyle='#0F0';ctx.font=`bold 10px ${FONT}`;ctx.textAlign='center';
+      ctx.fillText('</>', epx, epy);
+      ctx.fillStyle='rgba(0,255,0,0.15)';ctx.beginPath();ctx.arc(epx,epy,8,0,Math.PI*2);ctx.fill();
+    } else if(ep.type==='boss_orb'){
+      ctx.fillStyle='rgba(255,100,0,0.8)';ctx.beginPath();ctx.arc(epx,epy,10,0,Math.PI*2);ctx.fill();
+      ctx.fillStyle='rgba(255,200,50,0.4)';ctx.beginPath();ctx.arc(epx,epy,16,0,Math.PI*2);ctx.fill();
+      ctx.fillStyle='#FFF';ctx.font=`bold 8px ${FONT}`;ctx.textAlign='center';ctx.fillText('51%',epx,epy+3);
+    }
+  }
   // Damage numbers
   for(const dn of damageNumbers){
     const dnx=dn.x-cam.x,dny=dn.y-cam.y;
@@ -6648,6 +7142,20 @@ function drawMine(){
     ctx.fillStyle=dn.color;
     ctx.fillText(dn.text,dnx,dny);
     ctx.globalAlpha=1;
+  }
+  // Danger state warning overlay
+  if(dangerState&&dangerState.active){
+    const dangerPulse=Math.sin(_now/150)*0.15+0.15;
+    ctx.fillStyle=`rgba(255,0,0,${dangerPulse})`;ctx.fillRect(0,0,canvas.width,canvas.height);
+    ctx.fillStyle='#FF0000';ctx.font=`bold 28px ${FONT}`;ctx.textAlign='center';
+    ctx.fillText('⚠️ DANGER ⚠️',canvas.width/2,60);
+    ctx.fillStyle='#FFF';ctx.font=`14px ${FONT}`;
+    ctx.fillText('Get to safety! '+dangerState.timer.toFixed(1)+'s',canvas.width/2,85);
+  }
+  // Dodge roll trail
+  if(dodgeRoll.active){
+    ctx.fillStyle='rgba(247,147,26,0.2)';
+    ctx.beginPath();ctx.arc(player.x*SCALE-cam.x,player.y*SCALE-cam.y,24,0,Math.PI*2);ctx.fill();
   }
   
   // Wall torches — drawn on top with warm glow
@@ -6732,49 +7240,7 @@ function drawMine(){
   ctx.fillText('WASD: Move | E: Melee | 1-3: Skills | X: Stairs | Esc: Flee',canvas.width/2,canvas.height-7);
 }
 
-function drawCombat(){
-  if(!combat)return;
-  const info=MINE_ENEMIES[combat.enemyType];
-  // Dark overlay
-  ctx.fillStyle='rgba(0,0,0,0.8)';ctx.fillRect(0,0,canvas.width,canvas.height);
-  const cx=canvas.width/2,cy=canvas.height/2;
-  // Panel
-  panel(cx-250,cy-150,500,300);
-  // Title
-  ctx.fillStyle=C.red;ctx.font=`bold 20px ${FONT}`;ctx.textAlign='center';
-  ctx.fillText(`⚔️ COMBAT — ${info.name}`,cx,cy-120);
-  // Enemy
-  ctx.font='48px serif';ctx.fillText(info.icon,cx,cy-60);
-  // Enemy HP
-  ctx.fillStyle='#333';ctx.fillRect(cx-100,cy-30,200,16);
-  const ePct=Math.max(0,combat.enemyHp/combat.enemyMaxHp);
-  ctx.fillStyle=ePct>0.5?C.red:C.orange;ctx.fillRect(cx-100,cy-30,200*ePct,16);
-  ctx.fillStyle=C.white;ctx.font=`bold 12px ${FONT}`;ctx.fillText(`${Math.max(0,combat.enemyHp)}/${combat.enemyMaxHp} HP`,cx,cy-18);
-  // Player HP
-  ctx.fillStyle=C.orange;ctx.font=`14px ${FONT}`;ctx.fillText('YOUR HP',cx,cy+10);
-  ctx.fillStyle='#333';ctx.fillRect(cx-100,cy+16,200,16);
-  const pPct=Math.max(0,combat.playerHp/combat.playerMaxHp);
-  ctx.fillStyle=pPct>0.5?C.green:pPct>0.25?C.orange:C.red;ctx.fillRect(cx-100,cy+16,200*pPct,16);
-  ctx.fillStyle=C.white;ctx.font=`bold 12px ${FONT}`;ctx.fillText(`${Math.max(0,combat.playerHp)}/${combat.playerMaxHp} HP`,cx,cy+28);
-  // Combat log
-  ctx.textAlign='left';ctx.font=`12px ${FONT}`;
-  const logShow=combat.log.slice(-4);
-  logShow.forEach((msg,i)=>{
-    ctx.fillStyle=i===logShow.length-1?C.white:'#888';
-    ctx.fillText(msg,cx-220,cy+60+i*18);
-  });
-  // Actions
-  ctx.textAlign='center';
-  if(combat.turn==='player'){
-    ctx.fillStyle=C.green;ctx.font=`bold 16px ${FONT}`;
-    ctx.fillText('⚔️ [E] ATTACK',cx-80,cy+130);
-    ctx.fillStyle=C.gray;
-    ctx.fillText('🏃 [Esc] FLEE',cx+80,cy+130);
-  }else{
-    ctx.fillStyle='#666';ctx.font=`bold 14px ${FONT}`;
-    ctx.fillText('Enemy attacking...',cx,cy+130);
-  }
-}
+function drawCombat(){/* deprecated — old turn-based UI removed */}
 
 // ---- PER-FRAME CACHE (avoid redundant performance.now/trig in render) ----
 let _t=0,_now=0,_hour=0,_isNight=false;
