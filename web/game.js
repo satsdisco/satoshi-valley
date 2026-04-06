@@ -2153,6 +2153,7 @@ const CONTROLS_LIST = [
   ['WASD / Arrows', 'Move around (click to walk)'],
   ['E', 'Interact (talk, toggle rigs, repair, collect, sleep)'],
   ['R', 'Use item / Plant seeds / Place rigs, fences, animals'],
+  ['G', 'Quick eat (eats best food in inventory)'],
   ['H', 'Harvest crop (near golden glowing crop)'],
   ['B', 'Open shop (near Ruby, or inside shop/tavern)'],
   ['T', 'Open Workbench (craft fence posts, cheese, circuits...)'],
@@ -2824,6 +2825,23 @@ function update(dt) {
     }else if(shopOpen){shopOpen=false;sfx.menuClose();}
   }
   if(jp['i']||jp['tab']){if(!shopOpen){invOpen=!invOpen;invOpen?sfx.menuOpen():sfx.menuClose();}}
+  // G = quick eat best food item
+  if(jp['g']&&!invOpen&&!shopOpen&&!dlg&&!craftOpen&&!chestOpen){
+    const foodEnergy={beef:60,stew:50,salmon:45,pie:40,cheese:40,honey:35,bread:30,wine:30,trout:30,milk:25,beer:20,egg:15,coffee:10};
+    const bestFood=inv.filter(s=>s&&foodEnergy[s.id]).sort((a,b)=>(foodEnergy[b.id]||0)-(foodEnergy[a.id]||0))[0];
+    if(bestFood&&player.energy<player.maxEnergy){
+      // Simulate eating by triggering the same logic
+      const restore=foodEnergy[bestFood.id]||0;
+      removeItem(bestFood.id);player.energy=Math.min(player.maxEnergy,player.energy+restore);
+      sfx.coin();notify(`${ITEMS[bestFood.id].icon} +${restore} energy`,1.5);
+      if(bestFood.id==='coffee'){player.boost=30;}
+      if(bestFood.id==='beef'){player.boost=45;}
+      if(bestFood.id==='honey'){player.boost=20;}
+      if(bestFood.id==='pie'){player.boost=25;}
+      if(bestFood.id==='salmon'){player.boost=20;}
+    } else if(!bestFood){notify('No food in inventory!',1.5);sfx.error();}
+    else{notify('Already full energy!',1);sfx.error();}
+  }
   // Q = sort inventory when open
   if(jp['q']&&invOpen){
     const typeOrder={tool:0,rig:1,power:2,upgrade:3,mat:4,crop:5,food:6,seed:7,supply:8,deco:9,quest:10,placeable:11,animal:12};
@@ -5442,7 +5460,7 @@ function drawHUD(){
   const cbY = canvas.height - 18;
   ctx.fillStyle='rgba(0,0,0,0.6)';ctx.fillRect(0,cbY-4,canvas.width,22);
   ctx.fillStyle='#999';ctx.font=`bold 12px ${FONT}`;ctx.textAlign='center';
-  if(!isMobile) ctx.fillText('WASD:Move  E:Interact  R:Use/Plant  T:Craft  H:Harvest  I:Inventory  B:Shop  C:Citadel  O:Quests  K:Skills  M:Music  ?:Help  P:Save',canvas.width/2,cbY+8);
+  if(!isMobile) ctx.fillText('WASD:Move  E:Interact  R:Use/Plant  G:Eat  T:Craft  H:Harvest  I:Inventory  B:Shop  C:Citadel  Q:Sort  ?:Help  P:Save',canvas.width/2,cbY+8);
   
   // Energy bar — wider, gradient colored
   const ebW=140,ebX=canvas.width-ebW-p-10,ebY=hbY-22;
