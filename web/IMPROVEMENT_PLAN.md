@@ -388,3 +388,12 @@ Total estimated time: ~2-3 hours for all Top 10 changes.
 - [x] Improved energy bar (larger, color-coded, low energy warning flash)
 - [x] Quick eat (G key) — eats best food, handles boosts
 - [x] Updated controls bar with G:Eat and Q:Sort
+
+### Wave 4 — Combat Overhaul:
+- [x] 4 new enemy types: Phishing Worm, Cryptojacker, Fiat Printer, Zero Day Exploit
+- [x] Unique pixel art + animated drawing for each new enemy
+- [x] Special AI behaviors: worm speed, stealth, spawning adds
+- [x] Progressive enemy scaling across 5 mine levels
+- [x] 10% critical hit chance (2x damage, visual feedback)
+- [x] Enemies drop sats on death (xp*2, +500 for bosses)
+- [x] New sprites: enemy_malware_bot, enemy_script_kiddie, deco_well, deco_signpost, deco_campfire
