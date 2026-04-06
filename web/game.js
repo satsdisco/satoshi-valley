@@ -214,8 +214,8 @@ canvas.addEventListener('click', e => {
   const ptx=Math.round(wx/TILE)*TILE+8,pty=Math.round(wy/TILE)*TILE+8;
   const tx=Math.floor(ptx/TILE),ty=Math.floor(pty/TILE);
   if(sel.id==='fence_post'){
-    if(!isSolid(tx,ty)&&!fences.some(f=>f.x===tx&&f.y===ty)){
-      removeItem('fence_post');fences.push({x:tx,y:ty});sfx.place();notify('🪵 Fence placed!',1.5);
+    if(!isSolid(tx,ty)&&!fenceSet.has(tx+','+ty)){
+      removeItem('fence_post');addFence(tx,ty);sfx.place();notify('🪵 Fence placed!',1.5);
     }else{sfx.error();notify("Can't place fence here!",1.5);}
   }else if(it.type==='rig'){
     if(!isSolid(tx,ty)&&!rigs.some(r=>Math.abs(r.x-ptx)<TILE&&Math.abs(r.y-pty)<TILE)){
@@ -1320,6 +1320,9 @@ const T = { GRASS:0,DIRT:1,STONE:2,WATER:3,PATH:4,WALL:5,FLOOR:6,SAND:7,FENCE:8,
 const SOLID = new Set([T.WATER,T.WALL,T.DEEP,T.FENCE,T.CLIFF]);
 const map = [];
 const decor = []; // trees, bushes, rocks, signs
+// Cached Perlin noise values per tile (computed once at map gen, avoids ~200 fbm calls/frame)
+const tileNoise1 = new Float32Array(MAP_W * MAP_H);
+const tileNoise2 = new Float32Array(MAP_W * MAP_H);
 
 function generateMap() {
   // Use perlin noise for organic terrain
@@ -1567,6 +1570,12 @@ function generateMap() {
   // Border
   for (let x = 0; x < MAP_W; x++) { map[0][x] = T.CLIFF; map[MAP_H-1][x] = T.CLIFF; }
   for (let y = 0; y < MAP_H; y++) { map[y][0] = T.CLIFF; map[y][MAP_W-1] = T.CLIFF; }
+  // Cache Perlin noise for terrain rendering (avoids ~200 fbm() calls per frame)
+  for(let y=0;y<MAP_H;y++)for(let x=0;x<MAP_W;x++){
+    const idx=y*MAP_W+x;
+    tileNoise1[idx]=fbm(x*0.15+0.5,y*0.15+0.5,2);
+    tileNoise2[idx]=fbm(x*0.3+10,y*0.3+10,2);
+  }
 }
 
 function buildBuilding(bx, by, w, h, type) {
@@ -1730,7 +1739,7 @@ function isSolid(tx,ty){
   const mh=mineFloor?mineFloor.h:interior?interior.h:MAP_H;
   if(tx<0||ty<0||tx>=mw||ty>=mh)return true;
   if(SOLID.has(m[ty][tx]))return true;
-  if(!interior&&fences.some(f=>f.x===tx&&f.y===ty))return true;
+  if(!interior&&fenceSet.has(tx+','+ty))return true;
   return false;
 }
 
@@ -1967,6 +1976,10 @@ function doCraft(recipe){
 // FENCES
 // ============================================================
 const fences=[]; // [{x,y}] tile coords
+const fenceSet=new Set(); // "x,y" strings for O(1) collision lookup
+function addFence(x,y){fences.push({x,y});fenceSet.add(x+','+y);}
+function removeFenceAt(x,y){const i=fences.findIndex(f=>f.x===x&&f.y===y);if(i>=0)fences.splice(i,1);fenceSet.delete(x+','+y);}
+function rebuildFenceSet(){fenceSet.clear();for(const f of fences)fenceSet.add(f.x+','+f.y);}
 
 // ============================================================
 // UI STATE
@@ -2150,6 +2163,7 @@ const CONTROLS_LIST = [
   ['K', 'Skills overview'],
   ['N', 'Toggle minimap'],
   ['J', 'Quest journal'],
+  ['Q', 'Sort inventory (when open)'],
   ['M', 'Toggle music'],
   ['P', 'Save game'],
   ['L', 'Load game'],
@@ -2308,7 +2322,7 @@ function loadGame(){try{const d=JSON.parse(localStorage.getItem('sv_save'));if(!
     questProgress=(d.qp||{});
     questJournal=(d.qj||[]);
     if(d.se)(d.se).forEach((f,i)=>{if(STORY_EVENTS[i])STORY_EVENTS[i].fired=f;});
-    fences.length=0;(d.fences||[]).forEach(f=>fences.push(f));
+    fences.length=0;(d.fences||[]).forEach(f=>fences.push(f));rebuildFenceSet();
     gameState='playing';notify('📂 Loaded!',2);sfx.buy();return true;}catch(e){notify('❌ Load failed!',2);return false;}}
 
 // ============================================================
@@ -2537,6 +2551,9 @@ function update(dt) {
     }
     return;
   }
+  
+  // Screen shake decay (works in both overworld and mines)
+  if(screenShake>0)screenShake-=dt;
   
   // Time
   time.cur += (dt*time.spd)/time.dl;
@@ -2807,6 +2824,14 @@ function update(dt) {
     }else if(shopOpen){shopOpen=false;sfx.menuClose();}
   }
   if(jp['i']||jp['tab']){if(!shopOpen){invOpen=!invOpen;invOpen?sfx.menuOpen():sfx.menuClose();}}
+  // Q = sort inventory when open
+  if(jp['q']&&invOpen){
+    const typeOrder={tool:0,rig:1,power:2,upgrade:3,mat:4,crop:5,food:6,seed:7,supply:8,deco:9,quest:10,placeable:11,animal:12};
+    const items=inv.filter(s=>s!=null);
+    items.sort((a,b)=>{const ta=typeOrder[ITEMS[a.id]?.type]??99,tb=typeOrder[ITEMS[b.id]?.type]??99;return ta-tb||a.id.localeCompare(b.id);});
+    inv.length=0;for(let i=0;i<INV_SIZE;i++)inv.push(items[i]||null);
+    sfx.interact();notify('📦 Inventory sorted!',1.5);
+  }
   if(jp['escape']){if(combat){combat=null;notify('🏃 Fled from combat!',2);sfx.menuClose();}else if(pauseOpen){pauseOpen=false;sfx.menuClose();}else if(craftOpen){craftOpen=false;sfx.menuClose();}else if(chestOpen){chestOpen=false;sfx.menuClose();}else if(shopOpen){shopOpen=false;sfx.menuClose();}else if(citadelMenuOpen){citadelMenuOpen=false;sfx.menuClose();}else if(invOpen){invOpen=false;sfx.menuClose();}else if(dlg){if(!dlg.done){dlg.displayedChars=dlg.fullText.length;dlg.done=true;}else{dlg=null;}}else if(showObjectives)showObjectives=false;else if(showControls)showControls=false;else if(showSkills)showSkills=false;else if(showJournal)showJournal=false;else{pauseOpen=true;pauseCur=0;sfx.menuOpen();}}
   if(jp['p'])saveGame();if(jp['l'])loadGame();
   for(let n=0;n<=9;n++)if(jp[n.toString()])selSlot=n===0?9:n-1;
@@ -2929,8 +2954,7 @@ function update(dt) {
         for(let i=damageNumbers.length-1;i>=0;i--){damageNumbers[i].life-=dt;damageNumbers[i].y-=40*dt;if(damageNumbers[i].life<=0)damageNumbers.splice(i,1);}
         // Update player swing
         if(playerSwing>0)playerSwing-=dt;
-        // Screen shake decay
-        if(screenShake>0)screenShake-=dt;
+        // Screen shake decay moved to main update loop
         // Loot pickup (proximity)
         for(let i=mineFloor.loot.length-1;i>=0;i--){
           const l=mineFloor.loot[i];
@@ -3264,7 +3288,7 @@ function update(dt) {
           if(d.type==='tree'&&Math.abs(d.x-tx)<=1&&Math.abs(d.y-ty)<=1){
             decor.splice(i,1);
             addItem('wood',2+Math.floor(Math.random()*3));
-            sfx.repair();notify('🪓 Chopped tree! +wood',2);addXP('foraging',8);chopped=true;break;
+            sfx.repair();notify('🪓 Chopped tree! +wood',2);addXP('foraging',8);screenShake=0.06;chopped=true;break;
           }
           if(d.type==='bush'&&Math.abs(d.x-tx)<=1&&Math.abs(d.y-ty)<=1){
             decor.splice(i,1);
@@ -3282,9 +3306,9 @@ function update(dt) {
       else if(sel.id==='hoe'){
         if(!useEnergy(3))return;
         const tx=Math.floor((player.x+player.facing.x*16)/TILE),ty=Math.floor((player.y+player.facing.y*16)/TILE);
-        if(map[ty]&&(map[ty][tx]===T.GRASS||map[ty][tx]===T.TALLGRASS||map[ty][tx]===T.FLOWERS)){
+        if(map[ty]&&(map[ty][tx]===T.GRASS||map[ty][tx]===T.TALLGRASS||map[ty][tx]===T.FLOWER)){
           map[ty][tx]=T.DIRT;
-          sfx.place();notify('🌾 Tilled soil!',1.5);addXP('farming',2);
+          sfx.place();notify('🌾 Tilled soil!',1.5);addXP('farming',2);screenShake=0.03;
         } else { notify("Can only till grass!",1.5);sfx.error(); }
       }
       // FISHING ROD — cast into water
@@ -3344,15 +3368,15 @@ function update(dt) {
         if(!picked){
           const ftx=Math.floor(ix/TILE),fty=Math.floor(iy/TILE);
           const fi=fences.findIndex(f=>f.x===ftx&&f.y===fty);
-          if(fi>=0){fences.splice(fi,1);addItem('fence_post');sfx.repair();notify('⚒️ Picked up fence post',1.5);picked=true;}
+          if(fi>=0){removeFenceAt(ftx,fty);addItem('fence_post');sfx.repair();notify('⚒️ Picked up fence post',1.5);picked=true;}
         }
         if(!picked){notify('Nothing to pick up',1.5);sfx.error();}
       }
       // FENCE POST placement
       else if(sel.id==='fence_post'){
         const tx=Math.floor((player.x+player.facing.x*20)/TILE),ty=Math.floor((player.y+player.facing.y*20)/TILE);
-        if(!isSolid(tx,ty)&&!fences.some(f=>f.x===tx&&f.y===ty)){
-          removeItem('fence_post');fences.push({x:tx,y:ty});sfx.place();notify('🪵 Fence placed!',1.5);
+        if(!isSolid(tx,ty)&&!fenceSet.has(tx+','+ty)){
+          removeItem('fence_post');addFence(tx,ty);sfx.place();notify('🪵 Fence placed!',1.5);
         }else{sfx.error();notify("Can't place fence here!",1.5);}
       }
       // DECORATION placement (all placeable deco/upgrade items)
@@ -3590,14 +3614,14 @@ const TERRAIN_WATER_SET=new Set([T.WATER,T.DEEP]);
 function drawTile(x,y,tile){
   const sx=x*ST-cam.x,sy=y*ST-cam.y;
   if(sx>canvas.width+ST||sy>canvas.height+ST||sx<-ST||sy<-ST)return;
-  const v=(x*7+y*13)%3,t=performance.now()/1000;
+  const v=(x*7+y*13)%3,t=_t;
   const v2=(x*11+y*3)%5;
   
   switch(tile){
     case T.GRASS:{
-      // Use Perlin noise for smooth, organic color blending (no checkerboard!)
-      const gn=fbm(x*0.15+0.5,y*0.15+0.5,2); // smooth noise 0-1
-      const gn2=fbm(x*0.3+10,y*0.3+10,2); // finer detail layer
+      // Use cached Perlin noise for smooth, organic color blending
+      const gn=tileNoise1[y*MAP_W+x];
+      const gn2=tileNoise2[y*MAP_W+x];
       // Seasonal color shift based on market phase
       const sR=[0,0,20,0][econ.phase]; // Euphoria adds warmth
       const sG=[0,10,-10,-20][econ.phase]; // Capitulation desaturates
@@ -3636,8 +3660,8 @@ function drawTile(x,y,tile){
       if(!TERRAIN_GRASS.has(tS)&&!TERRAIN_GRASS.has(tE)){ctx.fillStyle='rgba(100,80,40,0.2)';ctx.beginPath();ctx.arc(sx+ST,sy+ST,8,Math.PI,-Math.PI/2);ctx.fill();}
       break;}
     case T.TALLGRASS:{
-      // Same smooth Perlin base as regular grass
-      const tgn=fbm(x*0.15+0.5,y*0.15+0.5,2);
+      // Same smooth Perlin base as regular grass (cached)
+      const tgn=tileNoise1[y*MAP_W+x];
       const tgR=Math.floor(30+tgn*30);const tgG=Math.floor(90+tgn*50);const tgB=Math.floor(15+tgn*20);
       ctx.fillStyle=`rgb(${tgR},${tgG},${tgB})`;ctx.fillRect(sx,sy,ST,ST);
       const sw=Math.sin(t*1.8+x*.7+y*.5)*3;
@@ -3650,7 +3674,7 @@ function drawTile(x,y,tile){
       break;}
     case T.FLOWER:{
       // Grass base
-      const fgn=fbm(x*0.15+0.5,y*0.15+0.5,2);
+      const fgn=tileNoise1[y*MAP_W+x];
       ctx.fillStyle=`rgb(${Math.floor(30+fgn*30)},${Math.floor(90+fgn*50)},${Math.floor(15+fgn*20)})`;ctx.fillRect(sx,sy,ST,ST);
       // Multiple flowers in a meadow cluster
       const fSeed=(x*13+y*7);
@@ -3676,7 +3700,7 @@ function drawTile(x,y,tile){
       break;}
     case T.MUSHROOM:{
       // Grass base
-      const mgn=fbm(x*0.15+0.5,y*0.15+0.5,2);
+      const mgn=tileNoise1[y*MAP_W+x];
       ctx.fillStyle=`rgb(${Math.floor(30+mgn*30)},${Math.floor(90+mgn*50)},${Math.floor(15+mgn*20)})`;ctx.fillRect(sx,sy,ST,ST);
       // Main mushroom
       ctx.fillStyle='#C4A070';ctx.fillRect(sx+19,sy+28,6,12); // thick stem
@@ -3691,7 +3715,7 @@ function drawTile(x,y,tile){
       break;}
     case T.DIRT:{
       // Rich tilled soil with Perlin variation
-      const dn=fbm(x*0.2+7,y*0.2+7,2);
+      const dn=tileNoise2[y*MAP_W+x];
       const dR=Math.floor(85+dn*25);const dG=Math.floor(60+dn*20);const dB=Math.floor(25+dn*15);
       ctx.fillStyle=`rgb(${dR},${dG},${dB})`;ctx.fillRect(sx,sy,ST,ST);
       // Furrow lines (tilled rows)
@@ -3704,7 +3728,7 @@ function drawTile(x,y,tile){
       break;}
     case T.STONE:{
       // Smooth Perlin stone with embedded rock details
-      const stn=fbm(x*0.15+20,y*0.15+20,2);
+      const stn=tileNoise1[y*MAP_W+x];
       const stR=Math.floor(70+stn*20);const stG=Math.floor(70+stn*18);const stB=Math.floor(78+stn*20);
       ctx.fillStyle=`rgb(${stR},${stG},${stB})`;ctx.fillRect(sx,sy,ST,ST);
       // Embedded rock shapes (not rectangles — rounded)
@@ -3720,7 +3744,7 @@ function drawTile(x,y,tile){
       break;}
     case T.CLIFF:{
       // Layered cliff face with depth
-      const cln=fbm(x*0.12+15,y*0.12+15,2);
+      const cln=tileNoise2[y*MAP_W+x];
       ctx.fillStyle=`rgb(${Math.floor(50+cln*15)},${Math.floor(50+cln*12)},${Math.floor(58+cln*15)})`;ctx.fillRect(sx,sy,ST,ST);
       // Horizontal strata layers
       ctx.fillStyle='rgba(35,35,42,0.3)';ctx.fillRect(sx,sy+ST*0.2,ST,3);ctx.fillRect(sx,sy+ST*0.55,ST,3);ctx.fillRect(sx,sy+ST*0.8,ST,2);
@@ -3772,7 +3796,7 @@ function drawTile(x,y,tile){
       ctx.fillStyle=`rgba(20,60,120,${0.1+Math.sin(t*0.8+x+y)*0.06})`;ctx.fillRect(sx,sy,ST,ST);
       break;}
     case T.SAND:{
-      const sn=fbm(x*0.18+3,y*0.18+3,2);
+      const sn=tileNoise1[y*MAP_W+x];
       const sR=Math.floor(180+sn*20);const sG=Math.floor(155+sn*20);const sB=Math.floor(95+sn*15);
       ctx.fillStyle=`rgb(${sR},${sG},${sB})`;ctx.fillRect(sx,sy,ST,ST);
       // Subtle sand ripples
@@ -3780,7 +3804,7 @@ function drawTile(x,y,tile){
       break;}
     case T.PATH:{
       // Smooth dirt path with subtle noise variation
-      const pn=fbm(x*0.2+5,y*0.2+5,2);
+      const pn=tileNoise2[y*MAP_W+x];
       const pR=Math.floor(130+pn*20);const pG=Math.floor(115+pn*15);const pB=Math.floor(90+pn*15);
       ctx.fillStyle=`rgb(${pR},${pG},${pB})`;ctx.fillRect(sx,sy,ST,ST);
       // Subtle pebble/texture details
@@ -3847,7 +3871,7 @@ function drawDecor(d) {
   } else {
     if(sx>canvas.width+ST*2||sy>canvas.height+ST*2||sx<-ST*2||sy<-ST*2)return;
   }
-  const t = performance.now()/1000;
+  const t = _t;
   
   if(d.type==='tree'){
     const sz = d.size || 1;
@@ -5176,7 +5200,6 @@ function drawNPC(n){
     ctx.fillStyle='#D09070';ctx.fillRect(px+20,py+16+bob,w-40,2);
   }
   // Quest markers
-  initRelationships();
   const rel=relationships[n.name];
   if(rel){
     const t=performance.now()/1000;
@@ -5926,7 +5949,7 @@ function drawShop(){
     }
   } else {
     if(shopCur<shopScroll)shopScroll=shopCur;
-    const sl=inv.filter(s=>s&&ITEMS[s.id].sell>0);
+    const sl=inv.filter(s=>s&&ITEMS[s.id]&&ITEMS[s.id].sell>0);
     if(shopCur>=shopScroll+visRows)shopScroll=shopCur-visRows+1;
     if(!sl.length){ctx.fillStyle=C.gray;ctx.font=`14px ${FONT}`;ctx.textAlign='center';ctx.fillText('Nothing to sell!',x+w/2,ly+30);ctx.textAlign='left';}
     ctx.save();ctx.beginPath();ctx.rect(x,ly-6,w,h-112-25);ctx.clip();
@@ -5980,7 +6003,7 @@ function drawChest(){
     const i=r*cols+c,sx2=x+gap+c*(ss+gap)+10,sy2=y+50+r*(ss+gap);
     ctx.fillStyle=i===selSlot?'rgba(247,147,26,.2)':'rgba(20,20,25,.8)';ctx.fillRect(sx2,sy2,ss,ss);
     ctx.strokeStyle=i===selSlot?C.hud:'#333';ctx.lineWidth=i===selSlot?2:1;ctx.strokeRect(sx2,sy2,ss,ss);
-    const sl=inv[i];if(sl){ctx.font='28px serif';ctx.textAlign='center';ctx.fillText(ITEMS[sl.id].icon,sx2+ss/2,sy2+ss/2+8);
+    const sl=inv[i];if(sl&&ITEMS[sl.id]){ctx.font='28px serif';ctx.textAlign='center';ctx.fillText(ITEMS[sl.id].icon,sx2+ss/2,sy2+ss/2+8);
       if(sl.qty>1){ctx.fillStyle=C.white;ctx.font='bold 13px '+FONT;ctx.fillText(sl.qty,sx2+ss-10,sy2+ss-6);}}
   }
   ctx.fillStyle=C.gray;ctx.font='bold 13px '+FONT;ctx.textAlign='center';
@@ -5989,7 +6012,7 @@ function drawChest(){
     const i=r*cols+c,sx2=x+totalW+30+gap+c*(ss+gap),sy2=y+50+r*(ss+gap);
     ctx.fillStyle='rgba(40,30,20,.8)';ctx.fillRect(sx2,sy2,ss,ss);
     ctx.strokeStyle='#554430';ctx.lineWidth=1;ctx.strokeRect(sx2,sy2,ss,ss);
-    const sl=chestInv[i];if(sl){ctx.font='28px serif';ctx.textAlign='center';ctx.fillText(ITEMS[sl.id].icon,sx2+ss/2,sy2+ss/2+8);
+    const sl=chestInv[i];if(sl&&ITEMS[sl.id]){ctx.font='28px serif';ctx.textAlign='center';ctx.fillText(ITEMS[sl.id].icon,sx2+ss/2,sy2+ss/2+8);
       if(sl.qty>1){ctx.fillStyle=C.white;ctx.font='bold 13px '+FONT;ctx.fillText(sl.qty,sx2+ss-10,sy2+ss-6);}}
   }
   ctx.fillStyle=C.gray;ctx.font='12px '+FONT;ctx.textAlign='center';
@@ -6207,7 +6230,6 @@ function drawInteriorNPC(n) {
 }
 
 function drawNPCHearts(npc) {
-  initRelationships();
   const r = relationships[npc.name]; if (!r) return;
   const sx = npc.x * SCALE - cam.x, sy = npc.y * SCALE - cam.y - ST/2 - 34;
   const dist = Math.hypot(npc.x - player.x, npc.y - player.y);
@@ -6620,10 +6642,16 @@ function drawCombat(){
   }
 }
 
+// ---- PER-FRAME CACHE (avoid redundant performance.now/trig in render) ----
+let _t=0,_now=0,_hour=0,_isNight=false;
+
 function draw(){
   // Reset render state at frame start (#67 globalAlpha leak, #68 shadowBlur leak)
   ctx.globalAlpha=1;ctx.shadowBlur=0;ctx.shadowColor='transparent';
   if(gameState==='intro'){drawIntro();ctx.globalAlpha=1;ctx.shadowBlur=0;return;}
+  
+  // Frame cache — compute once, use everywhere
+  _now=performance.now();_t=_now/1000;_hour=getHour();_isNight=_hour<6||_hour>20;
   
   ctx.fillStyle='#0a0a0a';ctx.fillRect(0,0,canvas.width,canvas.height);
   
@@ -6633,6 +6661,12 @@ function draw(){
     drawHUD();
     if(transition){const p=transition.timer/transition.duration;const a=transition.type==='fadeOut'?p:1-p;ctx.fillStyle='rgba(0,0,0,'+Math.min(1,a)+')';ctx.fillRect(0,0,canvas.width,canvas.height);}
     return;
+  }
+  
+  // Overworld screen shake
+  if(screenShake>0&&!mineFloor){
+    cam.x+=(Math.random()-0.5)*screenShake*80;
+    cam.y+=(Math.random()-0.5)*screenShake*80;
   }
   
   const activeMap = interior ? interior.map : map;
@@ -6673,7 +6707,8 @@ function draw(){
     for(const n of interiorNPCs) entities.push({y:n.y,draw:()=>drawInteriorNPC(n)});
   }
   entities.push({y:player.y,draw:drawPlayer});
-  entities.sort((a,b)=>a.y-b.y);
+  // Insertion sort — optimal for nearly-sorted arrays (entities barely move frame to frame)
+  for(let i=1;i<entities.length;i++){const key=entities[i];let j=i-1;while(j>=0&&entities[j].y>key.y){entities[j+1]=entities[j];j--;}entities[j+1]=key;}
   // Draw crops
   for(const crop of crops) drawCrop(crop);
   for(const e of entities)e.draw();
@@ -6690,6 +6725,22 @@ function draw(){
   
   // Day/night
   const dn=getDayOv();
+  
+  // Star field at night (drawn before night overlay so stars peek through)
+  if(!interior&&_isNight&&dn.a>0.15){
+    const starRng=rng32(42);
+    for(let i=0;i<100;i++){
+      const sx2=starRng()*canvas.width,sy2=starRng()*canvas.height*0.65;
+      const brightness=0.2+starRng()*0.8;
+      const twinkle=Math.sin(_t*(1+starRng()*3)+i*2.7)*0.3;
+      ctx.globalAlpha=Math.max(0,(brightness+twinkle)*Math.min(1,dn.a*2.5));
+      ctx.fillStyle=starRng()<0.08?'#FFE8C0':'#FFF';
+      const sz=starRng()<0.08?2:1;
+      ctx.fillRect(sx2,sy2,sz,sz);
+    }
+    ctx.globalAlpha=1;
+  }
+  
   if(dn.a>0){ctx.fillStyle=`rgba(${dn.r},${dn.g},${dn.b},${dn.a})`;ctx.fillRect(0,0,canvas.width,canvas.height);}
 
   // Weather overlay (outdoors only)
