@@ -782,6 +782,83 @@ function initSprites() {
     cx.fillRect(8, 13, 1, 1);
   });
 
+
+  // ---- MINE ENEMIES ----
+  
+  createSprite('enemy_malware_bot', S*2, (cx, s) => {
+    // Robot body
+    cx.fillStyle='#556';cx.fillRect(6,10,20,18);
+    cx.fillStyle='#445';cx.fillRect(6,10,20,6);
+    // Red scanning eye
+    cx.fillStyle='#F33';cx.fillRect(13,14,6,4);
+    cx.fillStyle='#F66';cx.fillRect(14,15,4,2);
+    // Legs
+    cx.fillStyle='#667';cx.fillRect(8,28,5,6);cx.fillRect(19,28,5,6);
+    // Antenna
+    cx.fillStyle='#778';cx.fillRect(15,4,2,8);
+    cx.fillStyle='#F33';cx.fillRect(14,2,4,4);
+  });
+
+  createSprite('enemy_script_kiddie', S*2, (cx, s) => {
+    // Hoodie
+    cx.fillStyle='#424';cx.fillRect(6,14,20,16);
+    cx.fillStyle='#535';cx.fillRect(8,8,16,10);
+    // Face glow (screen reflection)
+    cx.fillStyle='#0F0';cx.fillRect(10,14,12,6);
+    cx.fillStyle='#0A0';cx.fillRect(11,15,10,4);
+    // Legs
+    cx.fillStyle='#313';cx.fillRect(8,30,6,4);cx.fillRect(18,30,6,4);
+    // Laptop
+    cx.fillStyle='#333';cx.fillRect(4,22,10,6);
+    cx.fillStyle='#0F0';cx.fillRect(5,23,8,4);
+  });
+
+  // ---- OVERWORLD DECORATIONS ----
+
+  createSprite('deco_well', S*2, (cx, s) => {
+    // Stone well base
+    cx.fillStyle='#7A7A80';cx.fillRect(4,16,24,12);
+    cx.fillStyle='#6A6A70';cx.fillRect(6,14,20,4);
+    // Water inside
+    cx.fillStyle='#4488CC';cx.fillRect(8,18,16,8);
+    cx.fillStyle='#66AADD';cx.fillRect(10,20,12,4);
+    // Roof posts
+    cx.fillStyle='#664';cx.fillRect(6,4,3,14);cx.fillRect(23,4,3,14);
+    // Roof
+    cx.fillStyle='#8B4020';cx.fillRect(4,2,24,4);
+    cx.fillStyle='#6A3018';cx.fillRect(2,0,28,3);
+    // Rope
+    cx.fillStyle='#AA8844';cx.fillRect(15,4,2,14);
+    // Bucket
+    cx.fillStyle='#8A7A60';cx.fillRect(13,16,6,5);
+  });
+
+  createSprite('deco_signpost', S*2, (cx, s) => {
+    // Post
+    cx.fillStyle='#664';cx.fillRect(14,8,4,24);
+    // Sign board
+    cx.fillStyle='#8A6A40';cx.fillRect(4,4,24,10);
+    cx.fillStyle='#7A5A30';cx.fillRect(5,5,22,8);
+    // Bitcoin symbol
+    cx.fillStyle='#F7931A';
+    cx.font='bold 9px sans-serif';cx.textAlign='center';
+    cx.fillText('\u20bf VALLEY',16,12);
+  });
+
+  createSprite('deco_campfire', S*2, (cx, s) => {
+    // Stone ring
+    cx.fillStyle='#666';
+    cx.fillRect(6,22,4,4);cx.fillRect(10,24,4,4);cx.fillRect(16,24,4,4);
+    cx.fillRect(20,22,4,4);cx.fillRect(8,18,4,4);cx.fillRect(18,18,4,4);
+    // Logs
+    cx.fillStyle='#553';cx.fillRect(10,20,12,4);
+    cx.fillStyle='#442';cx.fillRect(8,18,6,3);cx.fillRect(16,19,8,3);
+    // Flames
+    cx.fillStyle='#F80';cx.fillRect(12,12,8,10);
+    cx.fillStyle='#FF0';cx.fillRect(13,8,6,8);
+    cx.fillStyle='#FFA';cx.fillRect(14,6,4,6);
+  });
+
   console.log(`✅ ${Object.keys(SpriteCache).length} sprites generated`);
 }
 

@@ -721,16 +721,18 @@ function mineAttackEnemy(en){
   const info=MINE_ENEMIES[en.type];
   const pAtk=10+skills.mining.level*3+(hasItem('pickaxe')?8:0);
   const dmg=pAtk+Math.floor(Math.random()*6);
-  en.hp-=dmg;en._hitFlash=0.2;
+  const isCrit=Math.random()<0.1;
+  const finalDmg=isCrit?dmg*2:dmg;
+  en.hp-=finalDmg;en._hitFlash=0.2;
   // Knockback
   const kbx=Math.sign(en.x*TILE-player.x),kby=Math.sign(en.y*TILE-player.y);
   en.x+=kbx;en.y+=kby;
   en.x=Math.max(1,Math.min(MINE_W-2,en.x));en.y=Math.max(1,Math.min(MINE_H-2,en.y));
   // Damage number
-  damageNumbers.push({x:en.x*ST+ST/2,y:en.y*ST,text:'-'+dmg,life:1.0,color:'#FFDD44'});
+  damageNumbers.push({x:en.x*ST+ST/2,y:en.y*ST,text:(isCrit?'CRIT! -':'-')+finalDmg,life:isCrit?1.5:1.0,color:isCrit?'#FF4444':'#FFDD44'});
   // Hit sound
   tone(250+Math.random()*200,.06,'square',.05);tone(180,.04,'sawtooth',.03);
-  screenShake=0.08;
+  screenShake=isCrit?0.15:0.08;
   if(en.hp<=0){
     en.alive=false;
     const info2=MINE_ENEMIES[en.type];
@@ -749,6 +751,9 @@ function mineAttackEnemy(en){
     }
     addXP('mining',info2.xp);
     notify('💥 '+info2.name+' destroyed! +'+info2.xp+' XP',2,info2.boss);
+    const satReward=info2.xp*2+(info2.boss?500:0);
+    player.wallet+=satReward;player.totalEarned+=satReward;
+    satPart(en.x*TILE,en.y*TILE,satReward);
     sfx.block();
     screenShake=0.2;
     mineAutoAttackTarget=null;
@@ -787,6 +792,10 @@ const MINE_ENEMIES = {
   script_kiddie: {name:'Script Kiddie',hp:30,atk:8,icon:'👾',xp:15,loot:'silicon',desc:'Annoying but persistent.'},
   ransomware: {name:'Ransomware',hp:50,atk:12,icon:'💀',xp:25,loot:'old_gpu',desc:'Pay up or lose your data.'},
   pool_operator: {name:'The Pool Operator',hp:150,atk:20,icon:'👹',xp:100,loot:'rare_chip',boss:true,desc:'Controls 51% of the abandoned hashrate.'},
+  phishing_worm: {name:'Phishing Worm',hp:15,atk:3,icon:'🪱',xp:8,loot:'fiber_optic',desc:'Slithers through corrupted data cables. Fast but fragile.'},
+  cryptojacker: {name:'Cryptojacker',hp:40,atk:10,icon:'⛏️',xp:20,loot:'silicon',desc:'Hijacks hashrate for its own mining pool.'},
+  fiat_printer: {name:'Fiat Printer',hp:60,atk:8,icon:'🖨️',xp:30,loot:'server_rack',desc:'Spawns worthless tokens. Inflation personified.',special:'spawn'},
+  zero_day: {name:'Zero Day Exploit',hp:80,atk:18,icon:'🕷️',xp:40,loot:'rare_chip',desc:'Silent. Deadly. You won\'t see it until too late.',special:'stealth'},
 };
 
 const MINE_LOOT_TABLES = [
@@ -847,7 +856,7 @@ function generateMineFloor(level) {
   // Place enemies
   const enemies=[];
   const enemyCount=3+level*2+Math.floor(Math.random()*3); // more enemies
-  const enemyTypes=level<2?['malware_bot']:level<3?['malware_bot','script_kiddie']:level<4?['script_kiddie','ransomware']:['ransomware'];
+  const enemyTypes=level<1?['malware_bot','phishing_worm']:level<2?['malware_bot','phishing_worm','script_kiddie']:level<3?['script_kiddie','cryptojacker','ransomware']:level<4?['cryptojacker','ransomware','fiat_printer']:['ransomware','fiat_printer','zero_day'];
   for(let i=0;i<enemyCount;i++){
     const room=rooms[1+Math.floor(Math.random()*(rooms.length-1))];
     const ex=room.x+Math.floor(Math.random()*3)-1;
@@ -2951,6 +2960,28 @@ function update(dt) {
             let nx=en.x,ny=en.y;
             if(Math.random()<0.5){nx+=dx;}else{ny+=dy;}
             if(mineFloor.map[ny]&&mineFloor.map[ny][nx]!==T.CLIFF){en.x=nx;en.y=ny;}
+          }
+          
+          // Special enemy behaviors
+          if(en.type==='phishing_worm'&&dist<aggroRange&&dist>1.2&&en._mt<=0){
+            en._mt=0;
+            const dx2=Math.sign(ptx-en.x),dy2=Math.sign(pty-en.y);
+            let nx2=en.x,ny2=en.y;
+            if(Math.random()<0.5){nx2+=dx2;}else{ny2+=dy2;}
+            if(mineFloor.map[ny2]&&mineFloor.map[ny2][nx2]!==T.CLIFF){en.x=nx2;en.y=ny2;}
+          }
+          if(en.type==='zero_day'){
+            en._visible=dist<=4;
+          }
+          if(en.type==='fiat_printer'){
+            en._spawnTimer=(en._spawnTimer||0)+dt;
+            if(en._spawnTimer>=8&&mineFloor.enemies.filter(e=>e.alive).length<8){
+              en._spawnTimer=0;
+              const sx2=en.x+(Math.random()<0.5?1:-1),sy2=en.y+(Math.random()<0.5?1:-1);
+              if(mineFloor.map[sy2]&&mineFloor.map[sy2][sx2]!==T.CLIFF){
+                mineFloor.enemies.push({x:sx2,y:sy2,type:'malware_bot',hp:MINE_ENEMIES.malware_bot.hp,alive:true});
+              }
+            }
           }
           
           // Attack when adjacent (within 1.5 tiles)
@@ -6450,6 +6481,66 @@ function drawMine(){
       // Glow
       ctx.fillStyle=`rgba(255,215,0,${0.1+Math.sin(t*2)*0.05})`;
       ctx.beginPath();ctx.arc(sx+ST/2,sy+ST/2+bob,24,0,Math.PI*2);ctx.fill();
+    } else if(en.type==='phishing_worm'){
+      // Segmented worm — green, slinky movement
+      const wPhase=t*4+en.x*2;
+      for(let seg=0;seg<5;seg++){
+        const segX=esx+ST/2-2+Math.sin(wPhase+seg*0.8)*6;
+        const segY=esy+10+seg*7+bob;
+        const segSize=seg===0?8:seg===4?4:6;
+        ctx.fillStyle=seg===0?'#5F5':'#4A4';
+        ctx.beginPath();ctx.arc(segX,segY,segSize/2,0,Math.PI*2);ctx.fill();
+      }
+      // Eyes on head
+      ctx.fillStyle='#F00';ctx.fillRect(esx+ST/2-4,esy+10+bob,2,2);ctx.fillRect(esx+ST/2+2,esy+10+bob,2,2);
+    } else if(en.type==='cryptojacker'){
+      // Hooded figure with pickaxe — dark with orange glow
+      ctx.fillStyle='#2A1A0A';ctx.fillRect(esx+8,esy+12+bob,ST-16,ST-16); // body
+      ctx.fillStyle='#3A2A1A';ctx.fillRect(esx+10,esy+8+bob,ST-20,10); // hood
+      ctx.fillStyle='#F7931A';ctx.fillRect(esx+14,esy+14+bob,3,3);ctx.fillRect(esx+ST-17,esy+14+bob,3,3); // orange eyes
+      // Mini pickaxe
+      ctx.fillStyle='#888';ctx.fillRect(esx+ST-12,esy+20+bob,8,2);
+      ctx.fillStyle='#664';ctx.fillRect(esx+ST-8,esy+20+bob,2,8);
+      // Stolen hash particles
+      ctx.fillStyle=`rgba(247,147,26,${0.3+Math.sin(t*4)*0.2})`;
+      ctx.font='8px serif';ctx.textAlign='center';ctx.fillText('₿',esx+ST/2+Math.sin(t*3)*8,esy+4+bob);
+    } else if(en.type==='fiat_printer'){
+      // Boxy printer machine — grey with green money spewing
+      ctx.fillStyle='#555';ctx.fillRect(esx+6,esy+14+bob,ST-12,ST-18); // body
+      ctx.fillStyle='#666';ctx.fillRect(esx+8,esy+12+bob,ST-16,4); // top
+      ctx.fillStyle='#777';ctx.fillRect(esx+10,esy+16+bob,ST-20,8); // paper slot
+      // Spewing fiat bills
+      const billPhase=t*5;
+      for(let b=0;b<3;b++){
+        const bx=esx+ST/2+Math.sin(billPhase+b*2.1)*12;
+        const by=esy+8-b*8+Math.sin(billPhase+b)*4+bob;
+        ctx.fillStyle=`rgba(100,200,100,${0.7-b*0.2})`;ctx.fillRect(bx-4,by,8,5);
+        ctx.fillStyle='#060';ctx.font='6px sans-serif';ctx.textAlign='center';ctx.fillText('$',bx,by+5);
+      }
+      // Red warning light
+      ctx.fillStyle=`rgba(255,0,0,${0.5+Math.sin(t*6)*0.4})`;ctx.fillRect(esx+ST/2-2,esy+12+bob,4,3);
+    } else if(en.type==='zero_day'){
+      // Spider-like, dark, partially invisible
+      const stealth=0.4+Math.sin(t*2)*0.3; // flickers in and out
+      ctx.globalAlpha=stealth;
+      // Body
+      ctx.fillStyle='#1A0A1A';ctx.beginPath();ctx.arc(esx+ST/2,esy+ST/2+bob,10,0,Math.PI*2);ctx.fill();
+      // 8 legs
+      ctx.strokeStyle='#2A1A2A';ctx.lineWidth=1.5;
+      for(let leg=0;leg<8;leg++){
+        const angle=leg*Math.PI/4+Math.sin(t*3+leg)*0.2;
+        const legLen=12+Math.sin(t*2+leg*1.5)*3;
+        ctx.beginPath();
+        ctx.moveTo(esx+ST/2+Math.cos(angle)*6,esy+ST/2+bob+Math.sin(angle)*6);
+        ctx.lineTo(esx+ST/2+Math.cos(angle)*legLen,esy+ST/2+bob+Math.sin(angle)*legLen);
+        ctx.stroke();
+      }
+      // Glowing red eyes
+      ctx.fillStyle='#F00';
+      ctx.fillRect(esx+ST/2-5,esy+ST/2-2+bob,3,3);ctx.fillRect(esx+ST/2+2,esy+ST/2-2+bob,3,3);
+      // Small secondary eyes
+      ctx.fillRect(esx+ST/2-7,esy+ST/2+bob,2,2);ctx.fillRect(esx+ST/2+5,esy+ST/2+bob,2,2);
+      ctx.globalAlpha=1;
     }
     
     // Hit flash overlay
