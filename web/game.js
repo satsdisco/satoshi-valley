@@ -3944,7 +3944,7 @@ function drawDecor(d) {
     ctx.fillStyle='#555';ctx.fillRect(sx+ST/2-8,sy+ST-lampH-2,16,4); // arm
     ctx.fillStyle='#666';ctx.fillRect(sx+ST/2-6,sy+ST-lampH+2,12,6); // lamp housing
     // Light at night
-    const isNight=getHour()>=19||getHour()<6;
+    const isNight=_isNight;
     if(isNight){
       ctx.fillStyle='rgba(255,220,140,0.08)';ctx.beginPath();ctx.arc(sx+ST/2,sy+ST,40,0,Math.PI*2);ctx.fill();
       ctx.fillStyle='rgba(255,230,160,0.15)';ctx.beginPath();ctx.arc(sx+ST/2,sy+ST,20,0,Math.PI*2);ctx.fill();
@@ -4154,7 +4154,7 @@ function drawDecor(d) {
     else if(d.item==='fireplace'){
       ctx.fillStyle='#555';ctx.fillRect(fx+6,fy+4,ST-12,ST-6); // stone surround
       ctx.fillStyle='#333';ctx.fillRect(fx+10,fy+10,ST-20,ST-14); // opening
-      const ft=performance.now()/200;
+      const ft=_now/200;
       ctx.fillStyle='#FF6622';ctx.fillRect(fx+14,fy+16+Math.sin(ft)*2,4,8);
       ctx.fillStyle='#FFAA22';ctx.fillRect(fx+20,fy+18+Math.sin(ft+1)*2,4,6);
       ctx.fillStyle='#FF4400';ctx.fillRect(fx+17,fy+14+Math.sin(ft+2)*3,3,10);
@@ -4192,8 +4192,8 @@ function drawDecor(d) {
     if(sx+rw<-ST||sx>canvas.width+ST||ry>canvas.height+ST||ry+bh+ST<0)return;
 
     // Shared helpers
-    const hr = getHour();
-    const isNight = hr < 6 || hr > 20;
+    const hr = _hour;
+    const isNight = _isNight;
     const winGlow = isNight ? 'rgba(255,210,100,0.45)' : 'rgba(200,225,255,0.28)';
     const winGlowAmber = isNight ? 'rgba(255,180,60,0.55)' : 'rgba(220,185,100,0.3)';
     // Ground shadow under building
@@ -4293,6 +4293,17 @@ function drawDecor(d) {
       if(isNight){
         ctx.fillStyle='rgba(255,200,80,0.15)';
         ctx.beginPath();ctx.arc(lx+2,ly-3,12,0,Math.PI*2);ctx.fill();
+      }
+
+      // Warm light pools from windows onto ground at night
+      if(isNight){
+        const glowPulse=0.06+Math.sin(_t*1.5)*0.02;
+        ctx.fillStyle=`rgba(255,200,100,${glowPulse})`;
+        ctx.beginPath();ctx.ellipse(wx1+ww/2,ry+bh+8,ww*1.5,10,0,0,Math.PI*2);ctx.fill();
+        if(d.w>=6){const wx2b=rx+rw-ST*0.6-ww;ctx.beginPath();ctx.ellipse(wx2b+ww/2,ry+bh+8,ww*1.5,10,0,0,Math.PI*2);ctx.fill();}
+        // Door light pool
+        ctx.fillStyle=`rgba(255,180,80,${glowPulse*0.8})`;
+        ctx.beginPath();ctx.ellipse(doorX+doorW/2,ry+bh+8,doorW*1.2,12,0,0,Math.PI*2);ctx.fill();
       }
 
       // Pitched roof — shingle texture
@@ -4428,6 +4439,9 @@ function drawDecor(d) {
       if(isNight){
         ctx.fillStyle='rgba(255,180,60,0.1)';
         ctx.beginPath();ctx.ellipse(lwx+ww3/2,ry+bh+6,20,8,0,0,Math.PI*2);ctx.fill();
+        // Tavern ground light pool
+        ctx.fillStyle=`rgba(255,180,60,${0.06+Math.sin(_t*1.2)*0.02})`;
+        ctx.beginPath();ctx.ellipse(lwx+ww3/2,ry+bh+8,ww3*1.5,10,0,0,Math.PI*2);ctx.fill();
       }
       // Right window (if wide enough)
       if(d.w>=6){
@@ -4579,7 +4593,7 @@ function drawDecor(d) {
       ctx.fillStyle='#909088';ctx.fillRect(antX-6,antY+4,14,2); // dish body
 
       // Blinking LED light on roof (red, toggles)
-      const ledOn=Math.floor(performance.now()/500)%2===0;
+      const ledOn=Math.floor(_now/500)%2===0;
       ctx.fillStyle=ledOn?'#FF2020':'#600000';
       ctx.beginPath();ctx.arc(rx+rw*0.2,ry-2,3,0,Math.PI*2);ctx.fill();
       if(ledOn){
@@ -4763,9 +4777,9 @@ function drawPlaced(item){
   if(sx>canvas.width+ST||sy>canvas.height+ST||sx<-ST||sy<-ST)return;
   const w=ST*.8,h=ST*.6,rx=sx-w/2,ry=sy-h/2;
   if(item.type==='solar_panel'){ctx.fillStyle='#2244AA';ctx.fillRect(rx,ry,w,h);ctx.fillStyle='#3366CC';ctx.fillRect(rx+3,ry+3,w-6,h-6);
-    const sun=getHour()>=6&&getHour()<=20?.3:0;if(sun>0){ctx.fillStyle=`rgba(255,255,200,${sun*(0.4+Math.sin(performance.now()/300)*.2)})`;ctx.fillRect(rx+8,ry+4,10,6);}}
+    const sun=_hour>=6&&_hour<=20?.3:0;if(sun>0){ctx.fillStyle=`rgba(255,255,200,${sun*(0.4+Math.sin(_now/300)*.2)})`;ctx.fillRect(rx+8,ry+4,10,6);}}
   else if(item.type==='battery'){ctx.fillStyle='#333';ctx.fillRect(rx,ry,w,h);const pct=pwr.maxStore>0?pwr.stored/pwr.maxStore:0;ctx.fillStyle=pct>.5?C.green:pct>.2?C.ledOrange:C.red;ctx.fillRect(rx+4,ry+h-8,(w-8)*pct,4);}
-  else if(item.type==='cooling_fan'){ctx.fillStyle='#445566';ctx.fillRect(rx,ry,w,h);ctx.save();ctx.translate(sx,sy);const t=performance.now()/150;for(let i=0;i<4;i++){ctx.rotate(Math.PI/2+t);ctx.fillStyle='#778899';ctx.fillRect(-2,-12,4,12);}ctx.restore();}
+  else if(item.type==='cooling_fan'){ctx.fillStyle='#445566';ctx.fillRect(rx,ry,w,h);ctx.save();ctx.translate(sx,sy);const t=_now/150;for(let i=0;i<4;i++){ctx.rotate(Math.PI/2+t);ctx.fillStyle='#778899';ctx.fillRect(-2,-12,4,12);}ctx.restore();}
   else if(item.type==='chest'){
     ctx.fillStyle='#7A5A20';ctx.fillRect(sx-ST/2+6,sy-ST/2+12,ST-12,ST-16);
     ctx.fillStyle='#8A6A30';ctx.fillRect(sx-ST/2+4,sy-ST/2+10,ST-8,6);
@@ -4786,8 +4800,8 @@ function drawPlaced(item){
     ctx.fillStyle='#32CD32';ctx.beginPath();ctx.ellipse(sx+5,sy-10,4,2,0.5,0,Math.PI*2);ctx.fill();
   }
   else if(item.type==='torch_item'){
-    const t=performance.now()/1000;
-    const isNight=getHour()<6||getHour()>20;
+    const t=_t;
+    const isNight=_isNight;
     // Glow at night
     if(isNight){
       const glow=0.15+Math.sin(t*3)*0.05;
@@ -4805,7 +4819,7 @@ function drawPlaced(item){
     ctx.fillStyle='rgba(255,255,200,0.6)';ctx.beginPath();ctx.arc(sx,sy-20,2,0,Math.PI*2);ctx.fill();
   }
   else if(item.type==='bitcoin_sign'){
-    const t=performance.now()/1000;
+    const t=_t;
     const glow=0.5+Math.sin(t*2)*0.2;
     // Post
     ctx.fillStyle='#6A4A2A';ctx.fillRect(sx-3,sy-4,6,20);
@@ -4931,7 +4945,7 @@ function drawAnimal(a){
   ctx.restore();
   // Product ready indicator (bouncing icon)
   if(a.prodReady){
-    const bounce=Math.sin(performance.now()/300)*4;
+    const bounce=Math.sin(_now/300)*4;
     ctx.font='16px serif';ctx.textAlign='center';
     ctx.fillText(info.icon,sx,sy-30+bounce);
   }
@@ -4996,7 +5010,7 @@ function drawNPC(n){
     ctx.fillStyle=C.skin;ctx.fillRect(px+12,py+4+bob,w-24,16);ctx.fillRect(px+14,py+18+bob,w-28,4);
     ctx.fillStyle='#222';ctx.fillRect(px+10,py+bob,w-20,8); // dark slicked hair
     // Nervous sweat drop
-    const st=performance.now()/800;
+    const st=_now/800;
     if(Math.sin(st)>0.3){ctx.fillStyle='rgba(100,180,255,0.7)';ctx.fillRect(px+w-12,py+6+bob,3,5);}
     // Eyes — wide, nervous
     ctx.fillStyle=C.white;ctx.fillRect(px+15+eyeOff,py+9+bob,7,6);ctx.fillRect(px+w-22+eyeOff,py+9+bob,7,6);
@@ -5096,7 +5110,7 @@ function drawNPC(n){
     ctx.fillStyle='#333';ctx.fillRect(px+10,py+bob,w-20,8);
     ctx.fillRect(px+10,py+2+bob,4,6); // sideburns
     // LASER EYES
-    const lt=performance.now()/200;
+    const lt=_now/200;
     const laserAlpha=0.5+Math.sin(lt)*0.3;
     ctx.fillStyle=C.white;ctx.fillRect(px+16+eyeOff,py+10+bob,6,5);ctx.fillRect(px+w-22+eyeOff,py+10+bob,6,5);
     ctx.fillStyle=`rgba(247,147,26,${laserAlpha})`;
@@ -5202,7 +5216,7 @@ function drawNPC(n){
   // Quest markers
   const rel=relationships[n.name];
   if(rel){
-    const t=performance.now()/1000;
+    const t=_t;
     const bob=Math.sin(t*2.5)*4; // bobbing animation
     const markerY=py-22+bob;
     if(rel.hearts>=10){
@@ -5244,7 +5258,7 @@ function drawRig(r){
   const w=ST+8,h=ST+4,rx=sx-w/2,ry=sy-h/2;
   if(sx>canvas.width+w||sy>canvas.height+h||sx<-w||sy<-h)return;
   
-  const t = performance.now()/1000;
+  const t = _t;
   const active = r.powered && r.dur > 0 && !r.oh;
   
   // Heat glow
@@ -5364,7 +5378,7 @@ function drawHUD(){
   let y=p+18;
   // Sats counter with earning indicator
   const isEarning = rigs.some(r=>r.powered&&!r.oh&&r.dur>0);
-  const pulse = isEarning ? 1 + Math.sin(performance.now()/200)*0.08 : 1;
+  const pulse = isEarning ? 1 + Math.sin(_now/200)*0.08 : 1;
   ctx.fillStyle=C.hud;ctx.font=`bold ${Math.floor(18*pulse)}px ${FONT}`;ctx.textAlign='left';
   ctx.fillText(`₿ ${fmt(player.wallet)} sats`,p+12,y);
   if(isEarning){ctx.fillStyle=C.green;ctx.font=`bold 13px ${FONT}`;ctx.fillText(' ⛏️ MINING',p+12+ctx.measureText(`₿ ${fmt(player.wallet)} sats`).width+8,y);}
@@ -5476,16 +5490,16 @@ function drawHUD(){
     else if(tut.highlight==='arrow_south'){drawTutArrow(sx2,sy2+70,'down');}
     else if(tut.highlight==='key_e'||tut.highlight==='key_i'||tut.highlight==='key_b'||tut.highlight==='key_1'){
       const key=tut.highlight.replace('key_','').toUpperCase();
-      const pulse=0.5+Math.sin(performance.now()/300)*0.3;
+      const pulse=0.5+Math.sin(_now/300)*0.3;
       ctx.fillStyle=`rgba(247,147,26,${pulse})`;ctx.font=`bold 28px ${FONT}`;ctx.textAlign='center';
       ctx.fillText(`[ ${key} ]`,canvas.width/2,ty+th+30);
     }
     else if(tut.highlight==='hotbar'){
-      ctx.strokeStyle=`rgba(247,147,26,${0.5+Math.sin(performance.now()/300)*0.3})`;ctx.lineWidth=3;
+      ctx.strokeStyle=`rgba(247,147,26,${0.5+Math.sin(_now/300)*0.3})`;ctx.lineWidth=3;
       const hbX2=(canvas.width-10*48)/2;ctx.strokeRect(hbX2-6,canvas.height-68,10*48+12,56);
     }
     else if(tut.highlight==='hud_sats'){
-      ctx.strokeStyle=`rgba(247,147,26,${0.5+Math.sin(performance.now()/300)*0.3})`;ctx.lineWidth=3;
+      ctx.strokeStyle=`rgba(247,147,26,${0.5+Math.sin(_now/300)*0.3})`;ctx.lineWidth=3;
       ctx.strokeRect(p-2,p-2,294,30);
     }
     else if(tut.highlight==='controls'){
@@ -5652,7 +5666,7 @@ function drawHUD(){
     }
 
     // Seed fragments (pulsing gold)
-    const sfGlow=0.5+Math.sin(performance.now()/400)*0.5;
+    const sfGlow=0.5+Math.sin(_now/400)*0.5;
     for(const d of decor){
       if(d.type==='seed_fragment'){
         ctx.fillStyle=`rgba(255,215,0,${sfGlow})`;
@@ -5669,7 +5683,7 @@ function drawHUD(){
 
     // Player (bright orange blinking dot)
     const px=player.x/TILE, py=player.y/TILE;
-    const blink=Math.sin(performance.now()/300)>0;
+    const blink=Math.sin(_now/300)>0;
     if(blink){
       ctx.fillStyle='#F7931A';
       ctx.beginPath();ctx.arc(mmX+px*scaleX,mmY+py*scaleY,3,0,Math.PI*2);ctx.fill();
@@ -6021,7 +6035,7 @@ function drawChest(){
 
 function panel(x,y,w,h){ctx.fillStyle=C.hudBg;rr(x,y,w,h,6);ctx.strokeStyle=C.hudBorder;ctx.lineWidth=1.5;ctx.stroke();}
 function drawTutArrow(x,y,dir){
-  const t=performance.now()/1000;const pulse=Math.sin(t*4)*6;
+  const t=_t;const pulse=Math.sin(t*4)*6;
   ctx.fillStyle=C.orange;ctx.beginPath();
   if(dir==='left'){ctx.moveTo(x-pulse,y);ctx.lineTo(x+16,y-10);ctx.lineTo(x+16,y+10);}
   else if(dir==='down'){ctx.moveTo(x,y+pulse);ctx.lineTo(x-10,y-16);ctx.lineTo(x+10,y-16);}
@@ -6058,7 +6072,7 @@ function drawCrop(crop) {
   
   // Glow when ready
   if (ready) {
-    ctx.fillStyle = `rgba(247,147,26,${0.2 + Math.sin(performance.now()/400)*0.1})`;
+    ctx.fillStyle = `rgba(247,147,26,${0.2 + Math.sin(_now/400)*0.1})`;
     ctx.beginPath(); ctx.arc(sx + ST/2, sy + ST/2, 20, 0, Math.PI*2); ctx.fill();
   }
   
@@ -6175,7 +6189,7 @@ function drawDaySummary() {
   ctx.fillText(`${fmt(player.wallet)} sats`, x + w - 24, sy);
   
   // Pulsing continue
-  ctx.globalAlpha = 0.5 + Math.sin(performance.now() / 400) * 0.5;
+  ctx.globalAlpha = 0.5 + Math.sin(_now / 400) * 0.5;
   ctx.fillStyle = C.orange; ctx.font = `bold 13px ${FONT}`; ctx.textAlign = 'center';
   ctx.fillText('Press ENTER to continue', canvas.width / 2, y + h - 20);
   ctx.globalAlpha = 1;
@@ -6346,7 +6360,7 @@ function drawMine(){
   // Draw loot
   for(const l of f.loot){
     const sx=l.x*ST-cam.x,sy=l.y*ST-cam.y;
-    const glow=0.5+Math.sin(performance.now()/400)*0.3;
+    const glow=0.5+Math.sin(_now/400)*0.3;
     ctx.fillStyle=`rgba(247,147,26,${glow*0.15})`;ctx.beginPath();ctx.arc(sx+ST/2,sy+ST/2,14,0,Math.PI*2);ctx.fill();
     const it=ITEMS[l.id];
     ctx.font='18px serif';ctx.textAlign='center';ctx.fillText(it?it.icon:'?',sx+ST/2,sy+ST/2+6);
@@ -6356,7 +6370,7 @@ function drawMine(){
     if(!en.alive)continue;
     const sx=en.x*ST-cam.x,sy=en.y*ST-cam.y;
     const info=MINE_ENEMIES[en.type];
-    const t=performance.now()/1000;
+    const t=_t;
     const bob=Math.sin(t*3+en.x+en.y)*2;
     // Apply lunge offset
     const lx=(en._lungeX||0)*SCALE, ly=(en._lungeY||0)*SCALE;
@@ -6521,7 +6535,7 @@ function drawMine(){
     for(const tc of f.torches){
       const tsx=tc.x*ST-cam.x,tsy=tc.y*ST-cam.y;
       ctx.fillStyle='#5A3A1A';ctx.fillRect(tsx+ST/2-2,tsy+4,4,12);
-      const flicker=Math.sin(performance.now()/200+tc.x*3+tc.y*7)*3;
+      const flicker=Math.sin(_now/200+tc.x*3+tc.y*7)*3;
       ctx.fillStyle='#FF8830';ctx.fillRect(tsx+ST/2-3+flicker,tsy,6,6);
       ctx.fillStyle='#FFCC40';ctx.fillRect(tsx+ST/2-2+flicker,tsy+1,4,3);
       // Warm light pool
