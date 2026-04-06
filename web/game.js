@@ -5381,7 +5381,12 @@ function drawHUD(){
   const pulse = isEarning ? 1 + Math.sin(_now/200)*0.08 : 1;
   ctx.fillStyle=C.hud;ctx.font=`bold ${Math.floor(18*pulse)}px ${FONT}`;ctx.textAlign='left';
   ctx.fillText(`₿ ${fmt(player.wallet)} sats`,p+12,y);
-  if(isEarning){ctx.fillStyle=C.green;ctx.font=`bold 13px ${FONT}`;ctx.fillText(' ⛏️ MINING',p+12+ctx.measureText(`₿ ${fmt(player.wallet)} sats`).width+8,y);}
+  if(isEarning){
+    ctx.fillStyle=C.green;ctx.font=`bold 13px ${FONT}`;
+    // Calculate sats per second estimate
+    const sps=rigs.reduce((s,r)=>s+(r.powered&&!r.oh&&r.dur>0?(r.hr*1000/(econ.diff*60)):0),0);
+    ctx.fillText(` ⛏️ +${sps.toFixed(1)} sats/s`,p+12+ctx.measureText(`₿ ${fmt(player.wallet)} sats`).width+8,y);
+  }
   y+=22;
   ctx.font=`15px ${FONT}`;ctx.fillStyle='#CCC';
   ctx.fillText(`${getTimeStr()}${time.spd>1?' ⏩':''}`,p+12,y);y+=16;
@@ -5439,11 +5444,17 @@ function drawHUD(){
   ctx.fillStyle='#999';ctx.font=`bold 12px ${FONT}`;ctx.textAlign='center';
   if(!isMobile) ctx.fillText('WASD:Move  E:Interact  R:Use/Plant  T:Craft  H:Harvest  I:Inventory  B:Shop  C:Citadel  O:Quests  K:Skills  M:Music  ?:Help  P:Save',canvas.width/2,cbY+8);
   
-  // Energy
-  const ebW=100,ebX=canvas.width-ebW-p-10,ebY=hbY-18;
-  ctx.fillStyle='#1A1A20';ctx.fillRect(ebX,ebY,ebW,8);ctx.fillStyle=player.energy>30?C.green:C.red;
-  ctx.fillRect(ebX,ebY,ebW*(player.energy/player.maxEnergy),8);
-  ctx.fillStyle='#AAA';ctx.font=`11px ${FONT}`;ctx.textAlign='right';ctx.fillText(`Energy: ${Math.floor(player.energy)}`,ebX+ebW,ebY-2);
+  // Energy bar — wider, gradient colored
+  const ebW=140,ebX=canvas.width-ebW-p-10,ebY=hbY-22;
+  const ePct=player.energy/player.maxEnergy;
+  ctx.fillStyle='rgba(10,10,15,0.7)';rr(ebX-4,ebY-14,ebW+8,28,4);
+  ctx.fillStyle='#1A1A20';ctx.fillRect(ebX,ebY,ebW,10);
+  ctx.fillStyle=ePct>0.5?'#4CAF50':ePct>0.25?'#FF9800':'#F44336';
+  ctx.fillRect(ebX,ebY,ebW*ePct,10);
+  // Low energy warning flash
+  if(ePct<0.2){ctx.fillStyle=`rgba(255,50,50,${0.15+Math.sin(_t*4)*0.1})`;ctx.fillRect(ebX,ebY,ebW*ePct,10);}
+  ctx.fillStyle='#DDD';ctx.font=`bold 12px ${FONT}`;ctx.textAlign='center';
+  ctx.fillText(`⚡ ${Math.floor(player.energy)}/${player.maxEnergy}`,ebX+ebW/2,ebY-2);
   
   // Rig detail
   let nr=null,nd=60;for(const r of rigs){const d=Math.hypot(r.x-player.x,r.y-player.y);if(d<nd){nr=r;nd=d;}}
