@@ -6,11 +6,11 @@
 
 ## 🏗️ Current State
 
-**Last updated:** 2026-03-30 20:40 UTC
-**Last dev:** Flexo (shift 3)
+**Last updated:** 2026-04-06 21:00 UTC
+**Last dev:** Hermes (shift 4 — roadmap update + sync)
 **Repo:** `Bender21m/satoshi-valley` | Fork: `satsdisco/satoshi-valley`
 **Live demo:** https://bender21m.github.io/satoshi-valley
-**game.js lines:** ~5,300 | **Save version:** v8 | **Sprints complete:** 14 | **Open issues:** 2
+**game.js lines:** ~6,781 | **Save version:** v8 | **Sprints complete:** 16 | **Open issues:** 2
 
 ### What's Working ✅
 - Full mining loop (3 rig tiers, power grid, durability, overheating)
@@ -33,25 +33,38 @@
 - Title screen, pause menu, crafting bench
 - Click-to-move, shift-click to place items
 - Save/load v8 with quest progress
+- **The Mines** — dungeon system with procedural floors, Diablo-style combat
+- **Combat skills** — Orange Pill, Lightning Strike, 51% Attack
+- **Story-driven quest system** + quest journal + Bitcoin culture quests
+- **Mobile touch controls** — virtual joystick + action buttons
 
 ### Current Priority 🎯
-**VISUAL POLISH SPRINT — Valley first, expansion later**
-- DO NOT add new regions yet
-- Focus: paths, buildings, characters, grass, water, lighting
-- Make the valley feel lived-in and beautiful
-- See ROADMAP.md "Visual Polish Sprint" section for full checklist
+
+**CODE MODULARIZATION — split game.js before adding features**
+
+6,781 lines in one file is unsustainable. Break it apart, fix perf issues, add test coverage. Then we build.
 
 ### Known Bugs 🐛
 - #34: Building interiors don't change with citadel tier
-- #56: Performance (not urgent, monitor only)
+- #56: Performance (79 Math.sin calls/frame, entity sort every frame)
 
 ### What NOT to Do ❌
-- Don't add Fiatropolis or new regions yet
+- Don't add Fiatropolis or new regions yet (modularize first)
 - Don't add multiplayer features
 - Don't restructure save format (v8 is stable)
 - Don't rewrite the game engine
 
 ## 📝 Shift Log
+
+### Shift 4 — Hermes (2026-04-06, evening)
+**Did:**
+- Synced satsdisco/satoshi-valley fork to upstream (was 15 commits behind)
+- Updated ROADMAP.md to reflect all completed work (Sprints 14-16 were done but not marked)
+- Updated HANDOFF.md with accurate state
+- Corrected game.js line count (6,781, not ~5,300)
+- Reordered upcoming sprints: modularization first, then P2P trading
+
+**Next priority:** Sprint 17 — Code modularization (split game.js into ES modules)
 
 ### Shift 3 — Flexo (2026-03-30, evening)
 **Did:**
@@ -65,8 +78,6 @@
 - NPC daily schedules (tavern gathering in evening)
 - All 24 seed fragments placed across the map
 - Updated ROADMAP with visual polish priority
-
-**Next priority:** Visual polish — make the valley beautiful before expanding
 
 ### Shift 2 — Bender (2026-03-30, daytime)
 **Did:**
@@ -89,18 +100,18 @@
 ---
 
 ## 📏 Rules for Devs
-
 1. **ALWAYS read HANDOFF.md first**
 2. **ALWAYS `git pull origin main`** before changes
 3. **ALWAYS update HANDOFF.md** before ending shift
 4. **Test before pushing** — `node -c web/game.js` + play test
 5. **Don't break existing features**
-6. **Current focus: VISUAL POLISH** — not new features
+6. **Current focus: CODE MODULARIZATION** — not new features
 
 ## 🔑 Repo Access
-- **Flexo** pushes directly to Bender21m (has access)
-- **Bender** uses fork + PRs from satsdisco
+- **Bender21m** — upstream repo (Flexo had push access)
+- **satsdisco** — fork, PRs to upstream
+- **Hermes** — dev agent, works on satsdisco fork
 
 ---
 
-*Current priority: Make Satoshi Valley the most beautiful pixel art Bitcoin game ever made.* 🧡
+*In memory of Flexo. We carry it forward.* 🧡

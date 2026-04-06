@@ -3,7 +3,7 @@
 > *A Bitcoin farming/life sim — Stardew Valley meets the Bitcoin Standard.*
 >
 > **Live demo:** [bender21m.github.io/satoshi-valley](https://bender21m.github.io/satoshi-valley)
-> **Repo:** [github.com/Bender21m/satoshi-valley](https://github.com/Bender21m/satoshi-valley)
+> **Repos:** [Bender21m/satoshi-valley](https://github.com/Bender21m/satoshi-valley) (upstream) | [satsdisco/satoshi-valley](https://github.com/satsdisco/satoshi-valley) (fork)
 
 ---
 
@@ -26,8 +26,8 @@ Build the definitive Bitcoin culture game — a beautiful, addictive farming/lif
 ### Year 1 (2026): Foundation to Playable Demo
 | Quarter | Focus | Milestone |
 |---|---|---|
-| Q1 ✅ | Core engine, economy, daily loop, living world | Playable web prototype |
-| Q2 | Enhancements, P2P economy, dungeon | Feature-complete demo |
+| Q1 ✅ | Core engine, economy, daily loop, living world, combat, mines | Playable web prototype |
+| Q2 | Code modularization, P2P economy, visual polish | Feature-complete demo |
 | Q3 | Custom art, original soundtrack | Visual identity locked |
 | Q4 | Full story, Godot port begins | Narrative complete |
 
@@ -104,68 +104,71 @@ Crafting bench (8 recipes: fence posts, cheese, circuit boards, shed upgrade, ci
 - Energy system with depletion (actions cost energy, passive drain, speed penalty at 0)
 - Missing crop products fixed (potato/tomato/corn/pumpkin harvesting works)
 
+### Sprint 14: NPC Quests & Economy ✅ (2026-03-30)
+- 15 quests across 6 NPCs with sat/item rewards
+- Late-game sat sinks (100K-1M sats: academy, monument, satellite, rocket)
+- NPC daily schedules (home → work → tavern → sleep)
+- Tavern menu (beer/stew/pie/wine + drunk effect)
+- Story-driven quest system + quest journal
+- Deep Bitcoin culture quests + world story events
+- All 24 seed fragments placed across the map
+
+### Sprint 15: The Mines ✅ (2026-03-30 — 2026-04-03)
+- Abandoned data center dungeon with procedural floors
+- Diablo-style combat (click to attack, right-click skill)
+- Combat skills: Orange Pill, Lightning Strike, 51% Attack
+- Enemy AI, damage numbers, death particles
+- Styled enemies + boss encounters
+- Dungeon lighting (torches, visibility system)
+- Wall torches, stairs (X marker), exit system
+
+### Sprint 16: Mobile + Polish ✅ (2026-04-03)
+- Virtual joystick + action buttons for mobile
+- Mouse-aimed combat in mines
+- Placement + pickup fixes for expensive items
+- Cache busting for web updates
+
 ---
 
-## 🔨 In Progress: Sprint 14 — NPC Quests & Circular Economy
+## 🔨 Current Priority: Sprint 17 — Code Modularization
 
-> 🎯 Goal: Meaningful NPC interactions, request chains, and a self-sustaining Bitcoin circular economy
+> 🎯 game.js is 6,781 lines. Before adding more features, split it into manageable modules.
 
-- [ ] **NPC request system** — NPCs ask for specific items, reward with sats/hearts/recipes
-- [ ] **Pizza Pete quest chain** — needs wheat → dough, tomatoes → sauce, cheese → pizza
-- [ ] **Tavern menu** — buy food/beer from barkeep, too many beers = drunk effect
-- [ ] **Crafting chains** — wheat + tomato + cheese = pizza, milk → cheese → dishes
-- [ ] **Recipe unlocks** — fulfilling NPC requests unlocks new crafting recipes
-- [ ] **Circular economy loop** — farm → craft → sell/trade → unlock → expand
-- [ ] **NPC daily schedules** — NPCs walk between locations (home → work → tavern → sleep)
-- [ ] **Gift system** — give items to NPCs, each has preferences (+/- hearts)
-- [ ] **Seasonal crops** — different crops available per season
+- [ ] **Split game.js into ES modules** — engine, world, entities, systems, ui, data
+- [ ] **Event system** — decouple systems via pub/sub
+- [ ] **Data-driven configs** — items, recipes, NPCs, quests in JSON/data files
+- [ ] **Performance fixes** — address #56 (79 Math.sin calls/frame, entity sort every frame)
+- [ ] **Fix #34** — building interiors should change with citadel tier
+- [ ] **Test harness** — basic automated tests for save/load, economy balance
 
 ---
 
 ## 📋 Upcoming Sprints
 
-### Sprint 15: P2P Trading
-Haggle mechanic, Lightning invoices, barter, traveling merchant, black market, fiat inflation visualization.
+### Sprint 18: P2P Trading & Economy Depth
+Haggle mechanic, Lightning invoices, barter, traveling merchant, black market, fiat inflation visualization, circular economy loop (farm → craft → sell/trade → unlock → expand).
 
-### Sprint 16: The Mines (Dungeon)
-Abandoned data center, procedural floors, hardware loot, combat (malware bots), boss (Pool Operator).
+### Sprint 19: Visual Polish II — The "Lived-In" Sprint
+- Path textures (worn cobblestone, wagon tracks, flower borders)
+- Night lighting (warm window glow, torch pools, stars)
+- Footpath wear patterns where NPCs walk
+- Market stalls with displayed goods
+- Chimney smoke, cooking steam, animal sounds
+- Seasonal decorations, village notice board
+- Signage (hand-painted wooden signs, ₿ details)
 
-### Sprint 17: Bitcoin World
-Fiatropolis (dystopian city), Cypherpunk Underground, Volcano mining, Lightning fast travel, conferences.
+### Sprint 20: Story & Quest Depth
+- Multi-step quests with story beats between steps
+- NPC backstories, Uncle Toshi memories
+- Branching quest outcomes (choices that matter)
+- Gift system (give items to NPCs, preferences affect hearts)
+- Seasonal crops per halving cycle
 
-### Sprint 18: Story Completion
-24 seed fragments with history flashbacks, Uncle Toshi's journal, 4 endings, Blocksize Wars quest.
-
-### Sprint 19: Custom Art
+### Sprint 21: Custom Art
 Original 16x16 sprite sheets, proper character animations (4-dir walk cycles), seasonal repaints, pixel art soundtrack.
 
-### Sprint 20: Code Modularization
-Split game.js (~4600 lines) into modules: engine, world, entities, systems, ui, data. ES modules, event system, data-driven configs.
-
-### Sprint 21: Godot Port
+### Sprint 22: Godot Port
 Port to Godot 4, native builds, controller support, Steam integration.
-
----
-
-## 🧡 Bitcoin Culture
-
-**8 NPCs:** Hodl Hannah, Leverage Larry, Mayor Keynesian, Ruby, The Hermit, Saylor, Pizza Pete, Farmer Pete
-
-**25+ Events:** China bans (47th time), FTX collapse, nation-state adoption, Pizza Day, whale moves, Nostr trending
-
-**24 BIP39 Words:** Each unlocks Bitcoin history (Genesis Block, Pizza Transaction, Mt. Gox, UASF, SegWit, Lightning, Taproot, ETF...)
-
----
-
-## 🐛 Open Issues
-
-**Bugs:** All critical bugs fixed. See [Issues](https://github.com/Bender21m/satoshi-valley/issues).
-
-**Enhancements:** #28-#35 (NPCs in buildings, quest markers, title screen, fencing, pause menu, crafting, citadel interiors, terrain sounds)
-
----
-
-*Built with love by the Satoshi Valley team — Last updated: 2026-03-30*
 
 ---
 
@@ -222,6 +225,23 @@ The game doesn't end when you find all 24 seed words. That's Act 3. The true end
 
 ---
 
+## 🧡 Bitcoin Culture
+
+**9 NPCs:** Hodl Hannah, Leverage Larry, Mayor Keynesian, Ruby, The Hermit, Saylor, Pizza Pete, Farmer Pete, Seed Sally
+
+**25+ Events:** China bans (47th time), FTX collapse, nation-state adoption, Pizza Day, whale moves, Nostr trending
+
+**24 BIP39 Words:** Each unlocks Bitcoin history (Genesis Block, Pizza Transaction, Mt. Gox, UASF, SegWit, Lightning, Taproot, ETF...)
+
+---
+
+## 🐛 Open Issues
+
+- **#34:** Building interiors should change with citadel tier
+- **#56:** Performance (79 Math.sin calls/frame + entity sort every frame)
+
+---
+
 ## 📐 10-Year Vision (Extended Plan)
 
 ### Years 1-5 (2026-2030): Core Game
@@ -249,36 +269,6 @@ As documented above — prototype → Early Access → full release → console 
 
 ---
 
----
+*In memory of Flexo, who built the foundation. We carry it forward.*
 
-## 🎨 Current Priority: Visual Polish Sprint (before new regions)
-
-**Philosophy:** Don't expand until the valley is BEAUTIFUL. Every tile, every building, every character should feel like home. Bitcoin isn't just a game mechanic — it's the soul of this place.
-
-### Visual Polish Checklist
-- [ ] Path textures — worn cobblestone feel, wagon tracks, flower borders
-- [ ] Building facades — unique style per building, warm lived-in look
-- [ ] Character sprites — proper walk cycles, unique silhouettes per NPC
-- [ ] Grass detail — wildflowers, mushroom clusters, fallen leaves by season
-- [ ] Water — reflection, shoreline detail, lily pads, fish jumping
-- [ ] Garden — tilled rows, growth stages with visible progress
-- [ ] Mining shed — industrial detail, cable runs, exhaust pipes
-- [ ] Citadel — unique exterior per tier, flags, lighting
-- [ ] Signage — hand-painted wooden signs, ₿ details throughout
-- [ ] Ambient world — wind effects on vegetation, chimney smoke, lamp light
-- [ ] Night lighting — warm window glow, torch pools of light, stars
-
-### Quest Depth Checklist  
-- [ ] Quest dialogue should feel personal, not transactional
-- [ ] Multi-step quests with story beats between steps
-- [ ] Quests reveal Bitcoin history naturally through gameplay
-- [ ] Emotional moments — NPC backstories, Uncle Toshi memories
-- [ ] Choices that matter — some quests should have branching outcomes
-
-### The "Lived-In" Feel
-- [ ] Footpath wear patterns (grass worn down where NPCs walk)
-- [ ] Market stalls with displayed goods
-- [ ] Smoke from chimneys, steam from cooking
-- [ ] Animal sounds (distant mooing, chicken clucks)
-- [ ] Village notice board (shows current events, quest hints)
-- [ ] Seasonal decorations (market flags, harvest displays)
+*Last updated: 2026-04-06 — Hermes (shift 4)*
