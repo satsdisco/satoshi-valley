@@ -1115,7 +1115,7 @@ function isSolid(tx,ty){
   const mh=mineFloor?mineFloor.h:interior?interior.h:MAP_H;
   if(tx<0||ty<0||tx>=mw||ty>=mh)return true;
   if(SOLID.has(m[ty][tx]))return true;
-  if(!interior&&fenceSet.has(tx+','+ty))return true;
+  if(!interior&&!mineFloor&&fenceSet.has(tx+','+ty))return true;
   return false;
 }
 
@@ -2344,8 +2344,9 @@ function update(dt) {
       player.wt+=dt;if(player.wt>.15){player.wt=0;player.wf=(player.wf+1)%4;}
       footT+=dt;if(footT>.35){footT=0;const _sm=interior?interior.map:map;const _stx=Math.floor(player.x/TILE),_sty=Math.floor(player.y/TILE);const _stile=(_sm[_sty]&&_sm[_sty][_stx]!=null)?_sm[_sty][_stx]:T.GRASS;sfx.step(_stile);}
       
-      // Check seed fragments
-      for(let i=decor.length-1;i>=0;i--){
+      // Check seed fragments (overworld only — decor[] is overworld state,
+      // and player.x/y in a mine/interior is in local coordinate space)
+      if(!mineFloor&&!interior)for(let i=decor.length-1;i>=0;i--){
         if(decor[i].type==='seed_fragment'&&Math.hypot(decor[i].x*TILE+8-player.x,decor[i].y*TILE+8-player.y)<20){
           const wordIdx=foundWords.length;
           if(wordIdx<SEED_WORDS.length){
