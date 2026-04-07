@@ -5,6 +5,11 @@
 const canvas = document.getElementById('game');
 const ctx = canvas.getContext('2d');
 
+// ---- WORLD SCALE (mutable so we can zoom out on small screens) ----
+const TILE = 16;
+let SCALE = 3;
+let ST = TILE * SCALE;
+
 // ---- TRUE FULLSCREEN (no DPR scaling — keeps text readable) ----
 let isLandscape = true, isSmallScreen = false, isPortrait = false;
 function resize() {
@@ -12,8 +17,19 @@ function resize() {
   canvas.height = window.innerHeight;
   isLandscape = canvas.width >= canvas.height;
   isPortrait = !isLandscape;
-  // "Small" = either dimension under 700 — phones, mostly. Used for compact HUD/hotbar.
+  // "Small" = either dimension under 900w or 500h — phones, mostly.
   isSmallScreen = canvas.width < 900 || canvas.height < 500;
+  // Dynamic world scale: zoom out on small screens so more of the map is visible
+  const newScale = isSmallScreen ? 2 : 3;
+  if (newScale !== SCALE) {
+    SCALE = newScale;
+    ST = TILE * SCALE;
+    // Recenter camera on player if the game is already running
+    if (typeof player !== 'undefined' && typeof cam !== 'undefined') {
+      cam.x = player.x * SCALE - canvas.width / 2;
+      cam.y = player.y * SCALE - canvas.height / 2;
+    }
+  }
 }
 window.addEventListener('resize', resize);
 window.addEventListener('orientationchange', () => setTimeout(resize, 100));
@@ -36,12 +52,14 @@ function toggleHud() { setHudMinimized(!hudMinimized); }
 
 
 // ---- CONSTANTS ----
-const TILE = 16, SCALE = 3, ST = TILE * SCALE;
+// TILE/SCALE/ST declared above the resize() function since it mutates them.
 const MAP_W = 120, MAP_H = 90; // MUCH bigger world
 const FONT = '"Courier New", monospace';
 
 // ---- MOBILE DETECTION & TOUCH CONTROLS ----
-const isMobile = /Android|iPhone|iPad|iPod|webOS/i.test(navigator.userAgent) || ('ontouchstart' in window);
+// `let` so ?mobile=1 URL param or a runtime toggle can override for testing
+let isMobile = /Android|iPhone|iPad|iPod|webOS/i.test(navigator.userAgent) || ('ontouchstart' in window);
+if (typeof location !== 'undefined' && location.search.indexOf('mobile=1') !== -1) isMobile = true;
 const touch = {
   // Virtual joystick state
   joyActive: false, joyStartX: 0, joyStartY: 0, joyX: 0, joyY: 0, joyDx: 0, joyDy: 0,
@@ -59,6 +77,17 @@ if (isMobile) {
     e.preventDefault();
     for (const t of e.changedTouches) {
       // Left half = joystick
+      // Priority: UI buttons first (regardless of side)
+      if (hudToggleHit(t.clientX, t.clientY)) {
+        toggleHud();
+        return;
+      }
+      if (rotateNudgeHit(t.clientX, t.clientY)) { dismissRotateNudge(); return; }
+      if (ctxBtnHit(t.clientX, t.clientY)) {
+        const ctxInfo = getInteractContext();
+        if (ctxInfo) { jp[ctxInfo.key] = true; }
+        return;
+      }
       if (t.clientX < canvas.width * 0.4 && !touch.joyActive) {
         touch.joyActive = true;
         touch.joyStartX = t.clientX; touch.joyStartY = t.clientY;
@@ -220,6 +249,12 @@ canvas.addEventListener('click', e => {
   // Rotate nudge — tap dismisses
   if(rotateNudgeHit(e.clientX, e.clientY)){
     dismissRotateNudge();
+    return;
+  }
+  // Contextual interact button (mobile) — fires the right key for the current context
+  if(ctxBtnHit(e.clientX, e.clientY)){
+    const ctxInfo = getInteractContext();
+    if (ctxInfo) { jp[ctxInfo.key] = true; }
     return;
   }
   // Mine combat: LEFT-CLICK = melee attack (Diablo-style)
@@ -3444,6 +3479,101 @@ function hudToggleHit(x, y){
   return (dx*dx + dy*dy) <= r.r*r.r;
 }
 
+// Contextual interact button for mobile — reads player context and shows the right action
+// Returns {key, label} for the current interactable, or null.
+function getInteractContext() {
+  if (!isMobile) return null;
+  if (shopOpen || invOpen || chestOpen || dlg || pauseOpen || craftOpen) return null;
+  // In a shop interior → Shop (B)
+  if (interior && (interior.type === 'shop' || interior.type === 'tavern')) {
+    return { key: 'b', label: interior.type === 'tavern' ? 'Open Tavern' : "Open Shop" };
+  }
+  // In home interior → Sleep (E) — but only at night
+  if (interior && interior.type === 'home') {
+    const nearBed = player.y < 4*TILE && player.x < 5*TILE;
+    if (nearBed) return { key: 'e', label: 'Sleep' };
+  }
+  // Near shop NPC in overworld
+  for (const n of npcs) {
+    if ((n.role==='shop'||n.role==='market'||n.role==='seeds') &&
+        Math.hypot(n.x-player.x, n.y-player.y) < 60) {
+      return { key: 'b', label: n.role==='seeds' ? 'Seed Shop' : (n.role==='market'?'Sell':'Shop') };
+    }
+  }
+  // Near any NPC → Talk (E)
+  for (const n of npcs) {
+    if (Math.hypot(n.x-player.x, n.y-player.y) < 48) {
+      return { key: 'e', label: `Talk: ${n.name}` };
+    }
+  }
+  // Near mine entrance → Enter Mine (E)
+  if (!mineFloor && !interior) {
+    for (const d of decor) {
+      if (d.type === 'mine_entrance' &&
+          Math.hypot(d.x*TILE+8 - player.x, d.y*TILE+8 - player.y) < TILE*2) {
+        return { key: 'e', label: 'Enter Mine' };
+      }
+    }
+  }
+  // Mine exit (go up stairs) is handled by the attack button's 'e' already
+  // Near ready crop → Harvest (H)
+  for (const c of crops) {
+    const info = CROP_TYPES[c.type];
+    if (c.dayAge >= info.grow) {
+      const ix = player.x + player.facing.x * 16, iy = player.y + player.facing.y * 16;
+      if (Math.hypot(c.x*TILE+8 - ix, c.y*TILE+8 - iy) < 28) {
+        return { key: 'h', label: 'Harvest' };
+      }
+    }
+  }
+  // Near rig in current space → Toggle Rig (E)
+  const currentInt = interior ? interior.type : null;
+  for (const r of rigs) {
+    const sameSpace = (currentInt && r.interior === currentInt) || (!currentInt && !r.interior);
+    if (sameSpace && Math.hypot(r.x-player.x, r.y-player.y) < 32) {
+      return { key: 'e', label: r.powered ? 'Turn Off Rig' : 'Turn On Rig' };
+    }
+  }
+  // Near animal → Collect / Pet (E)
+  for (const a of animals) {
+    if (Math.hypot(a.x-player.x, a.y-player.y) < 28) {
+      return { key: 'e', label: a.prodReady ? 'Collect' : 'Pet Animal' };
+    }
+  }
+  return null;
+}
+
+// Draw contextual interact button — a big pill button above the hotbar
+let _ctxBtnRect = {x:0, y:0, w:0, h:0, key:null};
+function drawContextualInteractButton() {
+  if (!isMobile) { _ctxBtnRect.w = 0; return; }
+  const ctx2 = getInteractContext();
+  if (!ctx2) { _ctxBtnRect.w = 0; return; }
+  const w = 180, h = 44;
+  const x = (canvas.width - w) / 2;
+  const y = canvas.height - h - 90; // well above hotbar, away from thumb rest areas
+  _ctxBtnRect = { x, y, w, h, key: ctx2.key };
+  // Pulsing glow
+  const pulseA = 0.4 + Math.sin(_t * 3) * 0.15;
+  ctx.fillStyle = `rgba(247,147,26,${pulseA * 0.3})`;
+  rr(x - 3, y - 3, w + 6, h + 6, 24);
+  ctx.fillStyle = 'rgba(20,12,4,0.9)';
+  rr(x, y, w, h, 22);
+  ctx.strokeStyle = '#F7931A'; ctx.lineWidth = 2;
+  ctx.strokeRect(x + 1, y + 1, w - 2, h - 2);
+  ctx.fillStyle = '#FFE080';
+  ctx.font = `bold 16px ${FONT}`;
+  ctx.textAlign = 'center';
+  ctx.textBaseline = 'middle';
+  ctx.fillText(ctx2.label, x + w/2, y + h/2 + 1);
+  ctx.textBaseline = 'alphabetic';
+}
+function ctxBtnHit(px, py) {
+  const r = _ctxBtnRect;
+  if (!r.w) return false;
+  return px >= r.x && px <= r.x + r.w && py >= r.y && py <= r.y + r.h;
+}
+
 // Portrait rotation nudge — shows a dismissible banner on mobile when held in portrait
 let _rotateNudgeDismissed = (() => { try { return localStorage.getItem('sv_rot_dismissed') === '1'; } catch(e){return false;} })();
 let _rotateNudgeRect = {x:0, y:0, w:0, h:0};
@@ -3567,6 +3697,8 @@ function drawHUD(){
   
   // Mobile touch controls overlay
   if(isMobile) drawTouchControls();
+  // Contextual interact button (mobile) — appears when near something interactable
+  drawContextualInteractButton();
   // Portrait rotation nudge
   drawRotateNudge();
   
@@ -3747,8 +3879,13 @@ function drawHUD(){
   if(pauseOpen) drawPauseMenu();
 
   // Minimap
-  if(minimapOpen && !interior){
-    const mmW=160, mmH=120, mmX=canvas.width-mmW-12, mmY=12;
+  // Minimap: auto-hidden in portrait on mobile (it takes up too much room);
+  // shrunk on landscape mobile
+  if(minimapOpen && !interior && !(isMobile && isPortrait)){
+    const mmW = isSmallScreen ? 110 : 160;
+    const mmH = isSmallScreen ? 80 : 120;
+    const mmX = canvas.width - mmW - 12;
+    const mmY = isSmallScreen ? 48 : 12; // below the HUD strip on small screens
     const scaleX=mmW/MAP_W, scaleY=mmH/MAP_H;
 
     // Background
