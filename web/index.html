@@ -14,11 +14,23 @@ canvas { display: block; width: 100vw; height: 100vh; image-rendering: pixelated
 </head>
 <body>
 <canvas id="game"></canvas>
-<script src="sprites.js?v=18"></script>
-<script src="music.js?v=18"></script>
-<script src="game_audio.js?v=18"></script>
-<script src="game_mines.js?v=18"></script>
-<script src="game_quests.js?v=18"></script>
-<script src="game.js?v=18"></script>
+<!--
+  Script load order matters (Sprint 17 modularization).
+  - game_audio / game_quests / game_mines load BEFORE game.js: they
+    declare shared state (sfx, NPC_QUESTS, mineFloor, MINE_ENEMIES, …)
+    with no top-level references back into game.js.
+  - game_render loads AFTER game.js because its top-level
+    TERRAIN_GRASS/TERRAIN_WATER_SET const initializers reference T
+    (tile enum declared in game.js). All render functions are only
+    invoked from inside gameLoop/draw at runtime — after this script
+    has executed — so the forward reference is safe.
+-->
+<script src="sprites.js?v=19"></script>
+<script src="music.js?v=19"></script>
+<script src="game_audio.js?v=19"></script>
+<script src="game_quests.js?v=19"></script>
+<script src="game_mines.js?v=19"></script>
+<script src="game.js?v=19"></script>
+<script src="game_render.js?v=19"></script>
 </body>
 </html>
