@@ -130,11 +130,18 @@ Crafting bench (8 recipes: fence posts, cheese, circuit boards, shed upgrade, ci
 
 ---
 
-## 🔨 Current Priority: Sprint 17 — Code Modularization
+## 🔨 Current Priority: Sprint 17 — Code Modularization (IN PROGRESS)
 
-> 🎯 game.js is 6,781 lines. Before adding more features, split it into manageable modules.
+> 🎯 game.js is being split into focused files, one system at a time.
 
-- [ ] **Split game.js into ES modules** — engine, world, entities, systems, ui, data
+- [x] **Phase 1: Concat-split into classic-script modules** (2026-04-07)
+  - `game_audio.js` — audio context, tone(), sfx, mining hum (62 lines)
+  - `game_mines.js` — mine state, MINE_ENEMIES, COMBAT_SKILLS, generateMineFloor/enterMine/exitMine/goDeeper/mineAttackEnemy/mineAttackCrate (386 lines)
+  - `game_quests.js` — INTRO_SLIDES, TUTORIAL_STEPS, NPC_QUESTS, STORY_EVENTS, quest journal, getActiveQuest/checkQuestCompletion (319 lines)
+  - game.js: 7,432 → 6,683 lines (−749, −10%)
+- [ ] **Phase 2: Extract world/render** — terrain gen, tile rendering, lighting
+- [ ] **Phase 3: Extract entities** — NPCs, animals, player, projectiles
+- [ ] **Phase 4: Extract UI/HUD** — menus, inventory, quest log, HUD draw
 - [ ] **Event system** — decouple systems via pub/sub
 - [ ] **Data-driven configs** — items, recipes, NPCs, quests in JSON/data files
 - [ ] **Performance fixes** — address #56 (79 Math.sin calls/frame, entity sort every frame)
@@ -271,4 +278,4 @@ As documented above — prototype → Early Access → full release → console 
 
 *In memory of Flexo, who built the foundation. We carry it forward.*
 
-*Last updated: 2026-04-06 — Hermes (shift 4)*
+*Last updated: 2026-04-07 — Hermes (Sprint 17 Phase 1: modularization kickoff)*
