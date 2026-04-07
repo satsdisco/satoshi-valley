@@ -6,12 +6,33 @@ const canvas = document.getElementById('game');
 const ctx = canvas.getContext('2d');
 
 // ---- TRUE FULLSCREEN (no DPR scaling — keeps text readable) ----
+let isLandscape = true, isSmallScreen = false, isPortrait = false;
 function resize() {
   canvas.width = window.innerWidth;
   canvas.height = window.innerHeight;
+  isLandscape = canvas.width >= canvas.height;
+  isPortrait = !isLandscape;
+  // "Small" = either dimension under 700 — phones, mostly. Used for compact HUD/hotbar.
+  isSmallScreen = canvas.width < 900 || canvas.height < 500;
 }
 window.addEventListener('resize', resize);
+window.addEventListener('orientationchange', () => setTimeout(resize, 100));
 resize();
+
+// ---- HUD VISIBILITY (toggleable, persisted) ----
+let hudMinimized = (() => {
+  try {
+    const v = localStorage.getItem('sv_hud_min');
+    if (v !== null) return v === '1';
+  } catch (e) {}
+  // Default: minimized on small screens, full on desktop
+  return isSmallScreen;
+})();
+function setHudMinimized(v) {
+  hudMinimized = !!v;
+  try { localStorage.setItem('sv_hud_min', hudMinimized ? '1' : '0'); } catch (e) {}
+}
+function toggleHud() { setHudMinimized(!hudMinimized); }
 
 
 // ---- CONSTANTS ----
@@ -190,6 +211,17 @@ canvas.addEventListener('click', e => {
 
 canvas.addEventListener('click', e => {
   if(e.shiftKey)return; // Shift+click handled by placement handler above
+  // HUD toggle button — highest priority
+  if(hudToggleHit(e.clientX, e.clientY) && !shopOpen && !invOpen && !chestOpen && !dlg && gameState==='playing'){
+    toggleHud();
+    sfx.menuClose && sfx.menuClose();
+    return;
+  }
+  // Rotate nudge — tap dismisses
+  if(rotateNudgeHit(e.clientX, e.clientY)){
+    dismissRotateNudge();
+    return;
+  }
   // Mine combat: LEFT-CLICK = melee attack (Diablo-style)
   if(mineFloor&&gameState==='playing'&&!shopOpen&&!invOpen&&!dlg){
     const wx=(e.clientX+cam.x)/SCALE, wy=(e.clientY+cam.y)/SCALE;
@@ -3374,56 +3406,152 @@ function update(dt) {
 // ============================================================
 // HUD
 // ============================================================
+// HUD toggle button — small circle in top-right (or right of strip on mobile)
+// Returns its hit-rect for the click handler.
+let _hudToggleRect = {x:0, y:0, r:0};
+function drawHudToggleButton(){
+  // Position: top-LEFT, just past the HUD strip / panel — avoids collision with
+  // the mobile pause/inventory buttons in the top-right and the touch action zone.
+  const r = isSmallScreen ? 18 : 16;
+  let cx, cy;
+  if (hudMinimized) {
+    // Right edge of the minimal strip
+    const stripW = Math.min(canvas.width - 60, 340);
+    cx = 8 + stripW + r + 6;
+    cy = 8 + 15;
+  } else {
+    // Just to the right of the 290px stat panel
+    cx = 14 + 290 + r + 6;
+    cy = 14 + r;
+  }
+  // Safety: don't fall off-screen on tiny widths
+  if (cx > canvas.width - r - 6) cx = canvas.width - r - 6;
+  _hudToggleRect = {x: cx, y: cy, r: r + 4}; // generous hitbox
+  ctx.fillStyle = 'rgba(8,8,12,0.7)';
+  ctx.beginPath(); ctx.arc(cx, cy, r, 0, Math.PI*2); ctx.fill();
+  ctx.strokeStyle = 'rgba(247,147,26,0.5)'; ctx.lineWidth = 2;
+  ctx.beginPath(); ctx.arc(cx, cy, r, 0, Math.PI*2); ctx.stroke();
+  ctx.fillStyle = '#F7931A';
+  ctx.font = `bold ${Math.floor(r*0.95)}px ${FONT}`;
+  ctx.textAlign = 'center'; ctx.textBaseline = 'middle';
+  ctx.fillText(hudMinimized ? '☰' : '×', cx, cy + 1);
+  ctx.textBaseline = 'alphabetic';
+}
+function hudToggleHit(x, y){
+  const r = _hudToggleRect;
+  if (!r.r) return false;
+  const dx = x - r.x, dy = y - r.y;
+  return (dx*dx + dy*dy) <= r.r*r.r;
+}
+
+// Portrait rotation nudge — shows a dismissible banner on mobile when held in portrait
+let _rotateNudgeDismissed = (() => { try { return localStorage.getItem('sv_rot_dismissed') === '1'; } catch(e){return false;} })();
+let _rotateNudgeRect = {x:0, y:0, w:0, h:0};
+function drawRotateNudge(){
+  if (!isMobile || !isPortrait || _rotateNudgeDismissed) { _rotateNudgeRect.w = 0; return; }
+  const w = Math.min(canvas.width - 20, 300);
+  const h = 56;
+  const x = (canvas.width - w)/2;
+  const y = canvas.height - h - 120; // above touch controls
+  _rotateNudgeRect = {x, y, w, h};
+  ctx.fillStyle = 'rgba(8,8,12,0.85)';
+  rr(x, y, w, h, 8);
+  ctx.strokeStyle = 'rgba(247,147,26,0.7)'; ctx.lineWidth = 2;
+  ctx.strokeRect(x+1, y+1, w-2, h-2);
+  ctx.fillStyle = C.orange;
+  ctx.font = `bold 14px ${FONT}`;
+  ctx.textAlign = 'center';
+  ctx.fillText('📱 Rotate to landscape', x + w/2, y + 22);
+  ctx.fillStyle = '#AAA';
+  ctx.font = `11px ${FONT}`;
+  ctx.fillText('(tap to dismiss)', x + w/2, y + 42);
+}
+function rotateNudgeHit(px, py){
+  const r = _rotateNudgeRect;
+  if (!r.w) return false;
+  return px >= r.x && px <= r.x + r.w && py >= r.y && py <= r.y + r.h;
+}
+function dismissRotateNudge(){
+  _rotateNudgeDismissed = true;
+  try { localStorage.setItem('sv_rot_dismissed', '1'); } catch(e){}
+}
+
 function drawHUD(){
   const p=14;
-  // Main panel
-  panel(p,p,290,256);
-  let y=p+18;
-  // Sats counter with earning indicator
   const isEarning = rigs.some(r=>r.powered&&!r.oh&&r.dur>0);
   const pulse = isEarning ? 1 + Math.sin(_now/200)*0.08 : 1;
-  ctx.fillStyle=C.hud;ctx.font=`bold ${Math.floor(18*pulse)}px ${FONT}`;ctx.textAlign='left';
-  ctx.fillText(`₿ ${fmt(player.wallet)} sats`,p+12,y);
-  if(isEarning){
-    ctx.fillStyle=C.green;ctx.font=`bold 13px ${FONT}`;
-    // Calculate sats per second estimate
-    const sps=rigs.reduce((s,r)=>s+(r.powered&&!r.oh&&r.dur>0?(r.hr*1000/(econ.diff*60)):0),0);
-    ctx.fillText(` ⛏️ +${sps.toFixed(1)} sats/s`,p+12+ctx.measureText(`₿ ${fmt(player.wallet)} sats`).width+8,y);
+
+  if (hudMinimized) {
+    // ---- MINIMAL HUD: thin strip top-left, leaves the screen open ----
+    const stripW = Math.min(canvas.width - 60, 340);
+    ctx.fillStyle = 'rgba(8,8,12,0.7)';
+    rr(8, 8, stripW, 30, 6);
+    ctx.fillStyle = C.hud;
+    ctx.font = `bold ${Math.floor(15*pulse)}px ${FONT}`;
+    ctx.textAlign = 'left';
+    ctx.fillText(`₿ ${fmt(player.wallet)}`, 18, 28);
+    ctx.fillStyle = '#CCC';
+    ctx.font = `12px ${FONT}`;
+    ctx.fillText(`${getTimeStr()} D${time.day}`, 130, 28);
+    if (isEarning) {
+      const sps = rigs.reduce((s,r)=>s+(r.powered&&!r.oh&&r.dur>0?(r.hr*1000/(econ.diff*60)):0),0);
+      ctx.fillStyle = C.green;
+      ctx.fillText(`⛏️ +${sps.toFixed(1)}/s`, 220, 28);
+    }
+  } else {
+    // ---- FULL HUD: classic stat panel ----
+    panel(p,p,290,256);
+    let y=p+18;
+    ctx.fillStyle=C.hud;ctx.font=`bold ${Math.floor(18*pulse)}px ${FONT}`;ctx.textAlign='left';
+    ctx.fillText(`₿ ${fmt(player.wallet)} sats`,p+12,y);
+    if(isEarning){
+      ctx.fillStyle=C.green;ctx.font=`bold 13px ${FONT}`;
+      const sps=rigs.reduce((s,r)=>s+(r.powered&&!r.oh&&r.dur>0?(r.hr*1000/(econ.diff*60)):0),0);
+      ctx.fillText(` ⛏️ +${sps.toFixed(1)} sats/s`,p+12+ctx.measureText(`₿ ${fmt(player.wallet)} sats`).width+8,y);
+    }
+    y+=22;
+    ctx.font=`15px ${FONT}`;ctx.fillStyle='#CCC';
+    ctx.fillText(`${getTimeStr()}${time.spd>1?' ⏩':''}`,p+12,y);y+=16;
+    ctx.fillText(`Day ${time.day} — ${getPeriod()}`,p+12,y);y+=16;
+    const weatherEmoji = {sunny:'☀️',cloudy:'☁️',rain:'🌧️',storm:'⛈️'}[weather.current];
+    ctx.fillText(weatherEmoji + ' ' + weather.current.charAt(0).toUpperCase() + weather.current.slice(1), p+12, y); y+=18;
+    const th=rigs.reduce((s,r)=>s+(r.powered&&!r.oh&&r.dur>0?r.hr:0),0);
+    ctx.fillText(`⚡ ${th.toFixed(1)} TH/s | Diff ${econ.diff.toFixed(1)}`,p+12,y);y+=16;
+    ctx.fillStyle=pwr.gen>=pwr.use?C.green:C.red;
+    ctx.fillText(`Power: ${pwr.gen.toFixed(1)}/${pwr.use.toFixed(1)} kW`,p+12,y);
+    if(pwr.maxStore>0){ctx.fillStyle='#CCC';ctx.fillText(`🔋${pwr.stored.toFixed(0)}/${pwr.maxStore}`,p+160,y);}y+=18;
+    ctx.fillStyle=C.phaseCol[econ.phase];ctx.font=`bold 15px ${FONT}`;ctx.fillText(econ.phaseN[econ.phase],p+12,y);y+=14;
+    ctx.fillStyle=C.gray;ctx.font=`13px ${FONT}`;
+    ctx.fillText(`Day ${econ.pd+1}/28 | Cycle ${econ.cycle+1} | ₿${econ.halvings}`,p+12,y);y+=14;
+    ctx.fillText(`Rigs: ${rigs.length} | Earned: ${fmt(player.totalEarned)}`,p+12,y);y+=14;
+    const ct=CITADEL_TIERS[citadelTier];
+    ctx.fillStyle=C.orange;ctx.font=`bold 13px ${FONT}`;
+    ctx.fillText(`${ct.icon} ${ct.name} Lv${citadelTier+1}`,p+12,y);
+    if(isNearHome()){ctx.fillStyle=C.gray;ctx.font=`11px ${FONT}`;ctx.fillText('[C] Citadel Menu',p+12,y+12);}
   }
-  y+=22;
-  ctx.font=`15px ${FONT}`;ctx.fillStyle='#CCC';
-  ctx.fillText(`${getTimeStr()}${time.spd>1?' ⏩':''}`,p+12,y);y+=16;
-  ctx.fillText(`Day ${time.day} — ${getPeriod()}`,p+12,y);y+=16;
-  const weatherEmoji = {sunny:'☀️',cloudy:'☁️',rain:'🌧️',storm:'⛈️'}[weather.current];
-  ctx.fillText(weatherEmoji + ' ' + weather.current.charAt(0).toUpperCase() + weather.current.slice(1), p+12, y); y+=18;
-  const th=rigs.reduce((s,r)=>s+(r.powered&&!r.oh&&r.dur>0?r.hr:0),0);
-  ctx.fillText(`⚡ ${th.toFixed(1)} TH/s | Diff ${econ.diff.toFixed(1)}`,p+12,y);y+=16;
-  ctx.fillStyle=pwr.gen>=pwr.use?C.green:C.red;
-  ctx.fillText(`Power: ${pwr.gen.toFixed(1)}/${pwr.use.toFixed(1)} kW`,p+12,y);
-  if(pwr.maxStore>0){ctx.fillStyle='#CCC';ctx.fillText(`🔋${pwr.stored.toFixed(0)}/${pwr.maxStore}`,p+160,y);}y+=18;
-  ctx.fillStyle=C.phaseCol[econ.phase];ctx.font=`bold 15px ${FONT}`;ctx.fillText(econ.phaseN[econ.phase],p+12,y);y+=14;
-  ctx.fillStyle=C.gray;ctx.font=`13px ${FONT}`;
-  ctx.fillText(`Day ${econ.pd+1}/28 | Cycle ${econ.cycle+1} | ₿${econ.halvings}`,p+12,y);y+=14;
-  ctx.fillText(`Rigs: ${rigs.length} | Earned: ${fmt(player.totalEarned)}`,p+12,y);y+=14;
-  // Citadel tier display
-  const ct=CITADEL_TIERS[citadelTier];
-  ctx.fillStyle=C.orange;ctx.font=`bold 13px ${FONT}`;
-  ctx.fillText(`${ct.icon} ${ct.name} Lv${citadelTier+1}`,p+12,y);
-  if(isNearHome()){ctx.fillStyle=C.gray;ctx.font=`11px ${FONT}`;ctx.fillText('[C] Citadel Menu',p+12,y+12);}
-  // Interior building label
+  drawHudToggleButton();
+  // Interior building label — placement depends on HUD mode
   if(interior){
     const iName={home:'🏠 Home',shop:"🏪 Ruby's Shop",tavern:'🍺 Hodl Tavern',shed:'⛏️ Mining Shed',hall:'🏛️ Town Hall'};
     ctx.fillStyle=C.hud;ctx.font=`bold 14px ${FONT}`;ctx.textAlign='left';
-    ctx.fillText(iName[interior.type]||interior.type, p+12, y+28);
+    // Minimized: tuck label just below the strip; Full: below the stat panel
+    const labelY = hudMinimized ? 58 : (p + 250);
+    ctx.fillText(iName[interior.type]||interior.type, p+12, labelY);
     // Exit prompt at bottom of screen
     ctx.fillStyle='rgba(0,0,0,0.5)';ctx.fillRect(canvas.width/2-80,canvas.height-90,160,24);
     ctx.fillStyle=C.orange;ctx.font=`bold 13px ${FONT}`;ctx.textAlign='center';
     ctx.fillText('↓ Walk south to exit ↓',canvas.width/2,canvas.height-73);
   }
   
-  // Hotbar
-  const hbW=44,hbH=44,hbGap=4,hbN=10;
-  const hbTW=hbN*(hbW+hbGap);const hbX=(canvas.width-hbTW)/2,hbY=canvas.height-hbH-20;
+  // Hotbar — scale down on small screens
+  const hbN=10;
+  const hbW = isSmallScreen ? 32 : 44;
+  const hbH = isSmallScreen ? 32 : 44;
+  const hbGap = isSmallScreen ? 3 : 4;
+  const hbBottomMargin = isSmallScreen ? 8 : 20;
+  const hbTW=hbN*(hbW+hbGap);
+  const hbX=(canvas.width-hbTW)/2;
+  const hbY=canvas.height-hbH-hbBottomMargin;
   ctx.fillStyle='rgba(8,8,12,0.7)';rr(hbX-4,hbY-4,hbTW+8,hbH+8,6);
   for(let i=0;i<hbN;i++){
     const x=hbX+i*(hbW+hbGap);
@@ -3439,34 +3567,40 @@ function drawHUD(){
   
   // Mobile touch controls overlay
   if(isMobile) drawTouchControls();
+  // Portrait rotation nudge
+  drawRotateNudge();
   
-  // Controls hint
-  // Controls bar (always visible, readable)
-  const cbY = canvas.height - 18;
-  ctx.fillStyle='rgba(0,0,0,0.6)';ctx.fillRect(0,cbY-4,canvas.width,22);
-  ctx.fillStyle='#999';ctx.font=`bold 12px ${FONT}`;ctx.textAlign='center';
-  if(!isMobile) ctx.fillText('WASD:Move  E:Interact  R:Use/Plant  G:Eat  T:Craft  H:Harvest  I:Inventory  B:Shop  C:Citadel  Q:Sort  ?:Help  P:Save',canvas.width/2,cbY+8);
+  // Controls bar — desktop only and only when there's room (skip on small screens)
+  if(!isMobile && !isSmallScreen) {
+    const cbY = canvas.height - 18;
+    ctx.fillStyle='rgba(0,0,0,0.6)';ctx.fillRect(0,cbY-4,canvas.width,22);
+    ctx.fillStyle='#999';ctx.font=`bold 12px ${FONT}`;ctx.textAlign='center';
+    ctx.fillText('WASD:Move  E:Interact  R:Use/Plant  G:Eat  T:Craft  H:Harvest  I:Inventory  B:Shop  C:Citadel  Q:Sort  ?:Help  P:Save',canvas.width/2,cbY+8);
+  }
   
-  // Energy bar — wider, gradient colored
-  const ebW=140,ebX=canvas.width-ebW-p-10,ebY=hbY-22;
+  // Energy bar — scales down on small screens
+  const ebW = isSmallScreen ? 100 : 140;
+  const ebX = canvas.width-ebW-p-10;
+  const ebY = hbY-22;
   const ePct=player.energy/player.maxEnergy;
   ctx.fillStyle='rgba(10,10,15,0.7)';rr(ebX-4,ebY-14,ebW+8,28,4);
   ctx.fillStyle='#1A1A20';ctx.fillRect(ebX,ebY,ebW,10);
   ctx.fillStyle=ePct>0.5?'#4CAF50':ePct>0.25?'#FF9800':'#F44336';
   ctx.fillRect(ebX,ebY,ebW*ePct,10);
-  // Low energy warning flash
   if(ePct<0.2){ctx.fillStyle=`rgba(255,50,50,${0.15+Math.sin(_t*4)*0.1})`;ctx.fillRect(ebX,ebY,ebW*ePct,10);}
-  ctx.fillStyle='#DDD';ctx.font=`bold 12px ${FONT}`;ctx.textAlign='center';
+  ctx.fillStyle='#DDD';ctx.font=`bold ${isSmallScreen?10:12}px ${FONT}`;ctx.textAlign='center';
   ctx.fillText(`⚡ ${Math.floor(player.energy)}/${player.maxEnergy}`,ebX+ebW/2,ebY-2);
   
-  // Rig detail
-  let nr=null,nd=60;for(const r of rigs){const d=Math.hypot(r.x-player.x,r.y-player.y);if(d<nd){nr=r;nd=d;}}
-  if(nr){const rw=220,rh=110,rx=canvas.width-rw-p;panel(rx,p,rw,rh);
-    ctx.fillStyle=C.hud;ctx.font=`bold 15px ${FONT}`;ctx.textAlign='left';ctx.fillText(Rig.N[nr.tier],rx+10,p+18);
-    ctx.font=`13px ${FONT}`;ctx.fillStyle='#CCC';
-    ctx.fillText(`Temp: ${nr.temp.toFixed(0)}°C`,rx+10,p+36);ctx.fillText(`Hash: ${nr.hr.toFixed(1)} TH/s`,rx+10,p+52);
-    ctx.fillText(`Durability: ${nr.dur.toFixed(0)}%`,rx+10,p+68);ctx.fillText(`Mined: ${fmt(nr.mined)} sats`,rx+10,p+84);
-    ctx.fillStyle=nr.statusCol();ctx.fillText(`Status: ${nr.status()}`,rx+10,p+100);}
+  // Rig detail panel — hidden when HUD is minimized (clutter on mobile)
+  if (!hudMinimized) {
+    let nr=null,nd=60;for(const r of rigs){const d=Math.hypot(r.x-player.x,r.y-player.y);if(d<nd){nr=r;nd=d;}}
+    if(nr){const rw=220,rh=110,rx=canvas.width-rw-p;panel(rx,p,rw,rh);
+      ctx.fillStyle=C.hud;ctx.font=`bold 15px ${FONT}`;ctx.textAlign='left';ctx.fillText(Rig.N[nr.tier],rx+10,p+18);
+      ctx.font=`13px ${FONT}`;ctx.fillStyle='#CCC';
+      ctx.fillText(`Temp: ${nr.temp.toFixed(0)}°C`,rx+10,p+36);ctx.fillText(`Hash: ${nr.hr.toFixed(1)} TH/s`,rx+10,p+52);
+      ctx.fillText(`Durability: ${nr.dur.toFixed(0)}%`,rx+10,p+68);ctx.fillText(`Mined: ${fmt(nr.mined)} sats`,rx+10,p+84);
+      ctx.fillStyle=nr.statusCol();ctx.fillText(`Status: ${nr.status()}`,rx+10,p+100);}
+  }
   
   // Tutorial
   if(!tutorialDone&&tutorialStep<TUTORIAL_STEPS.length){
