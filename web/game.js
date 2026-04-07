@@ -298,7 +298,7 @@ canvas.addEventListener('click', e => {
   if (shopOpen) {
     const sw=560,sh=460,sx=(canvas.width-sw)/2,sy=(canvas.height-sh)/2;
     if (e.clientX<sx||e.clientX>sx+sw||e.clientY<sy||e.clientY>sy+sh) { shopOpen=false; sfx.menuClose(); return; }
-    if (e.clientY>=sy+40&&e.clientY<=sy+66) { shopMode=e.clientX<sx+sw/2?'buy':'sell'; shopCur=0; shopScroll=0; return; }
+    if (e.clientY>=sy+40&&e.clientY<=sy+66) { shopMode=e.clientX<sx+sw/2?'buy':'sell'; shopCur=0; shopScroll=0; lastShopClickTime=0; return; }
     const ly=sy+112, rowH=32;
     if (e.clientY>=ly) {
       const activeList=shopNpcRole==='seeds'?SEED_SHOP_LIST:shopNpcRole==='tavern'?TAVERN_SHOP_LIST:SHOP_LIST;
@@ -1453,6 +1453,21 @@ function harvestCrop(index) {
       addXP('farming', 15 + info.grow * 2);
       notify(`${info.icon} Harvested ${info.name}! Sell at Farmer Pete's market.`, 3);
       sfx.coin();
+      // Harvest sparkle burst — 10 gold particles pop up
+      const cropSx = crop.x*ST - cam.x + ST/2;
+      const cropSy = crop.y*ST - cam.y + ST/2;
+      for (let i=0; i<10; i++) {
+        if (ambient.length >= 100) break;
+        const ang = Math.random()*Math.PI*2;
+        ambient.push({
+          x: cropSx, y: cropSy, type: 'sparkle',
+          vx: Math.cos(ang)*(15+Math.random()*20),
+          vy: Math.sin(ang)*(10+Math.random()*15) - 20,
+          life: 0.6+Math.random()*0.4, maxLife: 1,
+          size: 2+Math.random()*2,
+          color: Math.random()<0.4 ? '#F7931A' : '#FFE040'
+        });
+      }
       crops.splice(index, 1);
       return true;
     } else {
@@ -2254,7 +2269,7 @@ function update(dt) {
         if(player.wallet>=pr){if(addItem(id)){player.wallet-=pr;sfx.buy();notify(`Bought ${it.icon} ${it.name} (${fmt(pr)})`,2);if(id==='gpu_rig')completeObjective('buy_gpu');}else{notify('Inventory full!',1.5);sfx.error();}}else{notify(`Need ${fmt(pr)} sats!`,1.5);sfx.error();}}
       else{const sell=inv.filter(s=>s&&ITEMS[s.id].sell>0);if(shopCur<sell.length){const s=sell[shopCur],it=ITEMS[s.id],pr=Math.ceil(it.sell*marketMult());removeItem(s.id);player.wallet+=pr;sfx.coin();notify(`Sold ${it.icon} ${it.name} (+${fmt(pr)})`,2);}}
     }
-    if(jp['arrowleft']||jp['a']||jp['arrowright']||jp['d']){shopMode=shopMode==='buy'?'sell':'buy';shopCur=0;shopScroll=0;}
+    if(jp['arrowleft']||jp['a']||jp['arrowright']||jp['d']){shopMode=shopMode==='buy'?'sell':'buy';shopCur=0;shopScroll=0;lastShopClickTime=0;}
     for(const k in jp)jp[k]=false;return;
   }
   
@@ -3297,6 +3312,12 @@ function update(dt) {
       p.phase += dt * 1.5;
       p.x += (p.vx + Math.sin(p.phase) * 10) * dt; // gentle drift
       p.y += p.vy * dt;
+    } else if (p.type === 'sparkle') {
+      // Gravity-affected upward burst
+      p.x += p.vx * dt;
+      p.y += p.vy * dt;
+      p.vy += 80 * dt; // gravity pulls down
+      p.vx *= 0.96; // slight drag
     } else {
       p.x += p.vx * dt; p.y += p.vy * dt;
     }
@@ -4065,12 +4086,19 @@ function drawCrop(crop) {
   
   // Glow when ready
   if (ready) {
-    ctx.fillStyle = `rgba(247,147,26,${0.2 + Math.sin(_now/400)*0.1})`;
-    ctx.beginPath(); ctx.arc(sx + ST/2, sy + ST/2, 20, 0, Math.PI*2); ctx.fill();
+    ctx.fillStyle = `rgba(247,147,26,${0.25 + _sinT2*0.12})`;
+    ctx.beginPath(); ctx.arc(sx + ST/2, sy + ST/2, 22 + _sinT*2, 0, Math.PI*2); ctx.fill();
   }
   
+  // Subtle sway — more pronounced for mature crops, phase-shifted by tile position
+  const sway = Math.sin(_t*1.8 + crop.x*0.7 + crop.y*0.5) * (1 + crop.stage*0.5);
+  const tilt = sway * 0.04;
+  ctx.save();
+  ctx.translate(sx + ST/2, sy + ST/2 + 8);
+  ctx.rotate(tilt);
   ctx.font = `${16 + crop.stage * 4}px serif`; ctx.textAlign = 'center';
-  ctx.fillText(icon, sx + ST/2, sy + ST/2 + 8);
+  ctx.fillText(icon, 0, 0);
+  ctx.restore();
   
   // Progress bar
   if (!ready) {
@@ -4309,6 +4337,8 @@ function drawTouchControls(){
 }
 // ---- PER-FRAME CACHE (avoid redundant performance.now/trig in render) ----
 let _t=0,_now=0,_hour=0,_isNight=false;
+let _seasonLeaf=null,_seasonLeafLight=null;
+let _sinT=0,_cosT=0,_sinT2=0,_sinT15=0,_sinT08=0;
 
 function draw(){
   // Reset render state at frame start (#67 globalAlpha leak, #68 shadowBlur leak)
@@ -4317,6 +4347,9 @@ function draw(){
   
   // Frame cache — compute once, use everywhere
   _now=performance.now();_t=_now/1000;_hour=getHour();_isNight=_hour<6||_hour>20;
+  _sinT=Math.sin(_t);_cosT=Math.cos(_t);_sinT2=Math.sin(_t*2);_sinT15=Math.sin(_t*1.5);_sinT08=Math.sin(_t*0.8);
+  _seasonLeaf=getSeasonalColor('treeLeaf')||C.treeLeaf;
+  _seasonLeafLight=getSeasonalColor('treeLeafLight')||C.treeLeafLight;
   
   ctx.fillStyle='#0a0a0a';ctx.fillRect(0,0,canvas.width,canvas.height);
   
@@ -4372,10 +4405,10 @@ function draw(){
     for(const n of interiorNPCs) entities.push({y:n.y,draw:()=>drawInteriorNPC(n)});
   }
   entities.push({y:player.y,draw:drawPlayer});
+  // Sort crops into entity Y-sort so they occlude/get occluded correctly (#B7)
+  for(const crop of crops) entities.push({y:crop.y*TILE+TILE-4, draw:()=>drawCrop(crop)});
   // Insertion sort — optimal for nearly-sorted arrays (entities barely move frame to frame)
   for(let i=1;i<entities.length;i++){const key=entities[i];let j=i-1;while(j>=0&&entities[j].y>key.y){entities[j+1]=entities[j];j--;}entities[j+1]=key;}
-  // Draw crops
-  for(const crop of crops) drawCrop(crop);
   for(const e of entities)e.draw();
   // NPC hearts
   for(const npc of npcs) drawNPCHearts(npc);
@@ -4458,6 +4491,14 @@ function draw(){
       // Subtle sparkle
       ctx.fillStyle = 'rgba(220,240,255,' + (alpha * 0.3) + ')';
       ctx.beginPath(); ctx.arc(p.x, p.y, p.size * 1.5, 0, Math.PI * 2); ctx.fill();
+    } else if (p.type === 'sparkle') {
+      // Gold sparkle with glow halo
+      ctx.globalAlpha = alpha * 0.35;
+      ctx.fillStyle = p.color;
+      ctx.beginPath(); ctx.arc(p.x, p.y, p.size * 2.2, 0, Math.PI * 2); ctx.fill();
+      ctx.globalAlpha = alpha;
+      ctx.fillRect(p.x - p.size/2, p.y - p.size/2, p.size, p.size);
+      ctx.globalAlpha = 1;
     } else { // dust
       ctx.fillStyle = p.color;
       ctx.globalAlpha = alpha * 0.4;

@@ -156,40 +156,50 @@ function drawTile(x,y,tile){
       // Shadow at base
       ctx.fillStyle='rgba(20,20,28,0.2)';ctx.fillRect(sx,sy+ST-5,ST,5);
       break;}
-    case T.WATER:{const wt=t*1.5+x*.5+y*.3;
+    case T.WATER:{
       // Smooth Perlin-based water — no checkerboard
       const wn=fbm(x*0.12+t*0.08,y*0.12+t*0.05,2);
-      const wR=Math.floor(25+wn*15);const wG=Math.floor(80+wn*30);const wB=Math.floor(140+wn*25);
+      const wR=25+((wn*15)|0);const wG=80+((wn*30)|0);const wB=140+((wn*25)|0);
       ctx.fillStyle=`rgb(${wR},${wG},${wB})`;ctx.fillRect(sx,sy,ST,ST);
+      // Cached trig — compute once per tile instead of ~12 Math.sin calls
+      const wt=t*1.5+x*.5+y*.3;
+      const sWt=Math.sin(wt);
+      const sWt1=Math.sin(wt+1),cWt1=Math.cos(wt+1);
+      const sWt2=Math.sin(wt+2),sWt13=Math.sin(wt*1.3),sWt_2=Math.sin(wt*2);
       // Animated shimmer layer
-      ctx.fillStyle=`rgba(100,180,240,${0.06+Math.sin(wt)*0.04})`;ctx.fillRect(sx,sy,ST,ST);
+      ctx.fillStyle=`rgba(100,180,240,${0.06+sWt*0.04})`;ctx.fillRect(sx,sy,ST,ST);
       // Gentle caustic light patterns
       const cx1=sx+ST*0.3+Math.sin(wt*0.7+x)*6,cy1=sy+ST*0.4+Math.cos(wt*0.9+y)*5;
       const cx2=sx+ST*0.7+Math.sin(wt*0.5+x+2)*5,cy2=sy+ST*0.6+Math.cos(wt*0.8+y+1)*6;
-      ctx.fillStyle=`rgba(150,210,255,${0.06+Math.sin(wt*1.3)*0.03})`;
-      ctx.beginPath();ctx.arc(cx1,cy1,6+Math.sin(wt)*2,0,Math.PI*2);ctx.fill();
-      ctx.beginPath();ctx.arc(cx2,cy2,5+Math.cos(wt+1)*2,0,Math.PI*2);ctx.fill();
+      ctx.fillStyle=`rgba(150,210,255,${0.06+sWt13*0.03})`;
+      ctx.beginPath();ctx.arc(cx1,cy1,6+sWt*2,0,Math.PI*2);ctx.fill();
+      ctx.beginPath();ctx.arc(cx2,cy2,5+cWt1*2,0,Math.PI*2);ctx.fill();
       // Soft wave highlights
-      ctx.strokeStyle=`rgba(160,210,255,${0.08+Math.sin(wt+1)*0.04})`;ctx.lineWidth=1;
-      ctx.beginPath();ctx.moveTo(sx,sy+ST*0.35+Math.sin(wt)*3);ctx.quadraticCurveTo(sx+ST/2,sy+ST*0.3+Math.sin(wt+1)*4,sx+ST,sy+ST*0.35+Math.sin(wt+2)*3);ctx.stroke();
-      // Shoreline foam where water meets land
+      ctx.strokeStyle=`rgba(160,210,255,${0.08+sWt1*0.04})`;ctx.lineWidth=1;
+      ctx.beginPath();ctx.moveTo(sx,sy+ST*0.35+sWt*3);ctx.quadraticCurveTo(sx+ST/2,sy+ST*0.3+sWt1*4,sx+ST,sy+ST*0.35+sWt2*3);ctx.stroke();
+      // Shoreline foam where water meets land — early out if fully surrounded
       const wN=getTile(x,y-1),wS=getTile(x,y+1),wW=getTile(x-1,y),wE=getTile(x+1,y);
-      const foamA=0.3+Math.sin(wt*2)*0.12;
-      if(!TERRAIN_WATER_SET.has(wN)){
-        ctx.fillStyle=`rgba(220,240,255,${foamA})`;ctx.fillRect(sx,sy,ST,5+Math.sin(wt)*2);
-        ctx.fillStyle=`rgba(255,255,255,${foamA*0.5})`;ctx.fillRect(sx+4,sy,ST-8,2+Math.sin(wt)*1);
-      }
-      if(!TERRAIN_WATER_SET.has(wS)){
-        ctx.fillStyle=`rgba(220,240,255,${foamA})`;ctx.fillRect(sx,sy+ST-5-Math.sin(wt)*2,ST,5+Math.sin(wt)*2);
-        ctx.fillStyle=`rgba(255,255,255,${foamA*0.5})`;ctx.fillRect(sx+4,sy+ST-2-Math.sin(wt)*1,ST-8,2);
-      }
-      if(!TERRAIN_WATER_SET.has(wW)){
-        ctx.fillStyle=`rgba(220,240,255,${foamA})`;ctx.fillRect(sx,sy,5+Math.sin(wt+1)*2,ST);
-        ctx.fillStyle=`rgba(255,255,255,${foamA*0.5})`;ctx.fillRect(sx,sy+4,2+Math.sin(wt+1)*1,ST-8);
-      }
-      if(!TERRAIN_WATER_SET.has(wE)){
-        ctx.fillStyle=`rgba(220,240,255,${foamA})`;ctx.fillRect(sx+ST-5-Math.sin(wt+1)*2,sy,5+Math.sin(wt+1)*2,ST);
-        ctx.fillStyle=`rgba(255,255,255,${foamA*0.5})`;ctx.fillRect(sx+ST-2-Math.sin(wt+1)*1,sy+4,2,ST-8);
+      const nW=TERRAIN_WATER_SET.has(wN),sW=TERRAIN_WATER_SET.has(wS),wW_=TERRAIN_WATER_SET.has(wW),eW=TERRAIN_WATER_SET.has(wE);
+      if(!(nW&&sW&&wW_&&eW)){
+        const foamA=0.3+sWt_2*0.12;
+        const foamStr=`rgba(220,240,255,${foamA})`;
+        const foamHi=`rgba(255,255,255,${foamA*0.5})`;
+        if(!nW){
+          ctx.fillStyle=foamStr;ctx.fillRect(sx,sy,ST,5+sWt*2);
+          ctx.fillStyle=foamHi;ctx.fillRect(sx+4,sy,ST-8,2+sWt*1);
+        }
+        if(!sW){
+          ctx.fillStyle=foamStr;ctx.fillRect(sx,sy+ST-5-sWt*2,ST,5+sWt*2);
+          ctx.fillStyle=foamHi;ctx.fillRect(sx+4,sy+ST-2-sWt*1,ST-8,2);
+        }
+        if(!wW_){
+          ctx.fillStyle=foamStr;ctx.fillRect(sx,sy,5+sWt1*2,ST);
+          ctx.fillStyle=foamHi;ctx.fillRect(sx,sy+4,2+sWt1*1,ST-8);
+        }
+        if(!eW){
+          ctx.fillStyle=foamStr;ctx.fillRect(sx+ST-5-sWt1*2,sy,5+sWt1*2,ST);
+          ctx.fillStyle=foamHi;ctx.fillRect(sx+ST-2-sWt1*1,sy+4,2,ST-8);
+        }
       }
       break;}
     case T.DEEP:{
@@ -293,9 +303,9 @@ function drawDecor(d) {
     ctx.beginPath();ctx.ellipse(tcx-tbw/2-2,sy+ST,5*sz,3*sz,0,0,Math.PI*2);ctx.fill();
     ctx.beginPath();ctx.ellipse(tcx+tbw/2+2,sy+ST,4*sz,3*sz,0,0,Math.PI*2);ctx.fill();
     // Canopy — multiple overlapping layers for depth, not single circles
-    // Back layer (darkest, largest) — seasonal colors
-    const sleaf=getSeasonalColor('treeLeaf')||C.treeLeaf;
-    const sleafL=getSeasonalColor('treeLeafLight')||C.treeLeafLight;
+    // Back layer (darkest, largest) — seasonal colors (cached per frame)
+    const sleaf=_seasonLeaf;
+    const sleafL=_seasonLeafLight;
     ctx.fillStyle=sleaf[d.v%5];
     ctx.beginPath();ctx.ellipse(tcx+sway*0.5,tcy-2*sz,26*sz,20*sz,0,0,Math.PI*2);ctx.fill();
     // Mid layer clusters
@@ -1741,11 +1751,39 @@ function drawRig(r){
     ctx.fillStyle='#333';ctx.fillRect(rx+w-8,ry+h-12,6,4);ctx.fillRect(rx+w-8,ry+h-18,6,4);
   }
   
-  // Mining particles when active
-  if(active && Math.random()<0.05){
-    ctx.fillStyle=`rgba(247,147,26,${0.3+Math.random()*0.3})`;
-    ctx.beginPath();ctx.arc(sx-8+Math.random()*16,ry-2-Math.random()*8,1+Math.random()*2,0,Math.PI*2);ctx.fill();
+  // Mining particles — proper floating sparkles with lifetime (world coords)
+  if(!r._particles) r._particles=[];
+  if(active && Math.random()<0.4){
+    r._particles.push({
+      wx: r.x*SCALE - 10 + Math.random()*20,
+      wy: r.y*SCALE - h/2 + 2,
+      vx: (Math.random()-0.5)*8,
+      vy: -15 - Math.random()*20,
+      life: 0.6 + Math.random()*0.5,
+      size: 1 + Math.random()*1.5,
+      hot: r.temp > 70 && Math.random() < 0.3
+    });
   }
+  // Update + draw (dt approximated — could pull from global if needed)
+  const pdt = 0.016;
+  for(let i=r._particles.length-1; i>=0; i--){
+    const p=r._particles[i];
+    p.life -= pdt;
+    if(p.life <= 0){r._particles.splice(i,1);continue;}
+    p.wx += p.vx * pdt;
+    p.wy += p.vy * pdt;
+    p.vy += 15 * pdt;
+    p.vx *= 0.98;
+    const px = p.wx - cam.x, py = p.wy - cam.y;
+    const a = Math.min(1, p.life * 2);
+    ctx.globalAlpha = a * 0.3;
+    ctx.fillStyle = p.hot ? '#FF5020' : '#F7931A';
+    ctx.beginPath();ctx.arc(px, py, p.size*2.2, 0, Math.PI*2);ctx.fill();
+    ctx.globalAlpha = a;
+    ctx.fillStyle = p.hot ? '#FFD060' : '#FFE080';
+    ctx.fillRect(px - p.size/2, py - p.size/2, p.size, p.size);
+  }
+  ctx.globalAlpha = 1;
   
   // Tier label
   ctx.fillStyle=C.white;ctx.font=`bold 12px ${FONT}`;ctx.textAlign='center';
