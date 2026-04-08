@@ -13,6 +13,11 @@ let combat = null; // null or {enemy, enemyHp, enemyMaxHp, playerHp, playerMaxHp
 let mineReturnX = 0, mineReturnY = 0;
 let playerSwing = 0; // attack animation timer
 let screenShake = 0;
+// ---- Sprint 20: Combat Feel ----
+let hitstop = 0; // freeze-frame timer on impact (everything except shake/render pauses)
+let attackReadyFlash = 0; // brief white flash when attackCooldown returns to 0
+let _attackCooldownPrev = 0; // for edge detection on cooldown→0
+let playerLungeX = 0, playerLungeY = 0; // visual lunge offset during swing
 let damageNumbers = []; // {x, y, text, life, color}
 let projectiles = []; // {x, y, vx, vy, life, type, dmg}
 let mineAutoAttackTarget = null; // auto-approach and attack
@@ -37,21 +42,47 @@ function mineAttackEnemy(en){
   let isCombo=false;
   if(comboSystem.hits>=3){
     finalDmg*=3;isCombo=true;comboSystem.hits=0;
-    screenShake=0.25;
   }
   finalDmg=Math.floor(finalDmg);
-  en.hp-=finalDmg;en._hitFlash=0.2;
-  // Knockback
-  const kbx=Math.sign(en.x*TILE-player.x),kby=Math.sign(en.y*TILE-player.y);
+  en.hp-=finalDmg;en._hitFlash=0.25;
+  // Knockback — bigger (3 tiles) and animated via _lungeX/Y decay
+  const dx=en.x*TILE-player.x, dy=en.y*TILE-player.y;
+  const dist=Math.hypot(dx,dy)||1;
+  const kbStrength=isCombo?5:isCrit?4:3;
+  en._lungeX=(dx/dist)*kbStrength;
+  en._lungeY=(dy/dist)*kbStrength;
+  // Snap-to-grid component (so AI pathing still respects the new pos)
+  const kbx=Math.sign(dx),kby=Math.sign(dy);
   const nkx=en.x+kbx,nky=en.y+kby;
   if(nkx>=1&&nkx<MINE_W-1&&nky>=1&&nky<MINE_H-1&&mineFloor.map[nky]&&mineFloor.map[nky][nkx]!==T.CLIFF){en.x=nkx;en.y=nky;}
-  // Damage number
+  // Player lunges toward target — visual commitment to the swing
+  playerLungeX=(dx/dist)*4;
+  playerLungeY=(dy/dist)*4;
+  // Damage number — bigger for bigger hits, scales with damage
   const dmgText=isCombo?'COMBO! -'+finalDmg:(isCrit?'CRIT! -':'-')+finalDmg;
   const dmgColor=isCombo?'#FF00FF':(isCrit?'#FF4444':'#FFDD44');
-  damageNumbers.push({x:en.x*ST+ST/2,y:en.y*ST,text:dmgText,life:isCombo?2.0:(isCrit?1.5:1.0),color:dmgColor});
-  // Hit sound
-  tone(250+Math.random()*200,.06,'square',.05);tone(180,.04,'sawtooth',.03);
-  if(!isCombo)screenShake=isCrit?0.15:0.08;
+  const dmgSize=14+Math.min(18,finalDmg*0.4)+(isCrit?4:0)+(isCombo?8:0);
+  damageNumbers.push({x:en.x*ST+ST/2,y:en.y*ST,text:dmgText,life:isCombo?2.0:(isCrit?1.5:1.0),color:dmgColor,size:dmgSize,vy:-30,vx:(Math.random()-0.5)*20});
+  // Layered hit SFX — punchy thud + smack + tick. Way louder than before.
+  if(isCombo){
+    tone(80,.10,'sawtooth',.18); // deep thud
+    tone(180,.08,'square',.14);  // body smack
+    tone(900,.04,'square',.10);  // high tick
+    tone(1400,.06,'triangle',.08); // sparkle
+  } else if(isCrit){
+    tone(120,.08,'sawtooth',.14);
+    tone(280,.06,'square',.12);
+    tone(1100,.04,'square',.10);
+  } else {
+    tone(140,.07,'sawtooth',.12); // thud
+    tone(320,.05,'square',.10);   // smack
+    tone(800,.03,'square',.07);   // tick
+  }
+  // Hitstop — the single biggest game-feel upgrade. Freezes everything for
+  // a few frames so the hit lands with weight.
+  hitstop=isCombo?0.12:isCrit?0.08:0.04;
+  // Bigger screen shake
+  screenShake=isCombo?0.45:isCrit?0.30:0.18;
   if(en.hp<=0){
     en.alive=false;
     const info2=MINE_ENEMIES[en.type];
@@ -389,9 +420,10 @@ function playerAttack(){/* deprecated — no-op */}
 function drawMine(){
   if(!mineFloor)return;
   const f=mineFloor;
-  // Screen shake offset
+  // Screen shake — bigger now, scales with shake intensity
   if(screenShake>0){
-    cam.x+=Math.random()*8-4;cam.y+=Math.random()*8-4;
+    const shakeMag=Math.min(1,screenShake)*16;
+    cam.x+=(Math.random()-0.5)*shakeMag;cam.y+=(Math.random()-0.5)*shakeMag;
   }
   // Draw floor tiles
   for(let y=0;y<f.h;y++)for(let x=0;x<f.w;x++){
@@ -602,8 +634,60 @@ function drawMine(){
     ctx.fillText(info.name,sx+ST/2,sy-6);
     if(info.boss){ctx.fillStyle=C.gold;ctx.fillText('⚠️ BOSS',sx+ST/2,sy-18);}
   }
+  // ---- Sprint 20: Target reticle on auto-attack target ----
+  if(mineAutoAttackTarget && mineAutoAttackTarget.alive){
+    const tEn=mineAutoAttackTarget;
+    const tsx=tEn.x*ST-cam.x+ST/2, tsy=tEn.y*ST-cam.y+ST/2;
+    const pulse=0.6+Math.sin(_now/120)*0.4;
+    const r=ST*0.7+Math.sin(_now/180)*2;
+    ctx.strokeStyle=`rgba(255,160,40,${pulse})`;
+    ctx.lineWidth=2;
+    // Four corner brackets
+    const br=r, bl=8;
+    ctx.beginPath();
+    // Top-left
+    ctx.moveTo(tsx-br,tsy-br+bl); ctx.lineTo(tsx-br,tsy-br); ctx.lineTo(tsx-br+bl,tsy-br);
+    // Top-right
+    ctx.moveTo(tsx+br-bl,tsy-br); ctx.lineTo(tsx+br,tsy-br); ctx.lineTo(tsx+br,tsy-br+bl);
+    // Bottom-right
+    ctx.moveTo(tsx+br,tsy+br-bl); ctx.lineTo(tsx+br,tsy+br); ctx.lineTo(tsx+br-bl,tsy+br);
+    // Bottom-left
+    ctx.moveTo(tsx-br+bl,tsy+br); ctx.lineTo(tsx-br,tsy+br); ctx.lineTo(tsx-br,tsy+br-bl);
+    ctx.stroke();
+    // Center dot
+    ctx.fillStyle=`rgba(255,200,80,${pulse*0.8})`;
+    ctx.beginPath();ctx.arc(tsx,tsy,2,0,Math.PI*2);ctx.fill();
+  }
+
+  // ---- Sprint 20: Attack-ready / cooldown ring around player feet ----
+  {
+    const psx=player.x*SCALE-cam.x, psy=player.y*SCALE-cam.y+ST/2-2;
+    if (attackCooldown>0) {
+      // Cooldown: arc fills as cooldown decreases
+      const prog=1-(attackCooldown/0.4);
+      ctx.strokeStyle='rgba(120,160,200,0.55)';
+      ctx.lineWidth=2.5;
+      ctx.beginPath();ctx.arc(psx,psy,14,-Math.PI/2,-Math.PI/2+prog*Math.PI*2);ctx.stroke();
+    } else if (attackReadyFlash>0) {
+      // Brief white flash when ready again
+      const a=attackReadyFlash/0.18;
+      ctx.strokeStyle=`rgba(255,255,255,${a*0.85})`;
+      ctx.lineWidth=3;
+      ctx.beginPath();ctx.arc(psx,psy,14+(1-a)*6,0,Math.PI*2);ctx.stroke();
+    }
+  }
+
+  // ---- Sprint 20: Player lunge offset during swing ----
+  // Hack player.x/y temporarily so drawPlayer renders shifted toward target.
+  const _px0=player.x, _py0=player.y;
+  if (playerLungeX !== 0 || playerLungeY !== 0) {
+    player.x += playerLungeX;
+    player.y += playerLungeY;
+  }
   // Draw player
   drawPlayer();
+  // Restore
+  player.x=_px0; player.y=_py0;
   
   // Weapon swing animation
   if(playerSwing>0){
@@ -697,16 +781,44 @@ function drawMine(){
       ctx.fillStyle='#FFF';ctx.font=`bold 8px ${FONT}`;ctx.textAlign='center';ctx.fillText('51%',epx,epy+3);
     }
   }
-  // Damage numbers
+  // Damage numbers — bigger, popping, with arc trajectory
   for(const dn of damageNumbers){
     const dnx=dn.x-cam.x,dny=dn.y-cam.y;
     const a=Math.min(1,dn.life*2);
+    const size=dn.size||18;
+    // Pop scale on spawn (first 0.15s)
+    const initialLife=(dn.text&&dn.text.indexOf('COMBO')>=0)?2.0:(dn.text&&dn.text.indexOf('CRIT')>=0?1.5:1.0);
+    const popT=Math.max(0,1-(initialLife-dn.life)/0.15);
+    const popScale=1+popT*0.5;
+    const drawSize=Math.floor(size*popScale);
     ctx.globalAlpha=a;
-    ctx.fillStyle='#000';ctx.font=`bold 18px ${FONT}`;ctx.textAlign='center';
-    ctx.fillText(dn.text,dnx+1,dny+1);
+    ctx.fillStyle='#000';ctx.font=`bold ${drawSize}px ${FONT}`;ctx.textAlign='center';
+    ctx.fillText(dn.text,dnx+2,dny+2);
     ctx.fillStyle=dn.color;
     ctx.fillText(dn.text,dnx,dny);
     ctx.globalAlpha=1;
+  }
+
+  // ---- Sprint 20: Combo counter HUD ----
+  if (comboSystem.hits > 0) {
+    const psx=player.x*SCALE-cam.x, psy=player.y*SCALE-cam.y;
+    const cx=psx, cy=psy-ST-12;
+    // Background pill
+    const txt=comboSystem.hits+' / 3 HITS';
+    ctx.font=`bold 14px ${FONT}`;ctx.textAlign='center';
+    const tw=ctx.measureText(txt).width+16;
+    const th=20;
+    const pulse=comboSystem.hits>=2?0.6+Math.sin(_now/100)*0.4:0.8;
+    ctx.fillStyle=`rgba(0,0,0,0.65)`;
+    ctx.fillRect(cx-tw/2,cy-th/2,tw,th);
+    ctx.fillStyle=comboSystem.hits>=2?`rgba(255,80,200,${pulse})`:'rgba(255,200,60,0.95)';
+    ctx.fillText(txt,cx,cy+5);
+    // Combo timer bar underneath
+    const barW=tw-4, barH=2;
+    ctx.fillStyle='rgba(255,255,255,0.18)';
+    ctx.fillRect(cx-barW/2,cy+th/2,barW,barH);
+    ctx.fillStyle=comboSystem.hits>=2?'#FF4FC8':'#FFCC44';
+    ctx.fillRect(cx-barW/2,cy+th/2,barW*(comboSystem.timer/1.5),barH);
   }
   // Danger state warning overlay
   if(dangerState&&dangerState.active){
