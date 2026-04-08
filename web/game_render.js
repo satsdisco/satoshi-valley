@@ -9,6 +9,141 @@
 // ============================================================
 // TILE DRAWING — Beautiful pixel art style
 // ============================================================
+// Deterministic pseudo-random (stable across frames) for placing props
+function _svRand(x,y,salt){
+  const s=Math.sin((x*374.1+y*291.7+salt*127.3))*43758.5453;
+  return s-Math.floor(s);
+}
+
+// Draw warm/atmospheric surroundings for a building — paths, flowers, props,
+// softer contact shadow. Called at the END of roof drawing so it layers on top
+// of the ground beneath the building and just outside it.
+function drawBuildingAmbience(d,rx,ry,rw,bh){
+  const label=d.label||'';
+  const baseY=ry+bh;        // ground contact line
+  const cx=rx+rw/2;          // building center X
+  // Multi-layer soft contact shadow (outer fade → inner dark)
+  for(let i=0;i<3;i++){
+    const t=i/2;
+    ctx.fillStyle=`rgba(0,0,0,${0.08+(1-t)*0.12})`;
+    ctx.beginPath();
+    ctx.ellipse(cx,baseY+4+i*2,rw*(0.52+t*0.12),7+i*2.5,0,0,Math.PI*2);
+    ctx.fill();
+  }
+  // Stone path leading from door outward (bottom). Seeded so stones are stable.
+  const pathStones=Math.max(3,Math.floor(rw/18));
+  for(let i=0;i<pathStones;i++){
+    const sx2=cx-10+_svRand(d.x,d.y,i)*20;
+    const sy2=baseY+10+i*9;
+    const ssz=3+Math.floor(_svRand(d.x,d.y,i+7)*3);
+    ctx.fillStyle='#7A6A58';
+    ctx.beginPath();ctx.ellipse(sx2,sy2,ssz+1,ssz,0,0,Math.PI*2);ctx.fill();
+    ctx.fillStyle='#9A8A70';
+    ctx.beginPath();ctx.ellipse(sx2-0.5,sy2-0.5,ssz-0.5,ssz-1,0,0,Math.PI*2);ctx.fill();
+    ctx.fillStyle='rgba(0,0,0,0.25)';
+    ctx.beginPath();ctx.ellipse(sx2+1,sy2+1.5,ssz,ssz*0.4,0,0,Math.PI*2);ctx.fill();
+  }
+  // Grass tufts around the base
+  for(let i=0;i<8;i++){
+    const side=i<4?-1:1;
+    const gx=cx+side*(rw*0.4+2+_svRand(d.x,d.y,i+13)*18);
+    const gy=baseY+2+_svRand(d.x,d.y,i+21)*6;
+    ctx.fillStyle='#3A6028';
+    ctx.fillRect(gx,gy,1,3);ctx.fillRect(gx+1,gy-1,1,4);ctx.fillRect(gx+2,gy,1,3);
+    ctx.fillStyle='#558A30';
+    ctx.fillRect(gx+1,gy-2,1,2);
+  }
+  // Flower clusters — building-type specific palette
+  const flowerCount=label==='home'?6:label==='tavern'?3:label==='hall'?5:label==='shop'?3:1;
+  const palettes={
+    home:['#E04040','#F0C020','#E070A0','#FFFFFF'],
+    tavern:['#C04040','#F08020','#883018'],
+    hall:['#8040C0','#C0A0F0','#FFFFFF','#F0C020'],
+    shop:['#F08020','#E04040','#FFFFFF'],
+    shed:['#C0B020'],
+  };
+  const pal=palettes[label]||['#E04040','#F0C020'];
+  for(let i=0;i<flowerCount;i++){
+    const side=_svRand(d.x,d.y,i+31)<0.5?-1:1;
+    const fx=cx+side*(rw*0.42+4+_svRand(d.x,d.y,i+41)*14);
+    const fy=baseY+1+_svRand(d.x,d.y,i+51)*8;
+    // stem
+    ctx.fillStyle='#2A5018';ctx.fillRect(fx,fy-3,1,4);
+    ctx.fillStyle='#3A7028';ctx.fillRect(fx-1,fy-1,1,2);ctx.fillRect(fx+1,fy-2,1,2);
+    // petals
+    const col=pal[Math.floor(_svRand(d.x,d.y,i+61)*pal.length)];
+    ctx.fillStyle=col;
+    ctx.fillRect(fx-1,fy-4,3,2);ctx.fillRect(fx,fy-5,1,1);
+    // center dot
+    ctx.fillStyle='#F8D040';ctx.fillRect(fx,fy-4,1,1);
+  }
+  // Per-building ambient prop on the unoccupied side
+  if(label==='home'){
+    // Stacked firewood pile — left side
+    const wx=rx-14,wy=baseY-14;
+    ctx.fillStyle='#5A3818';ctx.fillRect(wx,wy,14,12);
+    ctx.fillStyle='#7A4828';
+    for(let i=0;i<3;i++)for(let j=0;j<2;j++){
+      ctx.fillRect(wx+1+i*5,wy+1+j*6,4,5);
+      ctx.fillStyle='#D8B080';ctx.fillRect(wx+2+i*5,wy+2+j*6,2,2);
+      ctx.fillStyle='#7A4828';
+    }
+    // shadow
+    ctx.fillStyle='rgba(0,0,0,0.25)';
+    ctx.beginPath();ctx.ellipse(wx+7,wy+14,10,3,0,0,Math.PI*2);ctx.fill();
+  } else if(label==='shop'){
+    // Crate + barrel on left
+    const cxp=rx-18,cyp=baseY-14;
+    // crate
+    ctx.fillStyle='#6A4020';ctx.fillRect(cxp,cyp,12,12);
+    ctx.fillStyle='#8A5830';ctx.fillRect(cxp+1,cyp+1,10,10);
+    ctx.strokeStyle='#4A2810';ctx.lineWidth=1;
+    ctx.strokeRect(cxp,cyp,12,12);
+    ctx.beginPath();ctx.moveTo(cxp,cyp+6);ctx.lineTo(cxp+12,cyp+6);ctx.stroke();
+    // barrel
+    ctx.fillStyle='#5A3018';ctx.fillRect(cxp-13,cyp-2,11,14);
+    ctx.fillStyle='#7A4020';ctx.fillRect(cxp-12,cyp-1,9,12);
+    ctx.fillStyle='#888068';ctx.fillRect(cxp-13,cyp+1,11,2);ctx.fillRect(cxp-13,cyp+9,11,2);
+    ctx.fillStyle='rgba(0,0,0,0.25)';
+    ctx.beginPath();ctx.ellipse(cxp-3,cyp+14,20,3,0,0,Math.PI*2);ctx.fill();
+  } else if(label==='tavern'){
+    // Wooden stool + lantern post on right
+    const stX=rx+rw+4,stY=baseY-10;
+    ctx.fillStyle='#5A3018';ctx.fillRect(stX,stY,10,3); // seat
+    ctx.fillStyle='#3A2010';ctx.fillRect(stX+1,stY+3,2,6);ctx.fillRect(stX+7,stY+3,2,6);
+    // lantern post
+    const lpX=stX+16,lpY=baseY-22;
+    ctx.fillStyle='#4A3018';ctx.fillRect(lpX,lpY,2,20);
+    ctx.fillStyle='#6A4828';ctx.fillRect(lpX-4,lpY-4,10,6);
+    ctx.fillStyle='#F8B040';ctx.fillRect(lpX-3,lpY-3,8,4);
+    if(typeof _isNight!=='undefined'&&_isNight){
+      ctx.fillStyle='rgba(255,180,80,0.18)';
+      ctx.beginPath();ctx.arc(lpX+1,lpY,14,0,Math.PI*2);ctx.fill();
+    }
+  } else if(label==='shed'){
+    // Oil drum + tire
+    const odX=rx+rw+4,odY=baseY-16;
+    ctx.fillStyle='#3A3A38';ctx.fillRect(odX,odY,10,14);
+    ctx.fillStyle='#4A4A48';ctx.fillRect(odX+1,odY+1,8,12);
+    ctx.fillStyle='#C07010';ctx.fillRect(odX+1,odY+5,8,3); // orange stripe
+    // tire
+    ctx.fillStyle='#1A1A18';ctx.beginPath();ctx.arc(odX+16,odY+9,6,0,Math.PI*2);ctx.fill();
+    ctx.fillStyle='#3A3A38';ctx.beginPath();ctx.arc(odX+16,odY+9,3,0,Math.PI*2);ctx.fill();
+  } else if(label==='hall'){
+    // Corner lamp posts flanking the path
+    for(const side of [-1,1]){
+      const lpX=cx+side*(rw*0.35)-1,lpY=baseY+4;
+      ctx.fillStyle='#3A3A42';ctx.fillRect(lpX,lpY,2,22);
+      ctx.fillStyle='#5A5A62';ctx.fillRect(lpX-3,lpY-2,8,5);
+      ctx.fillStyle='#F8D060';ctx.fillRect(lpX-2,lpY-1,6,3);
+      if(typeof _isNight!=='undefined'&&_isNight){
+        ctx.fillStyle='rgba(255,220,100,0.15)';
+        ctx.beginPath();ctx.arc(lpX+1,lpY,12,0,Math.PI*2);ctx.fill();
+      }
+    }
+  }
+}
+
 // Tile neighbor helper for edge blending
 function getTile(tx,ty){if(ty<0||ty>=MAP_H||tx<0||tx>=MAP_W)return T.CLIFF;return map[ty][tx];}
 const TERRAIN_GRASS=new Set([T.GRASS,T.TALLGRASS,T.FLOWER,T.MUSHROOM]);
@@ -775,10 +910,17 @@ function drawDecor(d) {
       }
       ctx.fillStyle='rgba(255,255,255,0.12)';ctx.fillRect(dwinX,dwinY,dwinW/2,dwinH);
 
-      // Hanging sign on chain — '₿ RUBY'S'
-      const sigW=52,sigH=14;const sigX=rx+rw/2-sigW/2,sigY=ry+4;
-      ctx.fillStyle='#555540';ctx.fillRect(sigX+sigW*0.25,sigY-8,2,8);ctx.fillRect(sigX+sigW*0.72,sigY-8,2,8);
+      // Hanging sign on chain — '₿ RUBY'S' (gentle sway)
+      const sigW=52,sigH=14;const sigSway=Math.sin(t*1.1+d.x*0.3)*1.5;
+      const sigX=rx+rw/2-sigW/2+sigSway,sigY=ry+4;
+      // chains (fixed at top, move with sign at bottom)
+      ctx.strokeStyle='#555540';ctx.lineWidth=2;
+      ctx.beginPath();ctx.moveTo(rx+rw/2-sigW*0.25,sigY-8);ctx.lineTo(sigX+sigW*0.25+1,sigY);ctx.stroke();
+      ctx.beginPath();ctx.moveTo(rx+rw/2+sigW*0.22,sigY-8);ctx.lineTo(sigX+sigW*0.72+1,sigY);ctx.stroke();
+      // plaque with a tiny drop shadow
+      ctx.fillStyle='rgba(0,0,0,0.25)';ctx.fillRect(sigX+1,sigY+2,sigW,sigH);
       ctx.fillStyle='#3A2A10';ctx.fillRect(sigX,sigY,sigW,sigH);
+      ctx.fillStyle='#5A3A18';ctx.fillRect(sigX,sigY,sigW,2); // top highlight
       ctx.fillStyle='#C06010';ctx.font='bold 8px '+FONT;ctx.textAlign='center';
       ctx.fillText("₿ RUBY'S",sigX+sigW/2,sigY+10);
 
@@ -869,10 +1011,15 @@ function drawDecor(d) {
         }
       }
 
-      // Hanging sign — '🍺 HODL' on dark plaque
-      const ts3W=54,ts3H=14;const ts3X=rx+rw/2-ts3W/2,ts3Y=ry+4;
-      ctx.fillStyle='#444438';ctx.fillRect(ts3X+ts3W*0.3,ts3Y-8,2,8);ctx.fillRect(ts3X+ts3W*0.68,ts3Y-8,2,8);
+      // Hanging sign — '🍺 HODL' on dark plaque (gentle sway)
+      const ts3W=54,ts3H=14;const tsSway=Math.sin(t*0.9+d.x*0.5)*1.8;
+      const ts3X=rx+rw/2-ts3W/2+tsSway,ts3Y=ry+4;
+      ctx.strokeStyle='#444438';ctx.lineWidth=2;
+      ctx.beginPath();ctx.moveTo(rx+rw/2-ts3W*0.2,ts3Y-8);ctx.lineTo(ts3X+ts3W*0.3+1,ts3Y);ctx.stroke();
+      ctx.beginPath();ctx.moveTo(rx+rw/2+ts3W*0.18,ts3Y-8);ctx.lineTo(ts3X+ts3W*0.68+1,ts3Y);ctx.stroke();
+      ctx.fillStyle='rgba(0,0,0,0.25)';ctx.fillRect(ts3X+1,ts3Y+2,ts3W,ts3H);
       ctx.fillStyle='#2A1808';ctx.fillRect(ts3X,ts3Y,ts3W,ts3H);
+      ctx.fillStyle='#4A2818';ctx.fillRect(ts3X,ts3Y,ts3W,2);
       ctx.fillStyle='#C88030';ctx.font='bold 8px '+FONT;ctx.textAlign='center';
       ctx.fillText('🍺 HODL',ts3X+ts3W/2,ts3Y+10);
 
@@ -1164,6 +1311,8 @@ function drawDecor(d) {
       ctx.fillStyle='rgba(0,0,0,0.2)';ctx.fillRect(rx-8,ry+ST+2,rw+16,4);
     }
 
+    // Atmospheric surroundings — path, flowers, props, soft shadow
+    drawBuildingAmbience(d,rx,ry,rw,bh);
     ctx.textAlign='left'; // restore default
     return;
   }
