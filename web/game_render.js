@@ -1341,122 +1341,608 @@ function drawDecor(d) {
       }
     }
 
-    // ── TAVERN (The Hodl Tavern) ──────────────────────────────────────────
+    // ── TAVERN (The Hodl Tavern) — Tudor-style half-timbered pub ─────────
     else if(d.label==='tavern'){
-      // Foundation
-      ctx.fillStyle='#3A2810';ctx.fillRect(rx-2,ry+bh-8,rw+4,8);
+      const TPAL={
+        stone:'#6A5E50', stoneL:'#8A7E70', stoneD:'#3A3228', stoneXD:'#201A14',
+        plaster:'#D8C090', plasterL:'#E8D4A8', plasterD:'#A08858',
+        beam:'#2A1808', beamD:'#120800', beamL:'#4A2810',
+        thatchD:'#4A3818', thatch:'#7A5820', thatchL:'#A07828', thatchXL:'#C89838',
+        iron:'#3A342A', ironL:'#5A544A', ironXL:'#7A7468',
+        brass:'#B8881C', brassL:'#E8B040',
+        amber:'rgba(255,180,60,0.85)', amberBright:'rgba(255,210,100,0.95)',
+        fireGlow:'rgba(255,120,30,0.6)',
+      };
+      const wallTop=ry+ST;
+      const wallBot=ry+bh-14;
+      const wallH=wallBot-wallTop;
+      // Split wall into lower stone (30%) + upper timber (70%)
+      const stoneLowerH=Math.floor(wallH*0.3);
+      const stoneLowerTop=wallBot-stoneLowerH;
 
-      // Dark mahogany walls
-      ctx.fillStyle='#4A2810';ctx.fillRect(rx,ry+ST,rw,bh-ST-8);
-      // Thick timber frame beams — vertical
-      ctx.fillStyle='#2A1808';
-      ctx.fillRect(rx,ry+ST,7,bh-ST-8);ctx.fillRect(rx+rw-7,ry+ST,7,bh-ST-8);
-      ctx.fillRect(rx+Math.floor(rw/2)-3,ry+ST,6,bh-ST-8);
-      // Horizontal cross beams
-      ctx.fillRect(rx,ry+ST,rw,5);ctx.fillRect(rx,ry+bh-ST-6,rw,5);
-      // Panel fill between beams
-      ctx.fillStyle='#5A3418';
-      ctx.fillRect(rx+7,ry+ST+5,Math.floor(rw/2)-10,bh-ST*2-2);
-      ctx.fillRect(rx+Math.floor(rw/2)+3,ry+ST+5,Math.floor(rw/2)-10,bh-ST*2-2);
-      // Horizontal plank detail in panels
-      ctx.fillStyle='rgba(0,0,0,0.08)';
-      for(let i=0;i<Math.floor((bh-ST*2)/9);i++){ctx.fillRect(rx+7,ry+ST+5+i*9+7,rw-14,2);}
-
-      // Two windows with warm AMBER glow (candlelit!)
-      const wh3=ST-10,ww3=ST-6;
-      const wy3=ry+ST+12;
-      // Left window
-      const lwx=rx+14;
-      ctx.fillStyle='#3A2010';ctx.fillRect(lwx-3,wy3-3,ww3+6,wh3+6);
-      ctx.fillStyle=winGlowAmber;ctx.fillRect(lwx,wy3,ww3,wh3);
-      ctx.fillStyle='rgba(255,255,255,0.1)';ctx.fillRect(lwx,wy3,ww3/2,wh3);
-      ctx.fillStyle='#3A2010';ctx.fillRect(lwx+ww3/2-1,wy3,2,wh3);ctx.fillRect(lwx,wy3+wh3/2-1,ww3,2);
-      // Warm glow pool on ground from left window
-      if(isNight){
-        ctx.fillStyle='rgba(255,180,60,0.1)';
-        ctx.beginPath();ctx.ellipse(lwx+ww3/2,ry+bh+6,20,8,0,0,Math.PI*2);ctx.fill();
-        // Tavern ground light pool
-        ctx.fillStyle=`rgba(255,180,60,${0.06+Math.sin(_t*1.2)*0.02})`;
-        ctx.beginPath();ctx.ellipse(lwx+ww3/2,ry+bh+8,ww3*1.5,10,0,0,Math.PI*2);ctx.fill();
+      // ── 1. STONE FOUNDATION SKIRT ────────────────────────────────────
+      const skY=wallBot, skH=14;
+      ctx.fillStyle=TPAL.stoneXD;ctx.fillRect(rx-5,skY,rw+10,skH);
+      // Irregular stone blocks
+      for(let row=0;row<2;row++){
+        const offset=row%2===0?0:8;
+        for(let col=0;col<Math.ceil((rw+10)/16)+1;col++){
+          const bx=rx-5+col*16+offset;
+          if(bx>rx+rw+5)continue;
+          const r=_svRand(d.x,d.y,row*13+col);
+          const shade=r>0.66?TPAL.stoneL:r>0.33?TPAL.stone:TPAL.stoneD;
+          ctx.fillStyle=shade;
+          ctx.fillRect(bx,skY+row*7,14+Math.floor(r*2),6);
+          ctx.fillStyle=TPAL.stoneXD;
+          ctx.fillRect(bx+14+Math.floor(r*2),skY+row*7,1,6);
+        }
       }
-      // Right window (if wide enough)
-      if(d.w>=6){
-        const rwx2=rx+rw-14-ww3;
-        ctx.fillStyle='#3A2010';ctx.fillRect(rwx2-3,wy3-3,ww3+6,wh3+6);
-        ctx.fillStyle=winGlowAmber;ctx.fillRect(rwx2,wy3,ww3,wh3);
-        ctx.fillStyle='rgba(255,255,255,0.1)';ctx.fillRect(rwx2,wy3,ww3/2,wh3);
-        ctx.fillStyle='#3A2010';ctx.fillRect(rwx2+ww3/2-1,wy3,2,wh3);ctx.fillRect(rwx2,wy3+wh3/2-1,ww3,2);
+      ctx.fillStyle='rgba(0,0,0,0.4)';
+      ctx.fillRect(rx-5,skY+6,rw+10,1);ctx.fillRect(rx-5,skY+13,rw+10,1);
+
+      // ── 2. LOWER STONE WALL (weathered masonry below timber) ─────────
+      ctx.fillStyle=TPAL.stoneD;ctx.fillRect(rx,stoneLowerTop,rw,stoneLowerH);
+      for(let row=0;row<Math.ceil(stoneLowerH/9);row++){
+        const offset=row%2===0?0:10;
+        for(let col=0;col<Math.ceil(rw/20)+1;col++){
+          const bx=rx+col*20+offset;
+          if(bx>rx+rw)continue;
+          const r=_svRand(d.x,d.y,row*17+col+100);
+          ctx.fillStyle=r>0.5?TPAL.stoneL:TPAL.stone;
+          ctx.fillRect(bx,stoneLowerTop+row*9,18,8);
+          ctx.fillStyle=TPAL.stoneXD;
+          ctx.fillRect(bx+18,stoneLowerTop+row*9,2,8);
+        }
+      }
+      ctx.fillStyle='rgba(0,0,0,0.35)';
+      for(let r=1;r<Math.ceil(stoneLowerH/9);r++){
+        ctx.fillRect(rx,stoneLowerTop+r*9-1,rw,1);
+      }
+      // Thick beam separating stone from upper timber (jetty)
+      ctx.fillStyle=TPAL.beam;ctx.fillRect(rx-4,stoneLowerTop-4,rw+8,5);
+      ctx.fillStyle=TPAL.beamL;ctx.fillRect(rx-4,stoneLowerTop-4,rw+8,1);
+      ctx.fillStyle=TPAL.beamD;ctx.fillRect(rx-4,stoneLowerTop,rw+8,1);
+
+      // ── 3. UPPER HALF-TIMBERED WALL (plaster panels w/ dark beams) ───
+      const upperTop=wallTop;
+      const upperBot=stoneLowerTop-4;
+      const upperH=upperBot-upperTop;
+      // Plaster background
+      ctx.fillStyle=TPAL.plaster;ctx.fillRect(rx,upperTop,rw,upperH);
+      // Plaster dither noise for texture
+      for(let i=0;i<120;i++){
+        const nx=rx+_svRand(d.x,d.y,i)*rw;
+        const ny=upperTop+_svRand(d.x,d.y,i+200)*upperH;
+        const nc=_svRand(d.x,d.y,i+400);
+        ctx.fillStyle=nc>0.66?TPAL.plasterL:nc>0.33?TPAL.plasterD:'rgba(0,0,0,0.08)';
+        ctx.fillRect(Math.floor(nx),Math.floor(ny),1,1);
+      }
+      // Water stain / age
+      ctx.fillStyle='rgba(100,80,40,0.15)';
+      ctx.fillRect(rx+rw*0.2,upperTop,2,upperH*0.4);
+      ctx.fillRect(rx+rw*0.78,upperTop+upperH*0.1,1,upperH*0.5);
+
+      // Timber beams — the Tudor pattern
+      // Top rail
+      ctx.fillStyle=TPAL.beam;ctx.fillRect(rx-2,upperTop-2,rw+4,5);
+      ctx.fillStyle=TPAL.beamL;ctx.fillRect(rx-2,upperTop-2,rw+4,1);
+      // Bottom rail (already above the stone)
+      ctx.fillStyle=TPAL.beam;ctx.fillRect(rx-2,upperBot-3,rw+4,4);
+      // Vertical studs — corner posts
+      ctx.fillStyle=TPAL.beam;
+      ctx.fillRect(rx-1,upperTop,5,upperH);
+      ctx.fillRect(rx+rw-4,upperTop,5,upperH);
+      ctx.fillStyle=TPAL.beamL;
+      ctx.fillRect(rx,upperTop,1,upperH);
+      ctx.fillRect(rx+rw-4,upperTop,1,upperH);
+      // Middle vertical stud (divider between left/right windows above door)
+      ctx.fillStyle=TPAL.beam;
+      ctx.fillRect(rx+rw/2-2,upperTop,4,upperH);
+      // Diagonal cross braces in each panel (classic Tudor X)
+      ctx.strokeStyle=TPAL.beam;ctx.lineWidth=3;
+      // Left panel X
+      ctx.beginPath();
+      ctx.moveTo(rx+6,upperTop+2);ctx.lineTo(rx+rw/2-4,upperBot-4);
+      ctx.stroke();
+      ctx.beginPath();
+      ctx.moveTo(rx+rw/2-4,upperTop+2);ctx.lineTo(rx+6,upperBot-4);
+      ctx.stroke();
+      // Right panel X
+      ctx.beginPath();
+      ctx.moveTo(rx+rw/2+4,upperTop+2);ctx.lineTo(rx+rw-6,upperBot-4);
+      ctx.stroke();
+      ctx.beginPath();
+      ctx.moveTo(rx+rw-6,upperTop+2);ctx.lineTo(rx+rw/2+4,upperBot-4);
+      ctx.stroke();
+      ctx.lineWidth=1;
+
+      // ── 4. LEADED DIAMOND-PANE WINDOWS (on stone wall, flanking door) ─
+      const wiW=ST-6, wiH=stoneLowerH-6;
+      const wiY=stoneLowerTop+3;
+      const doorAreaW=ST+4;
+      const winL_X=rx+rw*0.25-wiW/2;
+      const winR_X=rx+rw*0.75-wiW/2;
+
+      function drawTavernWindow(wx,wy,ww,wh){
+        // Deep stone reveal (dark surround)
+        ctx.fillStyle=TPAL.stoneXD;
+        ctx.fillRect(wx-3,wy-3,ww+6,wh+6);
+        // Heavy wood frame
+        ctx.fillStyle=TPAL.beam;
+        ctx.fillRect(wx-2,wy-2,ww+4,wh+4);
+        ctx.fillStyle=TPAL.beamL;
+        ctx.fillRect(wx-2,wy-2,ww+4,1);
+        // Warm amber interior (candlelight that flickers)
+        const flicker=0.88+Math.sin(t*3+d.x)*0.08+Math.sin(t*7.3)*0.04;
+        ctx.fillStyle=`rgba(255,180,60,${flicker})`;
+        ctx.fillRect(wx,wy,ww,wh);
+        // Darker top/bottom (suggesting interior depth)
+        const wgrad=ctx.createLinearGradient(wx,wy,wx,wy+wh);
+        wgrad.addColorStop(0,'rgba(120,60,10,0.4)');
+        wgrad.addColorStop(0.4,'rgba(255,160,40,0)');
+        wgrad.addColorStop(0.6,'rgba(255,160,40,0)');
+        wgrad.addColorStop(1,'rgba(100,40,5,0.5)');
+        ctx.fillStyle=wgrad;ctx.fillRect(wx,wy,ww,wh);
+        // Diamond lead lattice (criss-cross diagonals)
+        ctx.strokeStyle=TPAL.iron;ctx.lineWidth=1;
+        const step=5;
+        for(let dx=-wh;dx<ww+wh;dx+=step){
+          ctx.beginPath();
+          ctx.moveTo(Math.max(wx,wx+dx),wy+Math.max(0,-dx));
+          ctx.lineTo(Math.min(wx+ww,wx+dx+wh),wy+Math.min(wh,wh-dx+ww-ww));
+          ctx.stroke();
+        }
+        // Actually simpler: just two sets of diagonal lines
+        ctx.strokeStyle=TPAL.iron;ctx.lineWidth=1;
+        ctx.save();
+        ctx.beginPath();ctx.rect(wx,wy,ww,wh);ctx.clip();
+        for(let off=-wh;off<ww;off+=4){
+          ctx.beginPath();
+          ctx.moveTo(wx+off,wy);ctx.lineTo(wx+off+wh,wy+wh);
+          ctx.stroke();
+        }
+        for(let off=0;off<ww+wh;off+=4){
+          ctx.beginPath();
+          ctx.moveTo(wx+off,wy);ctx.lineTo(wx+off-wh,wy+wh);
+          ctx.stroke();
+        }
+        ctx.restore();
+        // Thick central vertical mullion
+        ctx.fillStyle=TPAL.beam;
+        ctx.fillRect(wx+ww/2-1,wy,2,wh);
+        // Horizontal transom
+        ctx.fillRect(wx,wy+wh*0.55-1,ww,2);
+        // Small silhouette of a mug + figure inside (atmosphere)
+        ctx.fillStyle='rgba(30,15,5,0.55)';
+        ctx.fillRect(wx+ww*0.3,wy+wh*0.7,ww*0.15,wh*0.15); // mug shape
+        ctx.fillRect(wx+ww*0.55,wy+wh*0.65,ww*0.12,wh*0.2);
+        // Glare on glass
+        ctx.fillStyle='rgba(255,255,255,0.12)';
+        ctx.fillRect(wx+1,wy+1,ww*0.3,wh*0.3);
+        // Window sill
+        ctx.fillStyle=TPAL.beam;
+        ctx.fillRect(wx-4,wy+wh+2,ww+8,3);
+        ctx.fillStyle=TPAL.beamL;
+        ctx.fillRect(wx-4,wy+wh+2,ww+8,1);
+        // Flower box below
+        ctx.fillStyle='#5A3818';ctx.fillRect(wx-3,wy+wh+5,ww+6,5);
+        ctx.fillStyle='#7A4820';ctx.fillRect(wx-3,wy+wh+5,ww+6,1);
+        ctx.fillStyle='#2A5018';
+        for(let fi=0;fi<5;fi++)ctx.fillRect(wx-2+fi*((ww+4)/5),wy+wh+3,1,3);
+        ctx.fillStyle='#C04020';ctx.fillRect(wx+2,wy+wh+2,2,2);
+        ctx.fillStyle='#F0C020';ctx.fillRect(wx+ww-4,wy+wh+2,2,2);
+        // Wooden shutters (open to the side)
+        ctx.fillStyle=TPAL.beamL;
+        ctx.fillRect(wx-5,wy-2,3,wh+4);
+        ctx.fillRect(wx+ww+2,wy-2,3,wh+4);
+        ctx.fillStyle=TPAL.beamD;
+        ctx.fillRect(wx-5,wy-2,1,wh+4);
+        ctx.fillRect(wx+ww+2,wy-2,1,wh+4);
+        // Shutter hinge dots
+        ctx.fillStyle=TPAL.iron;
+        ctx.fillRect(wx-4,wy,1,1);ctx.fillRect(wx-4,wy+wh,1,1);
+        ctx.fillRect(wx+ww+3,wy,1,1);ctx.fillRect(wx+ww+3,wy+wh,1,1);
+
+        // Light pool on the ground at night
         if(isNight){
-          ctx.fillStyle='rgba(255,180,60,0.1)';
-          ctx.beginPath();ctx.ellipse(rwx2+ww3/2,ry+bh+6,20,8,0,0,Math.PI*2);ctx.fill();
+          const pulseI=0.25+Math.sin(_t*1.8+wx)*0.08;
+          ctx.fillStyle=`rgba(255,170,60,${pulseI*0.4})`;
+          ctx.beginPath();ctx.ellipse(wx+ww/2,wallBot+10,ww*1.4,12,0,0,Math.PI*2);ctx.fill();
+          ctx.fillStyle=`rgba(255,200,100,${pulseI*0.3})`;
+          ctx.beginPath();ctx.ellipse(wx+ww/2,wallBot+8,ww*0.9,8,0,0,Math.PI*2);ctx.fill();
         }
       }
 
-      // Hanging sign — '🍺 HODL' on dark plaque (gentle sway)
-      const ts3W=54,ts3H=14;const tsSway=Math.sin(t*0.9+d.x*0.5)*1.8;
-      const ts3X=rx+rw/2-ts3W/2+tsSway,ts3Y=ry+4;
-      ctx.strokeStyle='#444438';ctx.lineWidth=2;
-      ctx.beginPath();ctx.moveTo(rx+rw/2-ts3W*0.2,ts3Y-8);ctx.lineTo(ts3X+ts3W*0.3+1,ts3Y);ctx.stroke();
-      ctx.beginPath();ctx.moveTo(rx+rw/2+ts3W*0.18,ts3Y-8);ctx.lineTo(ts3X+ts3W*0.68+1,ts3Y);ctx.stroke();
-      ctx.fillStyle='rgba(0,0,0,0.25)';ctx.fillRect(ts3X+1,ts3Y+2,ts3W,ts3H);
-      ctx.fillStyle='#2A1808';ctx.fillRect(ts3X,ts3Y,ts3W,ts3H);
-      ctx.fillStyle='#4A2818';ctx.fillRect(ts3X,ts3Y,ts3W,2);
-      ctx.fillStyle='#C88030';ctx.font='bold 8px '+FONT;ctx.textAlign='center';
-      ctx.fillText('🍺 HODL',ts3X+ts3W/2,ts3Y+10);
+      drawTavernWindow(winL_X,wiY,wiW,wiH);
+      drawTavernWindow(winR_X,wiY,wiW,wiH);
 
-      // Swinging door — slightly ajar, lighter
-      const dW3=ST-2,dH3=ST+12;
-      const dX3=rx+Math.floor(rw/2)-dW3/2;const dY3=ry+bh-dH3;
-      ctx.fillStyle='#3A2010';ctx.fillRect(dX3-3,dY3,dW3+6,dH3+1);
-      ctx.fillStyle='#8A6030';ctx.fillRect(dX3,dY3+2,dW3*0.55,dH3-2); // left door panel ajar
-      ctx.fillStyle='#7A5028';ctx.fillRect(dX3+dW3*0.55,dY3+2,dW3*0.45,dH3-2); // right panel
-      // Door panels detail
-      ctx.fillStyle='rgba(0,0,0,0.1)';
-      ctx.fillRect(dX3+4,dY3+6,dW3*0.45,dH3/2-8);
-      ctx.fillRect(dX3+4,dY3+dH3/2+2,dW3*0.45,dH3/2-10);
+      // ── 5. HEAVY DOUBLE DOOR AJAR ────────────────────────────────────
+      const doorW3=ST+2, doorH3=stoneLowerH+6;
+      const doorX3=rx+rw/2-doorW3/2, doorY3=wallBot-doorH3;
+      // Stone arch above door (lintel)
+      ctx.fillStyle=TPAL.stoneXD;
+      ctx.fillRect(doorX3-6,doorY3-6,doorW3+12,7);
+      ctx.fillStyle=TPAL.stone;
+      ctx.fillRect(doorX3-5,doorY3-5,doorW3+10,5);
+      // Keystone
+      ctx.fillStyle=TPAL.stoneL;
+      ctx.fillRect(doorX3+doorW3/2-3,doorY3-6,6,7);
+      ctx.fillStyle=TPAL.stoneXD;
+      ctx.fillRect(doorX3+doorW3/2-3,doorY3-6,1,7);
+      ctx.fillRect(doorX3+doorW3/2+2,doorY3-6,1,7);
+      // Stone step
+      ctx.fillStyle=TPAL.stoneD;ctx.fillRect(doorX3-8,wallBot-2,doorW3+16,6);
+      ctx.fillStyle=TPAL.stoneL;ctx.fillRect(doorX3-8,wallBot-2,doorW3+16,2);
+      ctx.fillStyle=TPAL.stoneXD;ctx.fillRect(doorX3-8,wallBot+4,doorW3+16,1);
+      // Doorway interior (dark room with fire glow)
+      ctx.fillStyle='#1A0A04';ctx.fillRect(doorX3,doorY3,doorW3,doorH3);
+      // Firelight gradient pouring out
+      const fireGrad=ctx.createRadialGradient(
+        doorX3+doorW3/2,doorY3+doorH3*0.65,3,
+        doorX3+doorW3/2,doorY3+doorH3*0.65,doorH3*0.9
+      );
+      fireGrad.addColorStop(0,'rgba(255,180,60,0.95)');
+      fireGrad.addColorStop(0.4,'rgba(255,120,30,0.7)');
+      fireGrad.addColorStop(1,'rgba(80,20,5,0.1)');
+      ctx.fillStyle=fireGrad;
+      ctx.fillRect(doorX3+1,doorY3+2,doorW3-2,doorH3-2);
+      // Silhouette of patron (seated figure) inside
+      ctx.fillStyle='rgba(20,10,2,0.7)';
+      ctx.fillRect(doorX3+doorW3*0.3,doorY3+doorH3*0.45,doorW3*0.4,doorH3*0.4);
+      ctx.fillRect(doorX3+doorW3*0.35,doorY3+doorH3*0.3,doorW3*0.3,doorH3*0.2); // head
+
+      // Left door (ajar — wider view of interior)
+      const ldW=doorW3*0.38;
+      ctx.fillStyle=TPAL.beamD;
+      ctx.fillRect(doorX3-4,doorY3+2,3,doorH3-4);
+      ctx.fillStyle=TPAL.beamL;
+      ctx.fillRect(doorX3-3,doorY3+3,2,doorH3-6);
+      // Iron bands on ajar door
+      ctx.fillStyle=TPAL.iron;
+      ctx.fillRect(doorX3-4,doorY3+8,3,2);
+      ctx.fillRect(doorX3-4,doorY3+doorH3-12,3,2);
+
+      // Right door (closed, heavy oak with iron bands)
+      const rdX=doorX3+doorW3*0.42, rdW=doorW3*0.58;
+      ctx.fillStyle=TPAL.beamD;
+      ctx.fillRect(rdX,doorY3+1,rdW,doorH3-2);
+      ctx.fillStyle='#5A3018';
+      ctx.fillRect(rdX+1,doorY3+2,rdW-2,doorH3-4);
+      // Vertical plank lines
+      ctx.fillStyle=TPAL.beamD;
+      for(let p=0;p<3;p++)ctx.fillRect(rdX+3+p*((rdW-6)/3),doorY3+3,1,doorH3-6);
+      // Iron horizontal bands
+      ctx.fillStyle=TPAL.iron;
+      ctx.fillRect(rdX,doorY3+4,rdW,3);
+      ctx.fillRect(rdX,doorY3+doorH3-8,rdW,3);
+      ctx.fillStyle=TPAL.ironL;
+      ctx.fillRect(rdX,doorY3+4,rdW,1);
+      ctx.fillRect(rdX,doorY3+doorH3-8,rdW,1);
+      // Rivets on bands
+      ctx.fillStyle=TPAL.ironXL;
+      for(let riv=0;riv<4;riv++){
+        ctx.fillRect(rdX+3+riv*(rdW/4),doorY3+5,1,1);
+        ctx.fillRect(rdX+3+riv*(rdW/4),doorY3+doorH3-7,1,1);
+      }
+      // Iron ring knocker
+      const knX=rdX+rdW*0.7, knY=doorY3+doorH3*0.45;
+      ctx.fillStyle=TPAL.iron;
+      ctx.fillRect(knX-2,knY,4,3); // plate
+      ctx.strokeStyle=TPAL.ironL;ctx.lineWidth=1.5;
+      ctx.beginPath();ctx.arc(knX,knY+4,3,0,Math.PI*2);ctx.stroke();
+
+      // Warm light spill onto the step
+      const spillG=ctx.createRadialGradient(
+        doorX3+doorW3*0.3,wallBot+2,2,
+        doorX3+doorW3*0.3,wallBot+4,28
+      );
+      spillG.addColorStop(0,'rgba(255,170,50,0.55)');
+      spillG.addColorStop(0.5,'rgba(255,130,30,0.2)');
+      spillG.addColorStop(1,'rgba(255,100,20,0)');
+      ctx.fillStyle=spillG;
+      ctx.fillRect(doorX3-24,wallBot-4,doorW3+48,24);
+
+      // ── 6. HANGING IRON LANTERN on bracket (right of door) ───────────
+      const lnBrX=doorX3+doorW3+5, lnBrY=doorY3-4;
+      // Wrought iron wall bracket
+      ctx.strokeStyle=TPAL.iron;ctx.lineWidth=2;
+      ctx.beginPath();
+      ctx.moveTo(lnBrX,lnBrY);
+      ctx.quadraticCurveTo(lnBrX+4,lnBrY-3,lnBrX+10,lnBrY+2);
+      ctx.stroke();
+      // Small scroll curl
+      ctx.beginPath();ctx.arc(lnBrX+3,lnBrY-2,1.5,0,Math.PI*2);ctx.stroke();
+      // Hanging chain
+      ctx.lineWidth=1;
+      ctx.beginPath();ctx.moveTo(lnBrX+10,lnBrY+2);ctx.lineTo(lnBrX+10,lnBrY+8);ctx.stroke();
+      // Lantern body
+      const lnX=lnBrX+10, lnY=lnBrY+9;
+      ctx.fillStyle=TPAL.iron;
+      ctx.fillRect(lnX-4,lnY,8,2); // top cap
+      ctx.fillRect(lnX-3,lnY+9,6,2); // bottom
+      // Glass panels with warm amber
+      const lnPulse=0.85+Math.sin(t*4)*0.12;
+      ctx.fillStyle=`rgba(255,190,70,${lnPulse})`;
+      ctx.fillRect(lnX-3,lnY+2,6,7);
+      // Flame
+      ctx.fillStyle='#FFE08A';ctx.fillRect(lnX-1,lnY+4,2,3);
+      // Iron frame bars
+      ctx.fillStyle=TPAL.iron;
+      ctx.fillRect(lnX-3,lnY+2,1,7);ctx.fillRect(lnX+2,lnY+2,1,7);
+      ctx.fillRect(lnX-3,lnY+5,6,1);
+      // Lantern glow at night
+      if(isNight){
+        const glwG=ctx.createRadialGradient(lnX,lnY+5,2,lnX,lnY+5,24);
+        glwG.addColorStop(0,`rgba(255,190,70,${lnPulse*0.4})`);
+        glwG.addColorStop(1,'rgba(255,190,70,0)');
+        ctx.fillStyle=glwG;
+        ctx.beginPath();ctx.arc(lnX,lnY+5,24,0,Math.PI*2);ctx.fill();
+      }
+
+      // ── 7. OUTDOOR ATMOSPHERE PROPS ──────────────────────────────────
+      // Beer barrel with tap (left of door)
+      const brlX=doorX3-28,brlY=wallBot-18;
+      ctx.fillStyle=TPAL.beamD;ctx.fillRect(brlX-1,brlY-1,17,20);
+      ctx.fillStyle='#6A3818';ctx.fillRect(brlX,brlY,15,18);
+      ctx.fillStyle='#8A4820';ctx.fillRect(brlX+1,brlY+1,13,16);
+      // Stave lines
+      ctx.fillStyle='rgba(0,0,0,0.25)';
+      for(let s=0;s<4;s++)ctx.fillRect(brlX+2+s*3,brlY+1,1,16);
+      // Iron hoops
+      ctx.fillStyle=TPAL.iron;
+      ctx.fillRect(brlX,brlY+2,15,2);
+      ctx.fillRect(brlX,brlY+14,15,2);
+      ctx.fillStyle=TPAL.ironL;
+      ctx.fillRect(brlX,brlY+2,15,1);
+      ctx.fillRect(brlX,brlY+14,15,1);
+      // Brass tap
+      ctx.fillStyle=TPAL.brass;ctx.fillRect(brlX+6,brlY+8,4,2);
+      ctx.fillStyle=TPAL.brassL;ctx.fillRect(brlX+6,brlY+8,4,1);
+      ctx.fillStyle=TPAL.brass;ctx.fillRect(brlX+9,brlY+10,2,3);
+      // Wet patch under tap
+      ctx.fillStyle='rgba(100,60,20,0.4)';
+      ctx.beginPath();ctx.ellipse(brlX+10,brlY+19,6,2,0,0,Math.PI*2);ctx.fill();
+
+      // Trestle table + bench (right of door)
+      const tblX=doorX3+doorW3+26,tblY=wallBot-18;
+      // Table top
+      ctx.fillStyle=TPAL.beamD;ctx.fillRect(tblX-1,tblY-1,24,5);
+      ctx.fillStyle='#7A4820';ctx.fillRect(tblX,tblY,22,4);
+      ctx.fillStyle='rgba(0,0,0,0.2)';
+      ctx.fillRect(tblX,tblY+2,22,1);
+      // Legs
+      ctx.fillStyle=TPAL.beam;
+      ctx.fillRect(tblX+2,tblY+4,2,14);
+      ctx.fillRect(tblX+18,tblY+4,2,14);
+      // Cross brace
+      ctx.fillRect(tblX+2,tblY+14,18,1);
+      // Wooden mug on the table
+      const mgX=tblX+8,mgY=tblY-5;
+      ctx.fillStyle=TPAL.beamD;ctx.fillRect(mgX,mgY,5,5);
+      ctx.fillStyle='#8A5820';ctx.fillRect(mgX+1,mgY+1,3,4);
+      ctx.fillStyle='#E8D0A0';ctx.fillRect(mgX+1,mgY,3,1); // foam
+      ctx.fillRect(mgX,mgY-1,5,1);
+      // Mug handle
+      ctx.fillStyle=TPAL.beam;ctx.fillRect(mgX+5,mgY+1,1,3);
+
+      // ── 8. CHIMNEY (right side, stone) w/ active smoke ───────────────
+      const tchx=rx+rw-20,tchy=ry-ST*0.8;
+      const chH=ST*0.8+ST+4;
+      ctx.fillStyle=TPAL.stoneXD;ctx.fillRect(tchx-1,tchy,14,chH);
+      // Stone blocks
+      for(let i=0;i<Math.ceil(chH/7);i++){
+        const sh=_svRand(d.x,d.y,i+500)>0.5?TPAL.stoneL:TPAL.stone;
+        ctx.fillStyle=sh;
+        ctx.fillRect(tchx+(i%2)*2,tchy+i*7,12,6);
+        ctx.fillStyle=TPAL.stoneXD;
+        ctx.fillRect(tchx+(i%2)*2,tchy+i*7+6,12,1);
+      }
+      // Chimney cap
+      ctx.fillStyle=TPAL.stoneD;ctx.fillRect(tchx-3,tchy-3,18,4);
+      ctx.fillStyle=TPAL.stone;ctx.fillRect(tchx-3,tchy-3,18,1);
+      // Inner dark hole
+      ctx.fillStyle='#0A0604';ctx.fillRect(tchx+3,tchy-1,6,2);
+      // Ember glow from chimney top
+      ctx.fillStyle='rgba(255,100,20,0.3)';
+      ctx.fillRect(tchx+3,tchy-2,6,1);
+
+      // Thick warm smoke (multiple layers)
+      for(let sp=0;sp<4;sp++){
+        const sa=0.35-sp*0.07+Math.sin(t*1.5+sp)*0.08;
+        const smX=tchx+6+Math.sin(t*0.8+sp*1.5)*(3+sp);
+        const smY=tchy-10-sp*10-((t*8+sp*4)%8);
+        ctx.fillStyle=`rgba(180,140,90,${sa})`;
+        ctx.beginPath();ctx.arc(smX,smY,4+sp*1.5,0,Math.PI*2);ctx.fill();
+        ctx.fillStyle=`rgba(220,170,110,${sa*0.5})`;
+        ctx.beginPath();ctx.arc(smX-1,smY-1,3+sp,0,Math.PI*2);ctx.fill();
+      }
+
+      // ── 9. STEEP THATCHED ROOF ───────────────────────────────────────
+      const roofOver=12;
+      const roofPeakY=ry-ST*1.1;
+      const roofEaveY=wallTop+3;
+      // Roof silhouette (steep gable)
+      ctx.fillStyle=TPAL.thatchD;
+      ctx.beginPath();
+      ctx.moveTo(rx-roofOver,roofEaveY+4);
+      ctx.lineTo(rx+rw/2,roofPeakY);
+      ctx.lineTo(rx+rw+roofOver,roofEaveY+4);
+      ctx.closePath();ctx.fill();
+      // Thatch layers — 5 horizontal bands, each with shaggy bottom edge
+      const bandCount=6;
+      for(let band=bandCount-1;band>=0;band--){
+        const bandTopRatio=band/bandCount;
+        const bandBotRatio=(band+1)/bandCount;
+        // Interpolate roof width at each y
+        const topY=roofPeakY+(roofEaveY+4-roofPeakY)*bandTopRatio;
+        const botY=roofPeakY+(roofEaveY+4-roofPeakY)*bandBotRatio;
+        const topHalfW=(rw/2+roofOver)*bandTopRatio;
+        const botHalfW=(rw/2+roofOver)*bandBotRatio;
+        // Thatch color varies per band
+        const bc=band%2===0?TPAL.thatchL:TPAL.thatch;
+        ctx.fillStyle=bc;
+        ctx.beginPath();
+        ctx.moveTo(rx+rw/2-topHalfW,topY);
+        ctx.lineTo(rx+rw/2+topHalfW,topY);
+        ctx.lineTo(rx+rw/2+botHalfW,botY+3);
+        ctx.lineTo(rx+rw/2-botHalfW,botY+3);
+        ctx.closePath();ctx.fill();
+        // Shaggy bottom edge — draw triangular teeth along the bottom of each band
+        ctx.fillStyle=TPAL.thatchD;
+        const toothW=5;
+        for(let tx2=-botHalfW;tx2<botHalfW;tx2+=toothW){
+          const th=2+_svRand(d.x,d.y,band*23+Math.floor(tx2))*2;
+          ctx.beginPath();
+          ctx.moveTo(rx+rw/2+tx2,botY+3);
+          ctx.lineTo(rx+rw/2+tx2+toothW/2,botY+3+th);
+          ctx.lineTo(rx+rw/2+tx2+toothW,botY+3);
+          ctx.closePath();ctx.fill();
+        }
+        // Straw texture — vertical strokes
+        ctx.strokeStyle=TPAL.thatchXL;
+        ctx.lineWidth=1;
+        for(let i=0;i<12;i++){
+          const sx2=rx+rw/2-botHalfW+_svRand(d.x,d.y,band*11+i)*(botHalfW*2);
+          const sy2=topY+_svRand(d.x,d.y,band*19+i)*(botY-topY);
+          ctx.beginPath();
+          ctx.moveTo(sx2,sy2);
+          ctx.lineTo(sx2+0.5,sy2+3);
+          ctx.stroke();
+        }
+        // Darker streaks
+        ctx.strokeStyle='rgba(0,0,0,0.3)';
+        for(let i=0;i<8;i++){
+          const sx2=rx+rw/2-botHalfW+_svRand(d.x,d.y,band*29+i+7)*(botHalfW*2);
+          const sy2=topY+_svRand(d.x,d.y,band*31+i)*(botY-topY);
+          ctx.beginPath();
+          ctx.moveTo(sx2,sy2);
+          ctx.lineTo(sx2,sy2+4);
+          ctx.stroke();
+        }
+      }
+      // Twisted rope ridge along the peak (darker bundled thatch)
+      ctx.fillStyle=TPAL.thatchD;
+      ctx.fillRect(rx-roofOver,roofPeakY-2,rw+roofOver*2,4);
+      ctx.fillStyle='#2A1A08';
+      for(let i=0;i<Math.ceil((rw+roofOver*2)/4);i++){
+        ctx.fillRect(rx-roofOver+i*4+(i%2),roofPeakY-1,2,1);
+      }
+      // Eave shadow under roof
+      ctx.fillStyle='rgba(0,0,0,0.3)';
+      ctx.fillRect(rx-roofOver,roofEaveY+4,rw+roofOver*2,4);
+
+      // ── 10. MASSIVE HANGING SIGN on wrought-iron bracket ─────────────
+      // Big sign extends outward from the wall to the LEFT side
+      const sigBrX=rx+4, sigBrY=upperTop+upperH*0.4;
+      // Iron bracket arm extending out from wall
+      ctx.strokeStyle=TPAL.iron;ctx.lineWidth=3;
+      ctx.beginPath();
+      ctx.moveTo(sigBrX,sigBrY);
+      ctx.lineTo(sigBrX-14,sigBrY);
+      ctx.stroke();
+      ctx.lineWidth=2;
+      // Diagonal support strut
+      ctx.beginPath();
+      ctx.moveTo(sigBrX,sigBrY+10);
+      ctx.lineTo(sigBrX-12,sigBrY+2);
+      ctx.stroke();
+      // Decorative scroll curls
+      ctx.lineWidth=1.5;
+      ctx.beginPath();ctx.arc(sigBrX-4,sigBrY-2,2,0,Math.PI*2);ctx.stroke();
+      ctx.beginPath();ctx.arc(sigBrX-10,sigBrY-3,1.5,0,Math.PI*2);ctx.stroke();
+
+      // Hanging sign
+      const sigW=44,sigH=28;
+      const sigSway=Math.sin(t*0.9+d.x*0.5)*2.2;
+      const sigX=sigBrX-18+sigSway, sigY=sigBrY+4;
+      // Chains
+      ctx.strokeStyle=TPAL.iron;ctx.lineWidth=1.5;
+      ctx.beginPath();ctx.moveTo(sigBrX-14,sigBrY);ctx.lineTo(sigX+4,sigY);ctx.stroke();
+      ctx.beginPath();ctx.moveTo(sigBrX-14,sigBrY);ctx.lineTo(sigX+sigW-4,sigY);ctx.stroke();
+      // Sign frame (iron border + wood interior)
+      ctx.fillStyle='rgba(0,0,0,0.4)';
+      ctx.fillRect(sigX+2,sigY+3,sigW,sigH);
+      ctx.fillStyle=TPAL.iron;
+      ctx.fillRect(sigX,sigY,sigW,sigH);
+      ctx.fillStyle=TPAL.beamD;
+      ctx.fillRect(sigX+2,sigY+2,sigW-4,sigH-4);
+      ctx.fillStyle='#5A3818';
+      ctx.fillRect(sigX+3,sigY+3,sigW-6,sigH-6);
+      // Inner beveled border
+      ctx.strokeStyle='#7A4820';ctx.lineWidth=1;
+      ctx.strokeRect(sigX+3,sigY+3,sigW-6,sigH-6);
+      // Iron corner bolts
+      ctx.fillStyle=TPAL.ironXL;
+      ctx.fillRect(sigX+2,sigY+2,2,2);
+      ctx.fillRect(sigX+sigW-4,sigY+2,2,2);
+      ctx.fillRect(sigX+2,sigY+sigH-4,2,2);
+      ctx.fillRect(sigX+sigW-4,sigY+sigH-4,2,2);
+      // Painted foaming mug illustration
+      const mgCX=sigX+sigW/2, mgCY=sigY+sigH*0.42;
+      // Mug body
+      ctx.fillStyle='#3A2010';ctx.fillRect(mgCX-5,mgCY-3,10,9);
+      ctx.fillStyle='#7A4820';ctx.fillRect(mgCX-4,mgCY-2,8,7);
+      ctx.fillStyle='#9A5820';ctx.fillRect(mgCX-4,mgCY-2,2,7); // highlight
       // Handle
-      ctx.fillStyle='#B08040';ctx.fillRect(dX3+dW3-10,dY3+dH3/2-3,4,8);
-      // Door mat
-      ctx.fillStyle='#7A4820';ctx.fillRect(dX3-4,ry+bh+1,dW3+8,5);
-      ctx.fillStyle='rgba(200,140,60,0.3)';
-      for(let i=0;i<3;i++){ctx.fillRect(dX3-2+i*9,ry+bh+2,7,3);}
+      ctx.strokeStyle='#3A2010';ctx.lineWidth=1.5;
+      ctx.beginPath();ctx.arc(mgCX+6,mgCY+1,3,-Math.PI/2,Math.PI/2);ctx.stroke();
+      // Foam on top
+      ctx.fillStyle='#F0E8D0';
+      ctx.beginPath();ctx.arc(mgCX-3,mgCY-3,2,0,Math.PI*2);ctx.fill();
+      ctx.beginPath();ctx.arc(mgCX,mgCY-4,2.5,0,Math.PI*2);ctx.fill();
+      ctx.beginPath();ctx.arc(mgCX+3,mgCY-3,2,0,Math.PI*2);ctx.fill();
+      // Text below mug
+      ctx.fillStyle='#E8B040';ctx.font='bold 6px '+FONT;ctx.textAlign='center';
+      ctx.fillText('THE HODL',sigX+sigW/2,sigY+sigH-6);
+      ctx.fillText('TAVERN',sigX+sigW/2,sigY+sigH-1);
 
-      // Barrel outside left of door
-      const brlX=dX3-22,brlY=ry+bh-ST+4;
-      ctx.fillStyle='#6A4020';ctx.fillRect(brlX,brlY,14,ST-8);
-      ctx.fillStyle='#888060';ctx.fillRect(brlX-1,brlY+4,16,3);ctx.fillRect(brlX-1,brlY+12,16,3);
-      ctx.fillStyle='#5A3010';
-      for(let i=0;i<3;i++){ctx.fillRect(brlX+i*5+1,brlY,3,ST-8);}
+      // ── 11. DORMER WINDOW IN ROOF (upstairs room) ────────────────────
+      const drmW=14, drmH=12;
+      const drmX=rx+rw/2-drmW/2;
+      const drmY=roofPeakY+(roofEaveY-roofPeakY)*0.55;
+      // Dormer box
+      ctx.fillStyle=TPAL.beamD;
+      ctx.fillRect(drmX-2,drmY-2,drmW+4,drmH+4);
+      ctx.fillStyle=TPAL.plaster;
+      ctx.fillRect(drmX-1,drmY-1,drmW+2,drmH+2);
+      // Little gable above dormer
+      ctx.fillStyle=TPAL.thatch;
+      ctx.beginPath();
+      ctx.moveTo(drmX-3,drmY-1);
+      ctx.lineTo(drmX+drmW/2,drmY-7);
+      ctx.lineTo(drmX+drmW+3,drmY-1);
+      ctx.closePath();ctx.fill();
+      ctx.fillStyle=TPAL.thatchD;
+      ctx.fillRect(drmX-3,drmY-1,drmW+6,1);
+      // Diamond window
+      ctx.fillStyle=TPAL.beam;
+      ctx.fillRect(drmX+1,drmY+1,drmW-2,drmH-2);
+      const drmFlicker=0.8+Math.sin(t*4+d.x+1)*0.15;
+      ctx.fillStyle=`rgba(255,170,50,${drmFlicker})`;
+      ctx.fillRect(drmX+2,drmY+2,drmW-4,drmH-4);
+      // Diamond cross
+      ctx.strokeStyle=TPAL.iron;ctx.lineWidth=1;
+      ctx.beginPath();
+      ctx.moveTo(drmX+drmW/2,drmY+2);ctx.lineTo(drmX+drmW-2,drmY+drmH/2);
+      ctx.lineTo(drmX+drmW/2,drmY+drmH-2);ctx.lineTo(drmX+2,drmY+drmH/2);
+      ctx.closePath();ctx.stroke();
+      ctx.beginPath();
+      ctx.moveTo(drmX+drmW/2,drmY+2);ctx.lineTo(drmX+drmW/2,drmY+drmH-2);
+      ctx.stroke();
+      ctx.beginPath();
+      ctx.moveTo(drmX+2,drmY+drmH/2);ctx.lineTo(drmX+drmW-2,drmY+drmH/2);
+      ctx.stroke();
 
-      // Small bench outside right of door
-      const bnX=dX3+dW3+6,bnY=ry+bh-12;
-      ctx.fillStyle='#7A5028';ctx.fillRect(bnX,bnY,20,4); // seat
-      ctx.fillStyle='#5A3818';ctx.fillRect(bnX+2,bnY+4,3,8);ctx.fillRect(bnX+15,bnY+4,3,8); // legs
-
-      // Chimney — left side, orange-tinged smoke
-      const tchx=rx+10,tchy=ry-ST*0.5;
-      ctx.fillStyle='#5A3820';ctx.fillRect(tchx,tchy,12,ST*0.5+ST+4);
-      ctx.fillStyle='#4A2810';
-      for(let i=0;i<5;i++){ctx.fillRect(tchx+(i%2)*2,tchy+i*8,12,6);}
-      ctx.fillStyle='#3A1A08';ctx.fillRect(tchx-2,tchy-4,16,5);
-      // Orange-tinged smoke (fireplace)
-      const tsa=0.25+Math.sin(t*2)*0.1;
-      ctx.fillStyle=`rgba(200,130,60,${tsa})`;
-      ctx.beginPath();ctx.arc(tchx+6+Math.sin(t)*3,tchy-12-Math.sin(t*1.4)*5,4+Math.sin(t*2)*1.5,0,Math.PI*2);ctx.fill();
-      ctx.fillStyle=`rgba(180,100,40,${tsa*0.7})`;
-      ctx.beginPath();ctx.arc(tchx+5+Math.sin(t+1)*4,tchy-22-Math.sin(t)*6,3,0,Math.PI*2);ctx.fill();
-
-      // Thatched/darker roof
-      ctx.fillStyle='#5A4020';ctx.fillRect(rx-8,ry-6,rw+16,ST+10);
-      for(let row=0;row<5;row++){
-        ctx.fillStyle=row%2===0?'#6A5028':'#4A3010';
-        const rowy=ry-6+row*(ST+10)/5;
-        for(let col=0;col<Math.ceil((rw+16)/10);col++){
-          ctx.fillRect(rx-8+col*10+(row%2)*4,rowy,9,Math.floor((ST+10)/5));
+      // ── 12. DUST MOTES + fire EMBERS rising from doorway at night ────
+      if(isNight){
+        for(let i=0;i<6;i++){
+          const emX=doorX3+doorW3*0.3+_svRand(d.x,d.y,i*5)*doorW3*0.5;
+          const emY=wallBot+2-((_now/40+i*30)%60);
+          const em=1-((wallBot+2-emY)/60);
+          ctx.fillStyle=`rgba(255,150,40,${em*0.7})`;
+          ctx.fillRect(emX,emY,1,1);
         }
       }
-      ctx.fillStyle='#3A2010';ctx.fillRect(rx-8,ry-8,rw+16,4);
-      ctx.fillStyle='rgba(0,0,0,0.22)';ctx.fillRect(rx-10,ry+ST+3,rw+20,5);
     }
 
     // ── SHED (Mining Shed) ────────────────────────────────────────────────
