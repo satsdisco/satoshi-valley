@@ -874,90 +874,385 @@ function drawDecor(d) {
 
     // ── SHOP (Ruby's Hardware) ────────────────────────────────────────────
     else if(d.label==='shop'){
-      // Foundation
-      ctx.fillStyle='#3A2A18';ctx.fillRect(rx-2,ry+bh-8,rw+4,8);
+      // Palette
+      const PAL={
+        wall:'#6A3F18', wallL:'#8A5428', wallD:'#4A2A10', wallXD:'#2E1808',
+        stone:'#6A645A', stoneL:'#8A847A', stoneD:'#3E3A32',
+        trim:'#D87020', trimD:'#9A4810', trimL:'#F09840',
+        roof:'#A8502A', roofL:'#C86838', roofD:'#6A2810', roofXD:'#3A1808',
+        metal:'#707068', metalL:'#9A9A92', metalD:'#3A3A38',
+        warmGlow:'rgba(255,200,90,0.85)', warmGlowD:'rgba(255,170,60,0.55)',
+      };
+      const wallTop=ry+ST;          // where wall meets roof eave
+      const wallBot=ry+bh-12;       // where wall meets foundation
+      const wallH=wallBot-wallTop;
 
-      // Darker wood walls with metal reinforcement
-      ctx.fillStyle='#5A3A18';ctx.fillRect(rx,ry+ST,rw,bh-ST-8);
-      // Horizontal plank lines
-      ctx.fillStyle='rgba(0,0,0,0.13)';
-      for(let i=0;i<Math.floor((bh-ST)/10);i++){ctx.fillRect(rx,ry+ST+i*10+8,rw,2);}
-      // Metal corner brackets (grey squares)
-      ctx.fillStyle='#888880';
-      ctx.fillRect(rx,ry+ST,6,6);ctx.fillRect(rx+rw-6,ry+ST,6,6);
-      ctx.fillRect(rx,ry+bh-ST,6,6);ctx.fillRect(rx+rw-6,ry+bh-ST,6,6);
-      // Metal strip reinforcements
-      ctx.fillStyle='#707068';ctx.fillRect(rx,ry+ST+bh*0.4-ST,rw,3);
-
-      // Large display window LEFT — with awning
-      const dwinW=ST+8,dwinH=ST-6;
-      const dwinX=rx+8,dwinY=ry+ST+14;
-      // Awning — orange striped
-      ctx.fillStyle='#C06010';ctx.fillRect(dwinX-4,dwinY-12,dwinW+8,10);
-      for(let i=0;i<Math.ceil((dwinW+8)/8);i++){
-        ctx.fillStyle=i%2===0?'#E07818':'#A05010';
-        ctx.fillRect(dwinX-4+i*8,dwinY-12,8,10);
+      // ── 1. STONE FOUNDATION SKIRT (textured bricks w/ mortar) ────────
+      const skirtY=wallBot, skirtH=12;
+      ctx.fillStyle=PAL.stoneD;ctx.fillRect(rx-4,skirtY,rw+8,skirtH);
+      // Stone blocks with slight tonal variation
+      for(let row=0;row<2;row++){
+        const offset=row%2===0?0:10;
+        for(let col=0;col<Math.ceil((rw+8)/20)+1;col++){
+          const bx=rx-4+col*20+offset;
+          if(bx>rx+rw+4)continue;
+          const shade=_svRand(d.x,d.y,row*7+col)>0.5?PAL.stone:PAL.stoneL;
+          ctx.fillStyle=shade;
+          ctx.fillRect(bx,skirtY+row*6,18,5);
+        }
       }
-      ctx.fillStyle='#8A4010';ctx.fillRect(dwinX-4,dwinY-2,dwinW+8,2);
-      // Window frame
-      ctx.fillStyle='#8A6030';ctx.fillRect(dwinX-3,dwinY-3,dwinW+6,dwinH+6);
-      ctx.fillStyle='rgba(180,210,255,0.25)';ctx.fillRect(dwinX,dwinY,dwinW,dwinH);
-      // Display items inside window (colored squares representing stock)
-      const itemColors=['#E04040','#40A040','#4080E0','#E0A020','#A040A0'];
-      for(let i=0;i<5;i++){
-        ctx.fillStyle=itemColors[i];
-        ctx.fillRect(dwinX+4+i*(dwinW-8)/5,dwinY+dwinH-14,Math.floor((dwinW-10)/5),8);
+      // Mortar shadows
+      ctx.fillStyle='rgba(0,0,0,0.3)';
+      ctx.fillRect(rx-4,skirtY+5,rw+8,1);
+      ctx.fillRect(rx-4,skirtY+11,rw+8,1);
+
+      // ── 2. MAIN WALL — clapboard siding (horizontal planks w/ shadows) ─
+      ctx.fillStyle=PAL.wall;ctx.fillRect(rx,wallTop,rw,wallH);
+      // Individual clapboards — each with a darker shadow under it
+      const plankH=7;
+      for(let i=0;i<Math.ceil(wallH/plankH);i++){
+        const py=wallTop+i*plankH;
+        // Light top of plank
+        ctx.fillStyle=PAL.wallL;
+        ctx.fillRect(rx,py,rw,2);
+        // Shadow below plank (creates the lap effect)
+        ctx.fillStyle='rgba(0,0,0,0.28)';
+        ctx.fillRect(rx,py+plankH-2,rw,2);
+        // Subtle wood grain streaks
+        if(i%2===0){
+          ctx.fillStyle='rgba(0,0,0,0.1)';
+          ctx.fillRect(rx+rw*0.15,py+2,rw*0.2,1);
+          ctx.fillRect(rx+rw*0.55,py+3,rw*0.15,1);
+        }
       }
-      ctx.fillStyle='rgba(255,255,255,0.12)';ctx.fillRect(dwinX,dwinY,dwinW/2,dwinH);
+      // Weathering — paint streaks
+      ctx.fillStyle='rgba(0,0,0,0.15)';
+      ctx.fillRect(rx+rw*0.15,wallTop,1,wallH*0.4);
+      ctx.fillRect(rx+rw*0.72,wallTop+wallH*0.2,1,wallH*0.35);
 
-      // Hanging sign on chain — '₿ RUBY'S' (gentle sway)
-      const sigW=52,sigH=14;const sigSway=Math.sin(t*1.1+d.x*0.3)*1.5;
-      const sigX=rx+rw/2-sigW/2+sigSway,sigY=ry+4;
-      // chains (fixed at top, move with sign at bottom)
-      ctx.strokeStyle='#555540';ctx.lineWidth=2;
-      ctx.beginPath();ctx.moveTo(rx+rw/2-sigW*0.25,sigY-8);ctx.lineTo(sigX+sigW*0.25+1,sigY);ctx.stroke();
-      ctx.beginPath();ctx.moveTo(rx+rw/2+sigW*0.22,sigY-8);ctx.lineTo(sigX+sigW*0.72+1,sigY);ctx.stroke();
-      // plaque with a tiny drop shadow
-      ctx.fillStyle='rgba(0,0,0,0.25)';ctx.fillRect(sigX+1,sigY+2,sigW,sigH);
-      ctx.fillStyle='#3A2A10';ctx.fillRect(sigX,sigY,sigW,sigH);
-      ctx.fillStyle='#5A3A18';ctx.fillRect(sigX,sigY,sigW,2); // top highlight
-      ctx.fillStyle='#C06010';ctx.font='bold 8px '+FONT;ctx.textAlign='center';
-      ctx.fillText("₿ RUBY'S",sigX+sigW/2,sigY+10);
-
-      // Orange-trimmed door — RIGHT side
-      const doorW2=ST,doorH2=ST+10;
-      const doorX2=rx+rw-ST-10;const doorY2=ry+bh-doorH2;
-      ctx.fillStyle='#C06010';ctx.fillRect(doorX2-4,doorY2,doorW2+8,doorH2+1); // orange trim
-      ctx.fillStyle='#5A3010';ctx.fillRect(doorX2,doorY2+2,doorW2,doorH2-2);
-      ctx.fillStyle='rgba(0,0,0,0.1)';ctx.fillRect(doorX2+4,doorY2+5,doorW2-8,doorH2/2-6);
-      // 'OPEN' sign on door
-      ctx.fillStyle='#60C040';ctx.fillRect(doorX2+3,doorY2+8,doorW2-6,9);
-      ctx.fillStyle='#1A3010';ctx.font='bold 6px '+FONT;ctx.textAlign='center';
-      ctx.fillText('OPEN',doorX2+doorW2/2,doorY2+16);
-      // Handle
-      ctx.fillStyle='#C09040';ctx.fillRect(doorX2+6,doorY2+doorH2/2-2,4,8);
-      // Door mat
-      ctx.fillStyle='#8A5020';ctx.fillRect(doorX2-4,ry+bh+1,doorW2+8,5);
-
-      // Pickaxe decoration left of door
-      const pax=doorX2-22,pay=ry+bh-24;
-      ctx.fillStyle='#887870';ctx.fillRect(pax,pay,4,16); // handle
-      ctx.fillStyle='#A09088';ctx.fillRect(pax-4,pay,12,4); // head
-      ctx.fillStyle='#7A6858';ctx.fillRect(pax-4,pay,4,4); // tip
-
-      // Copper/orange-brown roof
-      ctx.fillStyle='#8A5020';ctx.fillRect(rx-8,ry-6,rw+16,ST+10);
-      for(let row=0;row<3;row++){
-        ctx.fillStyle=row%2===0?'#A06028':'#784018';
-        ctx.fillRect(rx-8,ry-6+row*(ST+10)/3,rw+16,Math.floor((ST+10)/3)-1);
+      // ── 3. CORNER PILASTERS (thick wood posts w/ metal bands) ────────
+      const pilW=7;
+      for(const px of [rx-1,rx+rw-pilW+1]){
+        ctx.fillStyle=PAL.wallXD;ctx.fillRect(px,wallTop-2,pilW,wallH+4);
+        ctx.fillStyle=PAL.wall;ctx.fillRect(px+1,wallTop-2,pilW-2,wallH+4);
+        ctx.fillStyle=PAL.wallL;ctx.fillRect(px+1,wallTop-2,2,wallH+4); // left highlight
+        // Metal strap bands
+        ctx.fillStyle=PAL.metal;
+        ctx.fillRect(px-1,wallTop+4,pilW+2,3);
+        ctx.fillRect(px-1,wallBot-8,pilW+2,3);
+        ctx.fillStyle=PAL.metalL;
+        ctx.fillRect(px-1,wallTop+4,pilW+2,1);
+        ctx.fillRect(px-1,wallBot-8,pilW+2,1);
+        // Rivets
+        ctx.fillStyle=PAL.metalD;
+        ctx.fillRect(px+1,wallTop+5,1,1);ctx.fillRect(px+pilW-2,wallTop+5,1,1);
+        ctx.fillRect(px+1,wallBot-7,1,1);ctx.fillRect(px+pilW-2,wallBot-7,1,1);
       }
-      ctx.fillStyle='#603010';ctx.fillRect(rx-8,ry-8,rw+16,4);
-      // Vent pipe on roof
-      const vpx=rx+rw*0.3;
-      ctx.fillStyle='#606060';ctx.fillRect(vpx,ry-16,8,14);
-      ctx.fillStyle='#404040';ctx.fillRect(vpx-2,ry-18,12,4);
-      // Eaves
-      ctx.fillStyle='rgba(0,0,0,0.22)';ctx.fillRect(rx-10,ry+ST+3,rw+20,5);
+
+      // ── 4. BAY WINDOW (protruding display, left half of facade) ──────
+      const bayW=Math.floor(rw*0.45), bayH=Math.floor(wallH*0.7);
+      const bayX=rx+10, bayY=wallTop+8;
+      const bayProtrude=6;
+      // Protrusion base (below window) — extends down past wall bottom a bit
+      ctx.fillStyle=PAL.wallXD;
+      ctx.fillRect(bayX-bayProtrude,bayY+bayH,bayW+bayProtrude*2,wallBot-(bayY+bayH)+2);
+      ctx.fillStyle=PAL.wall;
+      ctx.fillRect(bayX-bayProtrude+1,bayY+bayH+1,bayW+bayProtrude*2-2,wallBot-(bayY+bayH));
+      // Horizontal trim strip under window
+      ctx.fillStyle=PAL.trim;ctx.fillRect(bayX-bayProtrude-2,bayY+bayH-1,bayW+bayProtrude*2+4,3);
+      ctx.fillStyle=PAL.trimD;ctx.fillRect(bayX-bayProtrude-2,bayY+bayH+2,bayW+bayProtrude*2+4,1);
+
+      // Striped awning ABOVE bay — red & white (classic hardware store)
+      const awY=bayY-13, awH=11;
+      // Awning scalloped edge
+      ctx.fillStyle=PAL.trimD;
+      ctx.fillRect(bayX-bayProtrude-4,awY,bayW+bayProtrude*2+8,awH);
+      const stripeW=7;
+      for(let i=0;i<Math.ceil((bayW+bayProtrude*2+8)/stripeW);i++){
+        ctx.fillStyle=i%2===0?'#E8E0D0':PAL.trim;
+        ctx.fillRect(bayX-bayProtrude-4+i*stripeW,awY,stripeW,awH);
+      }
+      // Scalloped bottom
+      ctx.fillStyle=PAL.trimD;
+      for(let i=0;i<Math.ceil((bayW+bayProtrude*2+8)/6);i++){
+        ctx.beginPath();
+        ctx.arc(bayX-bayProtrude-4+i*6+3,awY+awH,3,0,Math.PI);
+        ctx.fill();
+      }
+      // Awning top edge highlight
+      ctx.fillStyle='rgba(255,255,255,0.2)';ctx.fillRect(bayX-bayProtrude-4,awY,bayW+bayProtrude*2+8,1);
+
+      // Bay window frame (thick dark wood)
+      ctx.fillStyle=PAL.wallXD;ctx.fillRect(bayX-2,bayY-2,bayW+4,bayH+4);
+      // 3 glass panes (center larger, sides angled-look)
+      const paneW=Math.floor((bayW-6)/3);
+      for(let i=0;i<3;i++){
+        const pxi=bayX+2+i*(paneW+2);
+        // Glass — warm interior light
+        ctx.fillStyle='rgba(255,220,150,0.35)';
+        ctx.fillRect(pxi,bayY+2,paneW,bayH-4);
+        // Glare diagonal
+        ctx.fillStyle='rgba(255,255,255,0.18)';
+        ctx.fillRect(pxi+1,bayY+3,paneW*0.4,bayH-6);
+        // Pane divider
+        ctx.fillStyle=PAL.wallD;
+        ctx.fillRect(pxi+paneW/2-0.5,bayY+2,1,bayH-4);
+      }
+
+      // Display items inside window — recognizable shapes
+      // Pickaxe in left pane
+      const pL=bayX+2+paneW*0.5;
+      ctx.fillStyle='#5A3A18';ctx.fillRect(pL-1,bayY+bayH*0.35,2,bayH*0.4); // handle
+      ctx.fillStyle=PAL.metalL;ctx.fillRect(pL-4,bayY+bayH*0.3,9,2);    // head
+      ctx.fillStyle=PAL.metal;ctx.fillRect(pL-4,bayY+bayH*0.3,3,2);     // shadow
+      // Lantern in center pane
+      const pC=bayX+2+paneW+2+paneW*0.5;
+      ctx.fillStyle=PAL.metalD;ctx.fillRect(pC-3,bayY+bayH*0.4,6,8);
+      ctx.fillStyle='#F8C040';ctx.fillRect(pC-2,bayY+bayH*0.45,4,5); // flame
+      ctx.fillStyle=PAL.metal;ctx.fillRect(pC-3,bayY+bayH*0.38,6,2); // top
+      // Coil of rope in right pane
+      const pR=bayX+2+(paneW+2)*2+paneW*0.5;
+      ctx.fillStyle='#C0A070';
+      ctx.beginPath();ctx.arc(pR,bayY+bayH*0.55,4,0,Math.PI*2);ctx.fill();
+      ctx.fillStyle='#906840';
+      ctx.beginPath();ctx.arc(pR,bayY+bayH*0.55,2.5,0,Math.PI*2);ctx.fill();
+      ctx.fillStyle='#C0A070';
+      ctx.beginPath();ctx.arc(pR,bayY+bayH*0.55,1,0,Math.PI*2);ctx.fill();
+
+      // Window sill underneath
+      ctx.fillStyle=PAL.trim;
+      ctx.fillRect(bayX-4,bayY+bayH,bayW+8,3);
+      ctx.fillStyle=PAL.trimD;
+      ctx.fillRect(bayX-4,bayY+bayH+3,bayW+8,1);
+
+      // ── 5. COVERED PORCH / ENTRANCE ZONE (right half) ────────────────
+      const porchX=rx+rw*0.52, porchY=wallTop+4;
+      const porchW=rw*0.48, porchH=wallH-6;
+      const doorW2=ST-2, doorH2=ST+10;
+      const doorX2=porchX+porchW/2-doorW2/2, doorY2=wallBot-doorH2;
+
+      // Porch step (2 steps)
+      ctx.fillStyle=PAL.stoneD;ctx.fillRect(doorX2-10,wallBot-2,doorW2+20,8);
+      ctx.fillStyle=PAL.stone;ctx.fillRect(doorX2-10,wallBot-2,doorW2+20,2);
+      ctx.fillStyle=PAL.stoneD;ctx.fillRect(doorX2-6,wallBot+6,doorW2+12,6);
+      ctx.fillStyle=PAL.stone;ctx.fillRect(doorX2-6,wallBot+6,doorW2+12,2);
+
+      // Porch roof cover — small shingled overhang above door
+      const prY=doorY2-14, prH=10;
+      ctx.fillStyle=PAL.roofXD;ctx.fillRect(doorX2-14,prY,doorW2+28,prH);
+      ctx.fillStyle=PAL.roofD;ctx.fillRect(doorX2-14,prY,doorW2+28,prH-2);
+      // Shingle texture
+      for(let i=0;i<Math.ceil((doorW2+28)/8);i++){
+        ctx.fillStyle=i%2===0?PAL.roofL:PAL.roof;
+        ctx.fillRect(doorX2-14+i*8,prY+1,7,prH-3);
+      }
+      // Porch support posts
+      ctx.fillStyle=PAL.wallXD;ctx.fillRect(doorX2-14,prY+prH,3,wallBot-(prY+prH)+2);
+      ctx.fillStyle=PAL.wall;ctx.fillRect(doorX2-13,prY+prH,2,wallBot-(prY+prH)+2);
+      ctx.fillStyle=PAL.wallXD;ctx.fillRect(doorX2+doorW2+11,prY+prH,3,wallBot-(prY+prH)+2);
+      ctx.fillStyle=PAL.wall;ctx.fillRect(doorX2+doorW2+12,prY+prH,2,wallBot-(prY+prH)+2);
+
+      // Door frame
+      ctx.fillStyle=PAL.trim;ctx.fillRect(doorX2-5,doorY2-1,doorW2+10,doorH2+1);
+      ctx.fillStyle=PAL.trimL;ctx.fillRect(doorX2-5,doorY2-1,doorW2+10,2);
+      ctx.fillStyle=PAL.trimD;ctx.fillRect(doorX2-5,doorY2+doorH2-1,doorW2+10,2);
+
+      // Door — PROPPED OPEN showing warm interior light (major atmosphere)
+      // Interior glow rectangle visible through the doorway
+      ctx.fillStyle='rgba(80,40,15,1)';ctx.fillRect(doorX2,doorY2+2,doorW2,doorH2-2);
+      // Warm light gradient from inside
+      const intGrad=ctx.createLinearGradient(doorX2,doorY2+2,doorX2,doorY2+doorH2);
+      intGrad.addColorStop(0,'rgba(255,220,130,0.6)');
+      intGrad.addColorStop(1,'rgba(255,180,80,0.9)');
+      ctx.fillStyle=intGrad;ctx.fillRect(doorX2+1,doorY2+3,doorW2-2,doorH2-4);
+      // Silhouette suggestion of interior shelf
+      ctx.fillStyle='rgba(40,20,5,0.5)';
+      ctx.fillRect(doorX2+2,doorY2+doorH2*0.5,doorW2-4,2);
+      ctx.fillRect(doorX2+2,doorY2+doorH2*0.7,doorW2-4,2);
+      // Open door leaf (to the left, angled)
+      ctx.fillStyle=PAL.wallD;ctx.fillRect(doorX2-6,doorY2+2,3,doorH2-4);
+      ctx.fillStyle=PAL.wall;ctx.fillRect(doorX2-5,doorY2+3,2,doorH2-6);
+      // Door handle
+      ctx.fillStyle=PAL.trimL;ctx.fillRect(doorX2-5,doorY2+doorH2*0.55,1,2);
+
+      // Warm light spill onto the porch floor
+      const spillGrad=ctx.createRadialGradient(
+        doorX2+doorW2/2,wallBot+2,2,
+        doorX2+doorW2/2,wallBot+8,24
+      );
+      spillGrad.addColorStop(0,'rgba(255,210,120,0.55)');
+      spillGrad.addColorStop(1,'rgba(255,180,80,0)');
+      ctx.fillStyle=spillGrad;
+      ctx.fillRect(doorX2-20,wallBot-2,doorW2+40,20);
+
+      // Shop bell above door
+      const bellX=doorX2+doorW2/2,bellY=doorY2-3;
+      ctx.fillStyle=PAL.metalD;ctx.fillRect(bellX-1,bellY-4,2,4);
+      ctx.fillStyle='#C8A030';
+      ctx.beginPath();ctx.moveTo(bellX-4,bellY);ctx.lineTo(bellX+4,bellY);ctx.lineTo(bellX+3,bellY+4);ctx.lineTo(bellX-3,bellY+4);ctx.closePath();ctx.fill();
+      ctx.fillStyle='#E8C048';
+      ctx.beginPath();ctx.moveTo(bellX-3,bellY+1);ctx.lineTo(bellX+1,bellY+1);ctx.lineTo(bellX+0,bellY+3);ctx.lineTo(bellX-2,bellY+3);ctx.closePath();ctx.fill();
+      ctx.fillStyle=PAL.metalD;ctx.fillRect(bellX,bellY+4,1,2); // clapper
+
+      // "OPEN" hanging shingle under porch roof
+      const opnW=24,opnH=9;
+      const opnX=doorX2+doorW2+2,opnY=prY+prH+2;
+      ctx.strokeStyle=PAL.metalD;ctx.lineWidth=1;
+      ctx.beginPath();ctx.moveTo(opnX+2,opnY);ctx.lineTo(opnX+2,prY+prH);ctx.stroke();
+      ctx.beginPath();ctx.moveTo(opnX+opnW-2,opnY);ctx.lineTo(opnX+opnW-2,prY+prH);ctx.stroke();
+      ctx.fillStyle='#2A6030';ctx.fillRect(opnX,opnY,opnW,opnH);
+      ctx.fillStyle='#40A040';ctx.fillRect(opnX,opnY,opnW,2);
+      ctx.fillStyle='#E8F0D0';ctx.font='bold 7px '+FONT;ctx.textAlign='center';
+      ctx.fillText('OPEN',opnX+opnW/2,opnY+7);
+
+      // ── 6. HANGING WARES on wall (left of bay) ───────────────────────
+      // Coil of rope on a peg
+      const rpX=rx+6,rpY=wallTop+wallH*0.15;
+      ctx.fillStyle=PAL.metalD;ctx.fillRect(rpX+3,rpY-1,2,2);
+      ctx.fillStyle='#B8A070';
+      ctx.beginPath();ctx.arc(rpX+4,rpY+5,4,0,Math.PI*2);ctx.fill();
+      ctx.fillStyle='#8A6840';
+      ctx.beginPath();ctx.arc(rpX+4,rpY+5,2,0,Math.PI*2);ctx.fill();
+      // Horseshoe for luck
+      const hsX=rx+rw*0.33,hsY=wallTop+4;
+      ctx.strokeStyle='#A8A090';ctx.lineWidth=2;
+      ctx.beginPath();ctx.arc(hsX,hsY+4,4,Math.PI,0,true);ctx.stroke();
+      ctx.fillStyle=PAL.metalD;ctx.fillRect(hsX-5,hsY+3,1,1);ctx.fillRect(hsX+4,hsY+3,1,1);
+
+      // Sandwich board sign OUT FRONT (on the ground in front of porch)
+      const sbX=doorX2-28,sbY=ry+bh+2;
+      // Left panel (angled)
+      ctx.fillStyle=PAL.wallXD;
+      ctx.beginPath();ctx.moveTo(sbX,sbY);ctx.lineTo(sbX+14,sbY+2);ctx.lineTo(sbX+14,sbY+18);ctx.lineTo(sbX-2,sbY+16);ctx.closePath();ctx.fill();
+      ctx.fillStyle=PAL.wall;
+      ctx.beginPath();ctx.moveTo(sbX+1,sbY+1);ctx.lineTo(sbX+13,sbY+3);ctx.lineTo(sbX+13,sbY+17);ctx.lineTo(sbX-1,sbY+15);ctx.closePath();ctx.fill();
+      // Sign text
+      ctx.save();
+      ctx.translate(sbX+6,sbY+10);ctx.rotate(-0.08);
+      ctx.fillStyle=PAL.trim;ctx.font='bold 6px '+FONT;ctx.textAlign='center';
+      ctx.fillText('HARD',0,-1);ctx.fillText('WARE',0,5);
+      ctx.restore();
+
+      // ── 7. PITCHED GABLE ROOF ────────────────────────────────────────
+      const roofOver=10;
+      const roofTop=ry-ST*0.6;
+      const roofEave=wallTop+2;
+      // Roof base fill (triangle-ish from the two slopes)
+      ctx.fillStyle=PAL.roofXD;
+      ctx.beginPath();
+      ctx.moveTo(rx-roofOver,roofEave);
+      ctx.lineTo(rx+rw/2,roofTop);
+      ctx.lineTo(rx+rw+roofOver,roofEave);
+      ctx.lineTo(rx+rw+roofOver,roofEave+4);
+      ctx.lineTo(rx-roofOver,roofEave+4);
+      ctx.closePath();ctx.fill();
+      // LEFT slope shingles
+      ctx.save();
+      ctx.beginPath();
+      ctx.moveTo(rx-roofOver,roofEave+3);
+      ctx.lineTo(rx+rw/2,roofTop);
+      ctx.lineTo(rx+rw/2,roofEave+3);
+      ctx.closePath();
+      ctx.clip();
+      for(let row=0;row<10;row++){
+        const rowY=roofTop+row*4;
+        ctx.fillStyle=row%2===0?PAL.roofL:PAL.roof;
+        ctx.fillRect(rx-roofOver-2,rowY,rw/2+roofOver+4,4);
+        // Shingle edge shadow
+        ctx.fillStyle='rgba(0,0,0,0.22)';
+        ctx.fillRect(rx-roofOver-2,rowY+3,rw/2+roofOver+4,1);
+      }
+      ctx.restore();
+      // RIGHT slope shingles (slightly darker for directional light)
+      ctx.save();
+      ctx.beginPath();
+      ctx.moveTo(rx+rw/2,roofTop);
+      ctx.lineTo(rx+rw+roofOver,roofEave+3);
+      ctx.lineTo(rx+rw/2,roofEave+3);
+      ctx.closePath();
+      ctx.clip();
+      for(let row=0;row<10;row++){
+        const rowY=roofTop+row*4;
+        ctx.fillStyle=row%2===0?PAL.roof:PAL.roofD;
+        ctx.fillRect(rx+rw/2-2,rowY,rw/2+roofOver+4,4);
+        ctx.fillStyle='rgba(0,0,0,0.3)';
+        ctx.fillRect(rx+rw/2-2,rowY+3,rw/2+roofOver+4,1);
+      }
+      ctx.restore();
+      // Ridge cap (darker line down the peak)
+      ctx.fillStyle=PAL.roofXD;
+      ctx.fillRect(rx+rw/2-1,roofTop,2,roofEave-roofTop+3);
+      // Eave fascia board
+      ctx.fillStyle=PAL.wallXD;ctx.fillRect(rx-roofOver-2,roofEave+3,rw+roofOver*2+4,3);
+      ctx.fillStyle=PAL.trim;ctx.fillRect(rx-roofOver-2,roofEave+3,rw+roofOver*2+4,1);
+      // Decorative corbels under eaves (brackets)
+      ctx.fillStyle=PAL.wallXD;
+      for(let i=0;i<4;i++){
+        const cbX=rx+(i+0.5)*(rw/4)-3;
+        ctx.fillRect(cbX,roofEave+6,6,3);
+        ctx.fillRect(cbX+1,roofEave+9,4,2);
+      }
+      // Gable oculus (round window in the peak)
+      const ocX=rx+rw/2,ocY=roofTop+(roofEave-roofTop)*0.55;
+      ctx.fillStyle=PAL.wallXD;
+      ctx.beginPath();ctx.arc(ocX,ocY,5,0,Math.PI*2);ctx.fill();
+      ctx.fillStyle='rgba(255,210,130,0.5)';
+      ctx.beginPath();ctx.arc(ocX,ocY,3.5,0,Math.PI*2);ctx.fill();
+      ctx.fillStyle=PAL.wallXD;
+      ctx.fillRect(ocX-4,ocY-0.5,8,1);ctx.fillRect(ocX-0.5,ocY-4,1,8);
+      // Weathervane on top — ₿ shape rotating very slowly
+      const wvY=roofTop-12;
+      ctx.fillStyle=PAL.metalD;ctx.fillRect(ocX-0.5,wvY,1,12);
+      ctx.fillStyle=PAL.metalL;ctx.fillRect(ocX-0.5,wvY,1,2);
+      // Cardinal bars
+      ctx.fillStyle=PAL.metal;ctx.fillRect(ocX-3,wvY+4,7,1);ctx.fillRect(ocX,wvY+2,1,5);
+      // Rotating arrow pointing
+      const wvAng=Math.sin(t*0.2)*0.4;
+      ctx.save();ctx.translate(ocX,wvY+1);ctx.rotate(wvAng);
+      ctx.fillStyle=PAL.trim;
+      ctx.beginPath();ctx.moveTo(-5,0);ctx.lineTo(4,0);ctx.lineTo(4,-2);ctx.lineTo(7,0);ctx.lineTo(4,2);ctx.lineTo(4,0);ctx.closePath();ctx.fill();
+      ctx.restore();
+
+      // ── 8. HANGING SIGNBOARD (above porch, decorative scrollwork) ────
+      const sigW=60,sigH=16;
+      const sigSway=Math.sin(t*1.1+d.x*0.3)*1.5;
+      const sigX=porchX+porchW/2-sigW/2+sigSway, sigY=prY-12;
+      // Iron scrollwork bracket (fixed to wall)
+      ctx.strokeStyle=PAL.metalD;ctx.lineWidth=2;
+      ctx.beginPath();
+      ctx.moveTo(porchX+porchW/2,prY-4);
+      ctx.quadraticCurveTo(porchX+porchW/2,sigY+2,porchX+porchW/2-10,sigY+2);
+      ctx.stroke();
+      ctx.beginPath();
+      ctx.moveTo(porchX+porchW/2,prY-4);
+      ctx.quadraticCurveTo(porchX+porchW/2,sigY+2,porchX+porchW/2+10,sigY+2);
+      ctx.stroke();
+      // Sign chain
+      ctx.lineWidth=1.5;ctx.strokeStyle='#4A4438';
+      ctx.beginPath();ctx.moveTo(porchX+porchW/2-10,sigY+2);ctx.lineTo(sigX+8,sigY+3);ctx.stroke();
+      ctx.beginPath();ctx.moveTo(porchX+porchW/2+10,sigY+2);ctx.lineTo(sigX+sigW-8,sigY+3);ctx.stroke();
+      // Sign plaque w/ shadow
+      ctx.fillStyle='rgba(0,0,0,0.35)';ctx.fillRect(sigX+1,sigY+2,sigW,sigH);
+      ctx.fillStyle=PAL.trimD;ctx.fillRect(sigX,sigY,sigW,sigH);
+      ctx.fillStyle=PAL.trim;ctx.fillRect(sigX+2,sigY+2,sigW-4,sigH-4);
+      // Inner border
+      ctx.strokeStyle=PAL.trimL;ctx.lineWidth=1;
+      ctx.strokeRect(sigX+2,sigY+2,sigW-4,sigH-4);
+      ctx.fillStyle='#2A1408';ctx.font='bold 10px '+FONT;ctx.textAlign='center';
+      ctx.fillText("₿ RUBY'S",sigX+sigW/2,sigY+11);
+      // Highlight sparkle
+      ctx.fillStyle='rgba(255,255,255,0.5)';
+      ctx.fillRect(sigX+4,sigY+3,6,1);
+
+      // ── 9. ATMOSPHERE — dust motes in door light at night ────────────
+      if(isNight){
+        for(let i=0;i<5;i++){
+          const dmX=doorX2+2+_svRand(d.x,d.y,i*3)*(doorW2-4);
+          const dmY=wallBot+2+((_now/60+i*20)%20);
+          ctx.fillStyle=`rgba(255,220,130,${0.5-((dmY-wallBot)/22)*0.5})`;
+          ctx.fillRect(dmX,dmY,1,1);
+        }
+      }
     }
 
     // ── TAVERN (The Hodl Tavern) ──────────────────────────────────────────
