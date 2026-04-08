@@ -4856,7 +4856,7 @@ function gameLoop(now){
     ctx.font = 'bold 12px monospace';
     ctx.textAlign = 'left';
     ctx.textBaseline = 'top';
-    ctx.fillText(`v28 f${_frameCount} ${canvas.width}x${canvas.height} m${isMobile?1:0} s${isSmallScreen?1:0} ${gameState}`, 4, 5);
+    ctx.fillText(`v29 f${_frameCount} ${canvas.width}x${canvas.height} m${isMobile?1:0} s${isSmallScreen?1:0} ${gameState}`, 4, 5);
     ctx.restore();
   }catch(e){
     ctx.fillStyle='#F00';ctx.fillRect(0,0,canvas.width,80);

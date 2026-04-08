@@ -19,25 +19,34 @@ canvas { display: block; width: 100vw; height: 100vh; image-rendering: pixelated
 // before our own in-loop handler can run. Paints directly to the canvas so
 // mobile users never see a pure-black screen with no explanation.
 (function(){
-  function paintErr(msg, src, line){
+  window.__svErrors = [];
+  function repaint(){
     try {
       var c = document.getElementById('game');
       if (!c.width || !c.height) { c.width = window.innerWidth||800; c.height = window.innerHeight||600; }
       var x = c.getContext('2d');
       x.fillStyle = '#300'; x.fillRect(0,0,c.width,c.height);
-      x.fillStyle = '#fff'; x.font = 'bold 14px monospace'; x.textBaseline = 'top';
-      x.fillText('LOAD ERROR:', 10, 10);
-      x.fillText(String(msg).slice(0, 80), 10, 32);
-      if (src) x.fillText(String(src).split('/').pop() + ':' + line, 10, 54);
-      x.fillText('canvas='+c.width+'x'+c.height+' iw='+window.innerWidth+' ih='+window.innerHeight, 10, 76);
-      x.fillText('ua='+navigator.userAgent.slice(0,60), 10, 98);
+      x.fillStyle = '#fff'; x.font = 'bold 12px monospace'; x.textBaseline = 'top';
+      x.fillText('LOAD ERRORS (showing first '+Math.min(window.__svErrors.length,4)+' of '+window.__svErrors.length+'):', 8, 6);
+      for (var i = 0; i < window.__svErrors.length && i < 4; i++){
+        var e = window.__svErrors[i];
+        var y = 28 + i * 50;
+        x.fillStyle = '#ff8'; x.fillText('#'+(i+1)+' '+(e.src?e.src.split('/').pop():'?')+':'+(e.line||'?')+':'+(e.col||'?'), 8, y);
+        x.fillStyle = '#fff'; x.fillText(String(e.msg).slice(0, 70), 8, y + 16);
+        if (e.stack) { x.fillStyle = '#bbb'; x.fillText(String(e.stack).slice(0, 70), 8, y + 32); }
+      }
+      x.fillStyle = '#aaf';
+      x.fillText('canvas='+c.width+'x'+c.height+' iw='+window.innerWidth+' ih='+window.innerHeight, 8, 240);
+      x.fillText('ua='+navigator.userAgent.slice(0,70), 8, 256);
     } catch(e){}
   }
   window.addEventListener('error', function(ev){
-    paintErr(ev.message || 'unknown', ev.filename, ev.lineno);
+    window.__svErrors.push({msg: ev.message || 'unknown', src: ev.filename, line: ev.lineno, col: ev.colno, stack: ev.error && ev.error.stack});
+    repaint();
   });
   window.addEventListener('unhandledrejection', function(ev){
-    paintErr('unhandled promise: '+(ev.reason&&ev.reason.message||ev.reason), '', 0);
+    window.__svErrors.push({msg: 'unhandled: '+(ev.reason&&ev.reason.message||ev.reason), src: '', line: 0, col: 0});
+    repaint();
   });
 })();
 </script>
@@ -52,12 +61,12 @@ canvas { display: block; width: 100vw; height: 100vh; image-rendering: pixelated
     invoked from inside gameLoop/draw at runtime — after this script
     has executed — so the forward reference is safe.
 -->
-<script src="sprites.js?v=28"></script>
-<script src="music.js?v=28"></script>
-<script src="game_audio.js?v=28"></script>
-<script src="game_quests.js?v=28"></script>
-<script src="game_mines.js?v=28"></script>
-<script src="game.js?v=28"></script>
-<script src="game_render.js?v=28"></script>
+<script src="sprites.js?v=29"></script>
+<script src="music.js?v=29"></script>
+<script src="game_audio.js?v=29"></script>
+<script src="game_quests.js?v=29"></script>
+<script src="game_mines.js?v=29"></script>
+<script src="game.js?v=29"></script>
+<script src="game_render.js?v=29"></script>
 </body>
 </html>
