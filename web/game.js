@@ -2032,6 +2032,33 @@ let tutTimer = 0, tutTriggered = false;
 function update(dt) {
   if (gameState === 'intro') { updateIntro(dt); return; }
 
+  // ---- Sprint 20: Hitstop ----
+  // Freeze frame on combat impact. Everything stops EXCEPT screen shake
+  // (which already lives in the draw step) and the hitstop counter itself.
+  // This is what gives every hit weight.
+  if (hitstop > 0) {
+    hitstop -= dt;
+    // Tick attackReadyFlash so it doesn't stick during freeze
+    if (attackReadyFlash > 0) attackReadyFlash -= dt;
+    // Decay player lunge so it relaxes back even mid-freeze
+    playerLungeX *= 0.85; playerLungeY *= 0.85;
+    return;
+  }
+  // Decay player lunge each frame
+  if (playerLungeX !== 0 || playerLungeY !== 0) {
+    playerLungeX *= 0.82; playerLungeY *= 0.82;
+    if (Math.abs(playerLungeX) < 0.1) playerLungeX = 0;
+    if (Math.abs(playerLungeY) < 0.1) playerLungeY = 0;
+  }
+  // Edge-detect attack cooldown reaching zero → flash
+  if (_attackCooldownPrev > 0 && attackCooldown <= 0) {
+    attackReadyFlash = 0.18;
+    // Tiny "ready" tick sfx
+    tone(1200, .04, 'triangle', .04);
+  }
+  _attackCooldownPrev = attackCooldown;
+  if (attackReadyFlash > 0) attackReadyFlash -= dt;
+
   // Pause freeze — nothing updates while paused
   if (pauseOpen) {
     if(jp['escape']){pauseOpen=false;sfx.menuClose();}
@@ -2812,7 +2839,13 @@ function update(dt) {
         }
         
         // Update damage numbers
-        for(let i=damageNumbers.length-1;i>=0;i--){damageNumbers[i].life-=dt;damageNumbers[i].y-=40*dt;if(damageNumbers[i].life<=0)damageNumbers.splice(i,1);}
+        for(let i=damageNumbers.length-1;i>=0;i--){
+          const dn=damageNumbers[i]; dn.life-=dt;
+          // New-style projectile arc (vx/vy with gravity) for combat numbers
+          if(dn.vy!==undefined){ dn.x+=dn.vx*dt; dn.y+=dn.vy*dt; dn.vy+=80*dt; }
+          else { dn.y-=40*dt; } // legacy fall-up behavior
+          if(dn.life<=0)damageNumbers.splice(i,1);
+        }
         // Update player swing
         if(playerSwing>0)playerSwing-=dt;
         // Update death particles
