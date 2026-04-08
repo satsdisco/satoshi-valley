@@ -139,7 +139,12 @@ Crafting bench (8 recipes: fence posts, cheese, circuit boards, shed upgrade, ci
   - `game_mines.js` — mine state, MINE_ENEMIES, COMBAT_SKILLS, generateMineFloor/enterMine/exitMine/goDeeper/mineAttackEnemy/mineAttackCrate (386 lines)
   - `game_quests.js` — INTRO_SLIDES, TUTORIAL_STEPS, NPC_QUESTS, STORY_EVENTS, quest journal, getActiveQuest/checkQuestCompletion (319 lines)
   - game.js: 7,432 → 6,683 lines (−749, −10%)
-- [ ] **Phase 2: Extract world/render** — terrain gen, tile rendering, lighting
+- [x] **Phase 2: Extract world rendering + mine rendering** (2026-04-07)
+  - `game_render.js` — drawTile, drawDecor, drawPlaced, drawFence, drawPlayer, drawAnimal, drawNPC, drawRig (~1,765 lines)
+  - `drawMine` moved into `game_mines.js` to keep dungeon rendering with dungeon logic
+  - Dropped deprecated `drawCombat()` stub
+  - Load-order quirk: `game_render.js` must load AFTER `game.js` because its top-level TERRAIN_GRASS/TERRAIN_WATER_SET consts reference T (tile enum) — documented in index.html
+  - game.js: 6,683 → 4,497 lines (−2,186, total −40% from original 7,432)
 - [ ] **Phase 3: Extract entities** — NPCs, animals, player, projectiles
 - [ ] **Phase 4: Extract UI/HUD** — menus, inventory, quest log, HUD draw
 - [ ] **Event system** — decouple systems via pub/sub

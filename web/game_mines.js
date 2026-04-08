@@ -384,3 +384,423 @@ function goDeeper(){
 // Old turn-based combat removed — using real-time action combat instead
 function startCombat(enemy){/* deprecated — no-op */}
 function playerAttack(){/* deprecated — no-op */}
+
+// ---- MINE RENDERING (Phase 2: moved from game.js) ----
+function drawMine(){
+  if(!mineFloor)return;
+  const f=mineFloor;
+  // Screen shake offset
+  if(screenShake>0){
+    cam.x+=Math.random()*8-4;cam.y+=Math.random()*8-4;
+  }
+  // Draw floor tiles
+  for(let y=0;y<f.h;y++)for(let x=0;x<f.w;x++){
+    const sx=x*ST-cam.x,sy=y*ST-cam.y;
+    if(sx>canvas.width+ST||sy>canvas.height+ST||sx<-ST||sy<-ST)continue;
+    if(f.map[y][x]===T.CLIFF){
+      // Dark concrete walls
+      ctx.fillStyle='#18181E';ctx.fillRect(sx,sy,ST,ST);
+      ctx.fillStyle='#1E1E26';ctx.fillRect(sx+2,sy+2,ST-4,ST-4);
+      // Random cracks
+      const cs=(x*17+y*31)%13;
+      if(cs<3){ctx.fillStyle='#141418';ctx.fillRect(sx+8+cs*6,sy+4,1,ST-8);}
+      if(cs>9){ctx.fillStyle='#141418';ctx.fillRect(sx+4,sy+10+cs%4*6,ST-8,1);}
+    }else{
+      // Data center floor — industrial tiles
+      ctx.fillStyle='#34343E';ctx.fillRect(sx,sy,ST,ST);
+      // Floor tile grid
+      ctx.fillStyle='#2E2E38';ctx.fillRect(sx,sy,ST,1);ctx.fillRect(sx,sy,1,ST);
+      // Random floor detail (cables, debris)
+      const fs=(x*23+y*7)%19;
+      if(fs<2){ctx.fillStyle='#44444E';ctx.fillRect(sx+6,sy+ST/2-1,ST-12,2);} // cable
+      if(fs===5){ctx.fillStyle='#2A2A34';ctx.beginPath();ctx.arc(sx+ST/2,sy+ST/2,4,0,Math.PI*2);ctx.fill();} // floor vent
+      if(fs===10){ctx.fillStyle='#404048';ctx.fillRect(sx+10,sy+10,8,6);} // debris
+    }
+    // Hazard tiles
+    if(f.map[y][x]===T_LAVA){
+      ctx.fillStyle='#34343E';ctx.fillRect(sx,sy,ST,ST);
+      const lavaGlow=0.5+Math.sin(_now/300+x*2+y*3)*0.3;
+      ctx.fillStyle=`rgba(255,80,20,${0.4+lavaGlow*0.3})`;ctx.fillRect(sx+2,sy+2,ST-4,ST-4);
+      ctx.fillStyle=`rgba(255,160,40,${0.2+lavaGlow*0.2})`;ctx.fillRect(sx+8,sy+8,ST-16,ST-16);
+      ctx.fillStyle=`rgba(255,200,60,${lavaGlow*0.15})`;ctx.beginPath();ctx.arc(sx+ST/2,sy+ST/2,ST*0.6,0,Math.PI*2);ctx.fill();
+    }
+    if(f.map[y][x]===T_ELECTRIC){
+      ctx.fillStyle='#34343E';ctx.fillRect(sx,sy,ST,ST);
+      const elecGlow=Math.random()>0.85?0.8:0.2;
+      ctx.fillStyle=`rgba(80,180,255,${elecGlow})`;ctx.fillRect(sx+4,sy+4,ST-8,ST-8);
+      if(elecGlow>0.5){ctx.strokeStyle='rgba(150,220,255,0.8)';ctx.lineWidth=1;ctx.beginPath();ctx.moveTo(sx+ST/2,sy+4);
+        ctx.lineTo(sx+ST/2+Math.random()*10-5,sy+ST/2);ctx.lineTo(sx+ST/2,sy+ST-4);ctx.stroke();}
+    }
+  }
+  // Draw firewall tiles
+  for(const fw of mineFirewalls){
+    const fsx=fw.x*ST-cam.x,fsy=fw.y*ST-cam.y;
+    if(fsx>canvas.width+ST||fsy>canvas.height+ST||fsx<-ST||fsy<-ST)continue;
+    const fwAlpha=Math.min(1,fw.timer/2);
+    ctx.fillStyle=`rgba(200,40,40,${0.4*fwAlpha})`;ctx.fillRect(fsx,fsy,ST,ST);
+    ctx.strokeStyle=`rgba(255,100,100,${0.6*fwAlpha})`;ctx.lineWidth=2;ctx.strokeRect(fsx+2,fsy+2,ST-4,ST-4);
+    ctx.fillStyle=`rgba(255,60,60,${0.2+Math.sin(_now/200)*0.1})`;ctx.font='14px serif';ctx.textAlign='center';ctx.fillText('🔥',fsx+ST/2,fsy+ST/2+5);
+  }
+  // Draw crates
+  for(const cr of mineCrates){
+    const csx=cr.x*ST-cam.x,csy=cr.y*ST-cam.y;
+    if(csx>canvas.width+ST||csy>canvas.height+ST||csx<-ST||csy<-ST)continue;
+    ctx.fillStyle='#6B4E2A';ctx.fillRect(csx+6,csy+8,ST-12,ST-12);
+    ctx.fillStyle='#8B6E3A';ctx.fillRect(csx+8,csy+10,ST-16,ST-16);
+    ctx.strokeStyle='#4A3520';ctx.lineWidth=1;ctx.strokeRect(csx+6,csy+8,ST-12,ST-12);
+    ctx.fillStyle='#FFD700';ctx.fillRect(csx+ST/2-3,csy+ST/2-1,6,4);
+    // Show HP dots
+    for(let ch=0;ch<cr.hp;ch++){ctx.fillStyle='#4F4';ctx.fillRect(csx+10+ch*8,csy+ST-6,4,3);}
+  }
+  // Draw stairs
+  if(f.stairsUp){const sx=f.stairsUp.x*ST-cam.x,sy=f.stairsUp.y*ST-cam.y;
+    ctx.fillStyle='#4A4A55';ctx.fillRect(sx+4,sy+4,ST-8,ST-8);
+    ctx.fillStyle=C.green;ctx.font=`bold 16px ${FONT}`;ctx.textAlign='center';ctx.fillText('⬆️',sx+ST/2,sy+ST/2+5);
+    ctx.fillStyle='#AAA';ctx.font=`10px ${FONT}`;ctx.fillText(mineLevel===0?'[X] EXIT':'[X] UP',sx+ST/2,sy+ST-4);
+  }
+  if(f.stairsDown){const sx=f.stairsDown.x*ST-cam.x,sy=f.stairsDown.y*ST-cam.y;
+    ctx.fillStyle='#2A2A35';ctx.fillRect(sx+4,sy+4,ST-8,ST-8);
+    ctx.fillStyle=C.orange;ctx.font=`bold 16px ${FONT}`;ctx.textAlign='center';ctx.fillText('⬇️',sx+ST/2,sy+ST/2+5);
+    ctx.fillStyle='#AAA';ctx.font=`10px ${FONT}`;ctx.fillText('[X] DEEPER',sx+ST/2,sy+ST-4);
+  }
+  // Draw loot
+  for(const l of f.loot){
+    const sx=l.x*ST-cam.x,sy=l.y*ST-cam.y;
+    const glow=0.5+Math.sin(_now/400)*0.3;
+    ctx.fillStyle=`rgba(247,147,26,${glow*0.15})`;ctx.beginPath();ctx.arc(sx+ST/2,sy+ST/2,14,0,Math.PI*2);ctx.fill();
+    const it=ITEMS[l.id];
+    ctx.font='18px serif';ctx.textAlign='center';ctx.fillText(it?it.icon:'?',sx+ST/2,sy+ST/2+6);
+  }
+  // Draw enemies — styled pixel art
+  for(const en of f.enemies){
+    if(!en.alive)continue;
+    const sx=en.x*ST-cam.x,sy=en.y*ST-cam.y;
+    const info=MINE_ENEMIES[en.type];
+    const t=_t;
+    const bob=Math.sin(t*3+en.x+en.y)*2;
+    // Apply lunge offset
+    const lx=(en._lungeX||0)*SCALE, ly=(en._lungeY||0)*SCALE;
+    const esx=sx+lx, esy=sy+ly;
+    // Hit flash — draw white overlay
+    const hitFlash=(en._hitFlash||0)>0;
+    
+    // Shadow
+    ctx.fillStyle='rgba(0,0,0,0.3)';ctx.beginPath();ctx.ellipse(esx+ST/2,esy+ST-2,12,4,0,0,Math.PI*2);ctx.fill();
+    
+    if(en.type==='malware_bot'){
+      // Small robot — grey box with red eye
+      ctx.fillStyle='#556';ctx.fillRect(sx+10,sy+14+bob,ST-20,ST-18);
+      ctx.fillStyle='#445';ctx.fillRect(sx+10,sy+14+bob,ST-20,6);
+      ctx.fillStyle='#F33';ctx.fillRect(sx+ST/2-3,sy+18+bob,6,4); // red eye
+      ctx.fillStyle='#667';ctx.fillRect(sx+12,sy+ST-8,4,6); // leg
+      ctx.fillRect(sx+ST-16,sy+ST-8,4,6);
+      // Antenna
+      ctx.fillStyle='#778';ctx.fillRect(sx+ST/2-1,sy+10+bob,2,6);
+      ctx.fillStyle='#F33';ctx.fillRect(sx+ST/2-2,sy+8+bob,4,4);
+    } else if(en.type==='script_kiddie'){
+      // Hoodie figure — dark purple
+      ctx.fillStyle='#424';ctx.fillRect(sx+8,sy+16+bob,ST-16,ST-20); // body
+      ctx.fillStyle='#535';ctx.fillRect(sx+10,sy+12+bob,ST-20,8); // hood
+      ctx.fillStyle='#0F0';ctx.fillRect(sx+14,sy+18+bob,ST-28,6); // green screen glow on face
+      ctx.fillStyle='#313';ctx.fillRect(sx+12,sy+ST-8,5,6); ctx.fillRect(sx+ST-17,sy+ST-8,5,6); // legs
+    } else if(en.type==='ransomware'){
+      // Skull-shaped threat — dark red
+      ctx.fillStyle='#622';ctx.beginPath();ctx.arc(sx+ST/2,sy+ST/2+bob,14,0,Math.PI*2);ctx.fill();
+      ctx.fillStyle='#411';ctx.fillRect(sx+12,sy+ST/2+4+bob,ST-24,10); // jaw
+      ctx.fillStyle='#F44';ctx.fillRect(sx+14,sy+ST/2-4+bob,5,5); // left eye
+      ctx.fillRect(sx+ST-19,sy+ST/2-4+bob,5,5);
+      // Lock symbol
+      ctx.fillStyle='#FF0';ctx.fillRect(sx+ST/2-3,sy+ST/2+6+bob,6,5);
+      ctx.fillRect(sx+ST/2-2,sy+ST/2+2+bob,4,5);
+    } else if(en.type==='pool_operator'){
+      // Big boss — tall dark figure with golden crown
+      ctx.fillStyle='#222';ctx.fillRect(sx+6,sy+10+bob,ST-12,ST-12); // body
+      ctx.fillStyle='#333';ctx.fillRect(sx+8,sy+12+bob,ST-16,ST-16);
+      // Face
+      ctx.fillStyle='#F70';ctx.fillRect(sx+12,sy+16+bob,6,4); // left eye
+      ctx.fillRect(sx+ST-18,sy+16+bob,6,4);
+      ctx.fillStyle='#F00';ctx.fillRect(sx+14,sy+24+bob,ST-28,3); // mouth
+      // Crown
+      ctx.fillStyle='#FFD700';
+      ctx.fillRect(sx+8,sy+6+bob,ST-16,5);
+      ctx.fillRect(sx+10,sy+2+bob,4,6);ctx.fillRect(sx+ST/2-2,sy+1+bob,4,7);ctx.fillRect(sx+ST-14,sy+2+bob,4,6);
+      // Glow
+      ctx.fillStyle=`rgba(255,215,0,${0.1+Math.sin(t*2)*0.05})`;
+      ctx.beginPath();ctx.arc(sx+ST/2,sy+ST/2+bob,24,0,Math.PI*2);ctx.fill();
+    } else if(en.type==='phishing_worm'){
+      // Segmented worm — green, slinky movement
+      const wPhase=t*4+en.x*2;
+      for(let seg=0;seg<5;seg++){
+        const segX=esx+ST/2-2+Math.sin(wPhase+seg*0.8)*6;
+        const segY=esy+10+seg*7+bob;
+        const segSize=seg===0?8:seg===4?4:6;
+        ctx.fillStyle=seg===0?'#5F5':'#4A4';
+        ctx.beginPath();ctx.arc(segX,segY,segSize/2,0,Math.PI*2);ctx.fill();
+      }
+      // Eyes on head
+      ctx.fillStyle='#F00';ctx.fillRect(esx+ST/2-4,esy+10+bob,2,2);ctx.fillRect(esx+ST/2+2,esy+10+bob,2,2);
+    } else if(en.type==='cryptojacker'){
+      // Hooded figure with pickaxe — dark with orange glow
+      ctx.fillStyle='#2A1A0A';ctx.fillRect(esx+8,esy+12+bob,ST-16,ST-16); // body
+      ctx.fillStyle='#3A2A1A';ctx.fillRect(esx+10,esy+8+bob,ST-20,10); // hood
+      ctx.fillStyle='#F7931A';ctx.fillRect(esx+14,esy+14+bob,3,3);ctx.fillRect(esx+ST-17,esy+14+bob,3,3); // orange eyes
+      // Mini pickaxe
+      ctx.fillStyle='#888';ctx.fillRect(esx+ST-12,esy+20+bob,8,2);
+      ctx.fillStyle='#664';ctx.fillRect(esx+ST-8,esy+20+bob,2,8);
+      // Stolen hash particles
+      ctx.fillStyle=`rgba(247,147,26,${0.3+Math.sin(t*4)*0.2})`;
+      ctx.font='8px serif';ctx.textAlign='center';ctx.fillText('₿',esx+ST/2+Math.sin(t*3)*8,esy+4+bob);
+    } else if(en.type==='fiat_printer'){
+      // Boxy printer machine — grey with green money spewing
+      ctx.fillStyle='#555';ctx.fillRect(esx+6,esy+14+bob,ST-12,ST-18); // body
+      ctx.fillStyle='#666';ctx.fillRect(esx+8,esy+12+bob,ST-16,4); // top
+      ctx.fillStyle='#777';ctx.fillRect(esx+10,esy+16+bob,ST-20,8); // paper slot
+      // Spewing fiat bills
+      const billPhase=t*5;
+      for(let b=0;b<3;b++){
+        const bx=esx+ST/2+Math.sin(billPhase+b*2.1)*12;
+        const by=esy+8-b*8+Math.sin(billPhase+b)*4+bob;
+        ctx.fillStyle=`rgba(100,200,100,${0.7-b*0.2})`;ctx.fillRect(bx-4,by,8,5);
+        ctx.fillStyle='#060';ctx.font='6px sans-serif';ctx.textAlign='center';ctx.fillText('$',bx,by+5);
+      }
+      // Red warning light
+      ctx.fillStyle=`rgba(255,0,0,${0.5+Math.sin(t*6)*0.4})`;ctx.fillRect(esx+ST/2-2,esy+12+bob,4,3);
+    } else if(en.type==='zero_day'){
+      // Spider-like, dark, partially invisible
+      const stealth=0.4+Math.sin(t*2)*0.3; // flickers in and out
+      ctx.globalAlpha=stealth;
+      // Body
+      ctx.fillStyle='#1A0A1A';ctx.beginPath();ctx.arc(esx+ST/2,esy+ST/2+bob,10,0,Math.PI*2);ctx.fill();
+      // 8 legs
+      ctx.strokeStyle='#2A1A2A';ctx.lineWidth=1.5;
+      for(let leg=0;leg<8;leg++){
+        const angle=leg*Math.PI/4+Math.sin(t*3+leg)*0.2;
+        const legLen=12+Math.sin(t*2+leg*1.5)*3;
+        ctx.beginPath();
+        ctx.moveTo(esx+ST/2+Math.cos(angle)*6,esy+ST/2+bob+Math.sin(angle)*6);
+        ctx.lineTo(esx+ST/2+Math.cos(angle)*legLen,esy+ST/2+bob+Math.sin(angle)*legLen);
+        ctx.stroke();
+      }
+      // Glowing red eyes
+      ctx.fillStyle='#F00';
+      ctx.fillRect(esx+ST/2-5,esy+ST/2-2+bob,3,3);ctx.fillRect(esx+ST/2+2,esy+ST/2-2+bob,3,3);
+      // Small secondary eyes
+      ctx.fillRect(esx+ST/2-7,esy+ST/2+bob,2,2);ctx.fillRect(esx+ST/2+5,esy+ST/2+bob,2,2);
+      ctx.globalAlpha=1;
+    }
+    
+    // Hit flash overlay
+    if(hitFlash){ctx.fillStyle='rgba(255,255,255,0.6)';ctx.fillRect(sx+6,sy+8,ST-12,ST-10);}
+    
+    // HP bar
+    const hpPct=en.hp/info.hp;
+    ctx.fillStyle='#111';ctx.fillRect(sx+4,sy-2,ST-8,6);
+    ctx.fillStyle=hpPct>0.5?'#4F4':hpPct>0.25?C.orange:C.red;
+    ctx.fillRect(sx+5,sy-1,(ST-10)*hpPct,4);
+    // Name
+    ctx.fillStyle=info.boss?C.gold:'#AAA';ctx.font=`bold ${info.boss?12:10}px ${FONT}`;ctx.textAlign='center';
+    ctx.fillText(info.name,sx+ST/2,sy-6);
+    if(info.boss){ctx.fillStyle=C.gold;ctx.fillText('⚠️ BOSS',sx+ST/2,sy-18);}
+  }
+  // Draw player
+  drawPlayer();
+  
+  // Weapon swing animation
+  if(playerSwing>0){
+    const px2=player.x*SCALE-cam.x,py2=player.y*SCALE-cam.y;
+    const swProg=1-playerSwing/0.3;
+    const swAngle=swProg*Math.PI*1.5-Math.PI*0.75;
+    const swR=32;
+    ctx.save();ctx.translate(px2,py2);ctx.rotate(swAngle);
+    // Swing trail
+    ctx.strokeStyle=`rgba(255,220,100,${0.6*(1-swProg)})`;ctx.lineWidth=4;
+    ctx.beginPath();ctx.arc(0,0,swR,-0.4,0.4);ctx.stroke();
+    // Pickaxe head
+    ctx.fillStyle='#AAA';ctx.fillRect(swR-6,-5,10,10);
+    ctx.fillStyle='#8B6340';ctx.fillRect(0,-2,swR-6,4); // handle
+    ctx.restore();
+  }
+  
+  // Projectiles & skill effects
+  for(const p of projectiles){
+    if(p.type==='orangePill'){
+      const psx=p.x*SCALE-cam.x,psy=p.y*SCALE-cam.y;
+      // Trail
+      if(p.trail){for(const t of p.trail){
+        ctx.fillStyle=`rgba(247,147,26,${t.life})`;
+        ctx.beginPath();ctx.arc(t.x-cam.x,t.y-cam.y,4+t.life*6,0,Math.PI*2);ctx.fill();
+      }}
+      // Pill
+      ctx.fillStyle=C.orange;ctx.beginPath();ctx.arc(psx,psy,8,0,Math.PI*2);ctx.fill();
+      ctx.fillStyle='#FFF';ctx.font=`bold 10px ${FONT}`;ctx.textAlign='center';ctx.fillText('₿',psx,psy+3);
+      // Glow
+      ctx.fillStyle='rgba(247,147,26,0.15)';ctx.beginPath();ctx.arc(psx,psy,18,0,Math.PI*2);ctx.fill();
+    }
+    else if(p.type==='lightning'){
+      const lx=player.x*SCALE-cam.x,ly=player.y*SCALE-cam.y;
+      const prog=1-p.life/0.5;
+      ctx.strokeStyle=`rgba(255,221,68,${(1-prog)*0.6})`;ctx.lineWidth=2;
+      // Lightning bolts to each enemy
+      if(mineFloor){for(const en of mineFloor.enemies){
+        if(!en.alive)continue;
+        const ex=en.x*ST+ST/2-cam.x,ey=en.y*ST+ST/2-cam.y;
+        if(Math.hypot(ex-lx,ey-ly)<p.radius){
+          ctx.beginPath();ctx.moveTo(lx,ly);
+          // Jagged line
+          const segs=5;
+          for(let s=1;s<=segs;s++){
+            const t2=s/segs;
+            ctx.lineTo(lx+(ex-lx)*t2+(Math.random()-0.5)*30,ly+(ey-ly)*t2+(Math.random()-0.5)*30);
+          }
+          ctx.stroke();
+        }
+      }}
+      // Central flash
+      ctx.fillStyle=`rgba(255,255,200,${(1-prog)*0.2})`;ctx.beginPath();ctx.arc(lx,ly,p.radius*(0.5+prog*0.5),0,Math.PI*2);ctx.fill();
+    }
+    else if(p.type==='hashAttack'){
+      const hx=player.x*SCALE-cam.x,hy=player.y*SCALE-cam.y;
+      const prog=1-p.life/0.8;
+      const r=p.radius*prog;
+      // Expanding red ring
+      ctx.strokeStyle=`rgba(255,68,68,${(1-prog)*0.7})`;ctx.lineWidth=4;
+      ctx.beginPath();ctx.arc(hx,hy,r,0,Math.PI*2);ctx.stroke();
+      // Inner glow
+      ctx.fillStyle=`rgba(255,100,50,${(1-prog)*0.15})`;ctx.beginPath();ctx.arc(hx,hy,r*0.7,0,Math.PI*2);ctx.fill();
+      // Hash symbols flying outward
+      ctx.fillStyle=`rgba(255,68,68,${(1-prog)*0.8})`;ctx.font=`bold 14px ${FONT}`;ctx.textAlign='center';
+      for(let a=0;a<6;a++){
+        const angle=a*Math.PI/3+prog*2;
+        ctx.fillText('#',hx+Math.cos(angle)*r*0.6,hy+Math.sin(angle)*r*0.6);
+      }
+    }
+  }
+  
+  // Death particles (explosion + loot sparkle)
+  for(const dp of deathParticles){
+    ctx.globalAlpha=Math.min(1,dp.life*2);
+    ctx.fillStyle=dp.color;
+    ctx.beginPath();ctx.arc(dp.x-cam.x,dp.y-cam.y,dp.size*dp.life,0,Math.PI*2);ctx.fill();
+  }
+  ctx.globalAlpha=1;
+  
+  // Enemy projectiles
+  for(const ep of enemyProjectiles){
+    const epx=ep.x*SCALE-cam.x,epy=ep.y*SCALE-cam.y;
+    if(ep.type==='code_snippet'){
+      ctx.fillStyle='#0F0';ctx.font=`bold 10px ${FONT}`;ctx.textAlign='center';
+      ctx.fillText('</>', epx, epy);
+      ctx.fillStyle='rgba(0,255,0,0.15)';ctx.beginPath();ctx.arc(epx,epy,8,0,Math.PI*2);ctx.fill();
+    } else if(ep.type==='boss_orb'){
+      ctx.fillStyle='rgba(255,100,0,0.8)';ctx.beginPath();ctx.arc(epx,epy,10,0,Math.PI*2);ctx.fill();
+      ctx.fillStyle='rgba(255,200,50,0.4)';ctx.beginPath();ctx.arc(epx,epy,16,0,Math.PI*2);ctx.fill();
+      ctx.fillStyle='#FFF';ctx.font=`bold 8px ${FONT}`;ctx.textAlign='center';ctx.fillText('51%',epx,epy+3);
+    }
+  }
+  // Damage numbers
+  for(const dn of damageNumbers){
+    const dnx=dn.x-cam.x,dny=dn.y-cam.y;
+    const a=Math.min(1,dn.life*2);
+    ctx.globalAlpha=a;
+    ctx.fillStyle='#000';ctx.font=`bold 18px ${FONT}`;ctx.textAlign='center';
+    ctx.fillText(dn.text,dnx+1,dny+1);
+    ctx.fillStyle=dn.color;
+    ctx.fillText(dn.text,dnx,dny);
+    ctx.globalAlpha=1;
+  }
+  // Danger state warning overlay
+  if(dangerState&&dangerState.active){
+    const dangerPulse=Math.sin(_now/150)*0.15+0.15;
+    ctx.fillStyle=`rgba(255,0,0,${dangerPulse})`;ctx.fillRect(0,0,canvas.width,canvas.height);
+    ctx.fillStyle='#FF0000';ctx.font=`bold 28px ${FONT}`;ctx.textAlign='center';
+    ctx.fillText('⚠️ DANGER ⚠️',canvas.width/2,60);
+    ctx.fillStyle='#FFF';ctx.font=`14px ${FONT}`;
+    ctx.fillText('Get to safety! '+dangerState.timer.toFixed(1)+'s',canvas.width/2,85);
+  }
+  // Dodge roll trail
+  if(dodgeRoll.active){
+    ctx.fillStyle='rgba(247,147,26,0.2)';
+    ctx.beginPath();ctx.arc(player.x*SCALE-cam.x,player.y*SCALE-cam.y,24,0,Math.PI*2);ctx.fill();
+  }
+  
+  // Wall torches — drawn on top with warm glow
+  if(f.torches){
+    for(const tc of f.torches){
+      const tsx=tc.x*ST-cam.x,tsy=tc.y*ST-cam.y;
+      ctx.fillStyle='#5A3A1A';ctx.fillRect(tsx+ST/2-2,tsy+4,4,12);
+      const flicker=Math.sin(_now/200+tc.x*3+tc.y*7)*3;
+      ctx.fillStyle='#FF8830';ctx.fillRect(tsx+ST/2-3+flicker,tsy,6,6);
+      ctx.fillStyle='#FFCC40';ctx.fillRect(tsx+ST/2-2+flicker,tsy+1,4,3);
+      // Warm light pool
+      ctx.fillStyle='rgba(255,170,60,0.06)';
+      ctx.beginPath();ctx.arc(tsx+ST/2,tsy+ST,80,0,Math.PI*2);ctx.fill();
+    }
+  }
+  
+  // Subtle ambient shadow at edges (no black halo — just gentle vignette)
+  const px=player.x*SCALE-cam.x,py=player.y*SCALE-cam.y;
+  const vigGrad=ctx.createRadialGradient(px,py,canvas.width*0.3,px,py,canvas.width*0.7);
+  vigGrad.addColorStop(0,'rgba(0,0,0,0)');
+  vigGrad.addColorStop(1,'rgba(0,0,0,0.4)');
+  ctx.fillStyle=vigGrad;
+  ctx.fillRect(0,0,canvas.width,canvas.height);
+  
+  // Warm glow around player (subtle)
+  ctx.fillStyle='rgba(255,180,80,0.03)';ctx.beginPath();ctx.arc(px,py,150,0,Math.PI*2);ctx.fill();
+  
+  // Crosshair reticle at mouse position
+  ctx.strokeStyle='rgba(247,147,26,0.5)';ctx.lineWidth=1.5;
+  ctx.beginPath();ctx.arc(mouseX,mouseY,10,0,Math.PI*2);ctx.stroke();
+  ctx.beginPath();ctx.moveTo(mouseX-15,mouseY);ctx.lineTo(mouseX-6,mouseY);ctx.stroke();
+  ctx.beginPath();ctx.moveTo(mouseX+6,mouseY);ctx.lineTo(mouseX+15,mouseY);ctx.stroke();
+  ctx.beginPath();ctx.moveTo(mouseX,mouseY-15);ctx.lineTo(mouseX,mouseY-6);ctx.stroke();
+  ctx.beginPath();ctx.moveTo(mouseX,mouseY+6);ctx.lineTo(mouseX,mouseY+15);ctx.stroke();
+  ctx.fillStyle=C.orange;ctx.beginPath();ctx.arc(mouseX,mouseY,2,0,Math.PI*2);ctx.fill();
+  // Aim line from player to cursor
+  ctx.strokeStyle='rgba(247,147,26,0.12)';ctx.lineWidth=1;ctx.setLineDash([4,4]);
+  ctx.beginPath();ctx.moveTo(px,py);ctx.lineTo(mouseX,mouseY);ctx.stroke();
+  ctx.setLineDash([]);
+  
+  // Level indicator
+  // Mine HUD
+  ctx.fillStyle='rgba(0,0,0,0.6)';ctx.fillRect(8,8,220,70);
+  ctx.fillStyle=C.orange;ctx.font=`bold 16px ${FONT}`;ctx.textAlign='left';
+  ctx.fillText(`⛏️ Data Center — Level ${mineLevel+1}/5`,16,28);
+  ctx.fillStyle='#CCC';ctx.font=`13px ${FONT}`;
+  ctx.fillText(`Enemies: ${f.enemies.filter(e=>e.alive).length} | Loot: ${f.loot.length}`,16,46);
+  // Energy as HP in mines
+  ctx.fillStyle='#333';ctx.fillRect(16,54,180,10);
+  ctx.fillStyle=player.energy>30?C.green:player.energy>10?C.orange:C.red;
+  ctx.fillRect(16,54,180*(player.energy/player.maxEnergy),10);
+  ctx.fillStyle=C.white;ctx.font=`bold 10px ${FONT}`;
+  ctx.fillText(`HP: ${Math.floor(player.energy)}/${player.maxEnergy}`,16,63);
+  // Skill bar
+  const skillBarY=canvas.height-70;
+  ctx.fillStyle='rgba(0,0,0,0.6)';ctx.fillRect(canvas.width/2-180,skillBarY-4,360,34);
+  const skillList=[
+    {key:'E',name:'Melee',cd:0,ready:true,color:'#AAA',icon:'⛏️'},
+    {key:'1',name:'Orange Pill',cd:skillCooldowns.orangePill,max:COMBAT_SKILLS.orangePill.cooldown,ready:skills.mining.level>=1,color:C.orange,icon:'💊',unlock:1},
+    {key:'2',name:'Lightning',cd:skillCooldowns.lightning,max:COMBAT_SKILLS.lightning.cooldown,ready:skills.engineering.level>=3,color:'#FFDD44',icon:'⚡',unlock:3},
+    {key:'3',name:'51% Attack',cd:skillCooldowns.hashAttack,max:COMBAT_SKILLS.hashAttack.cooldown,ready:skills.mining.level>=5,color:'#FF4444',icon:'💥',unlock:5},
+  ];
+  skillList.forEach((sk,i)=>{
+    const sx2=canvas.width/2-170+i*88;
+    ctx.fillStyle=sk.ready?(sk.cd>0?'rgba(60,60,60,0.8)':'rgba(40,40,50,0.8)'):'rgba(30,30,30,0.5)';
+    ctx.fillRect(sx2,skillBarY,80,26);
+    ctx.strokeStyle=sk.ready?(sk.cd<=0?sk.color:'#555'):'#333';ctx.lineWidth=1.5;ctx.strokeRect(sx2,skillBarY,80,26);
+    // Icon + key
+    ctx.font='14px serif';ctx.textAlign='center';ctx.fillText(sk.icon,sx2+16,skillBarY+18);
+    ctx.fillStyle=sk.ready?'#FFF':'#555';ctx.font=`bold 10px ${FONT}`;
+    ctx.fillText(`[${sk.key}]`,sx2+40,skillBarY+12);
+    ctx.font=`9px ${FONT}`;ctx.fillText(sk.name,sx2+52,skillBarY+22);
+    // Cooldown overlay
+    if(sk.cd>0&&sk.max){const pct=sk.cd/sk.max;ctx.fillStyle='rgba(0,0,0,0.5)';ctx.fillRect(sx2,skillBarY,80*pct,26);
+      ctx.fillStyle='#FFF';ctx.font=`bold 12px ${FONT}`;ctx.textAlign='center';ctx.fillText(sk.cd.toFixed(1)+'s',sx2+40,skillBarY+18);}
+    if(!sk.ready&&sk.unlock){ctx.fillStyle='#666';ctx.font=`9px ${FONT}`;ctx.textAlign='center';ctx.fillText('Lv'+sk.unlock,sx2+40,skillBarY+18);}
+  });
+  
+  // Controls
+  ctx.fillStyle='rgba(0,0,0,0.5)';ctx.fillRect(0,canvas.height-22,canvas.width,22);
+  ctx.fillStyle='#AAA';ctx.font=`12px ${FONT}`;ctx.textAlign='center';
+  ctx.fillText('WASD: Move | E: Melee | 1-3: Skills | X: Stairs | Esc: Flee',canvas.width/2,canvas.height-7);
+}

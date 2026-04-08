@@ -397,3 +397,23 @@ Total estimated time: ~2-3 hours for all Top 10 changes.
 - [x] 10% critical hit chance (2x damage, visual feedback)
 - [x] Enemies drop sats on death (xp*2, +500 for bosses)
 - [x] New sprites: enemy_malware_bot, enemy_script_kiddie, deco_well, deco_signpost, deco_campfire
+
+## ✅ COMPLETED (Sprint 18 — Polish — Hermes, 2026-04-07)
+- [x] P1: Water tile trig caching (~14 → 7 Math.sin calls per tile)
+- [x] P1: Foam early-out when water tile fully surrounded
+- [x] P2: Seasonal leaf colors cached per frame
+- [x] Expanded frame cache (_sinT, _cosT, _sinT2, _sinT15, _sinT08)
+- [x] V1: Rig mining particles upgraded to persistent world-space
+      sparkles with lifetime, halo, hot-mode red tint above 70°C
+- [x] V4: Crops sway with phase-shifted rotation
+- [x] V4: Harvest sparkle burst (10 gold particles with gravity)
+- [x] B5: Shop double-click timer resets on buy/sell mode switch
+- [x] B7: Crops sorted into entity Y-sort for correct depth
+
+## Still Open (next candidates)
+- V2: Iris-wipe / diamond building transitions
+- P3: Throttle mousemove hover iteration
+- G3: Stack splitting (right-click inventory)
+- G5: HUD halving countdown + buff timers
+- G6: Beer sickness threshold balance
+- G7: Fishing rod price balance
