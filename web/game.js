@@ -4261,9 +4261,13 @@ function drawCraftMenu(){
 }
 
 function drawShop(){
-  const w=560,h=460,x=(canvas.width-w)/2,y=(canvas.height-h)/2;panel(x,y,w,h);
-  ctx.fillStyle=C.hud;ctx.font=`bold 18px ${FONT}`;ctx.textAlign='center';
-  ctx.fillText(shopNpcRole==='market'?"🌾 Farmer Pete's Market":shopNpcRole==='seeds'?"🌱 Seed Sally's Garden Shop":shopNpcRole==='tavern'?"🍺 Hodl Tavern":"\u26cf\ufe0f Ruby's Hardware Shop",x+w/2,y+28);
+  // Responsive: fit within the canvas with margin, cap at 560x460 on desktop
+  const w=Math.min(560,canvas.width-20);
+  const h=Math.min(460,canvas.height-40);
+  const isNarrow=w<520;
+  const x=(canvas.width-w)/2,y=(canvas.height-h)/2;panel(x,y,w,h);
+  ctx.fillStyle=C.hud;ctx.font=`bold ${isNarrow?15:18}px ${FONT}`;ctx.textAlign='center';
+  ctx.fillText(shopNpcRole==='market'?"🌾 Farmer Pete's Market":shopNpcRole==='seeds'?"🌱 Seed Sally's Garden Shop":shopNpcRole==='tavern'?"🍺 Hodl Tavern":"\u26cf\ufe0f Ruby's Hardware Shop",x+w/2,y+26);
   const activeList=shopNpcRole==='seeds'?SEED_SHOP_LIST:shopNpcRole==='tavern'?TAVERN_SHOP_LIST:SHOP_LIST;
   
   // Tabs
@@ -4354,7 +4358,13 @@ function drawShop(){
 }
 
 function drawInv(){
-  const cols=5,rows=4,ss=56,gap=6;const w=cols*(ss+gap)+gap+180,h=rows*(ss+gap)+gap+60;
+  const cols=5,rows=4;
+  // Responsive slot size: shrink to fit on mobile
+  const isNarrow=canvas.width<520;
+  const ss=isNarrow?40:56,gap=isNarrow?4:6;
+  const sidePanel=isNarrow?0:180; // hide side detail panel on narrow screens
+  const w=Math.min(canvas.width-20,cols*(ss+gap)+gap+sidePanel);
+  const h=rows*(ss+gap)+gap+(isNarrow?100:60);
   const x=(canvas.width-w)/2,y=(canvas.height-h)/2;panel(x,y,w,h);
   ctx.fillStyle=C.hud;ctx.font=`bold 18px ${FONT}`;ctx.textAlign='center';ctx.fillText('📦 Inventory',x+w/2,y+24);
   for(let r=0;r<rows;r++)for(let c=0;c<cols;c++){
@@ -4364,11 +4374,37 @@ function drawInv(){
     ctx.fillStyle='#444';ctx.font=`11px ${FONT}`;ctx.textAlign='left';ctx.fillText(i<10?`${(i+1)%10}`:'',sx+3,sy+11);
     const sl=inv[i];if(sl&&ITEMS[sl.id]){ctx.font='28px serif';ctx.textAlign='center';ctx.fillText(ITEMS[sl.id].icon,sx+ss/2,sy+ss/2+8);
       if(sl.qty>1){ctx.fillStyle=C.white;ctx.font=`bold 13px ${FONT}`;ctx.fillText(sl.qty,sx+ss-10,sy+ss-6);}}}
-  const sel=inv[selSlot],dx=x+cols*(ss+gap)+gap+10,dy=y+36;
-  if(sel){const it=ITEMS[sel.id];ctx.fillStyle=C.hud;ctx.font=`bold 14px ${FONT}`;ctx.textAlign='left';
-    ctx.fillText(`${it.icon} ${it.name}`,dx,dy+16);ctx.fillStyle='#CCC';ctx.font=`12px ${FONT}`;ctx.textAlign='left';wrapText(it.desc,dx,dy+36,155,15);
-    ctx.fillStyle=C.gray;if(it.buy>0)ctx.fillText(`Buy: ${fmt(it.buy)}`,dx,dy+80);if(it.sell>0)ctx.fillText(`Sell: ${fmt(it.sell)}`,dx,dy+94);ctx.fillText(`Qty: ${sel.qty}`,dx,dy+108);}
-  ctx.fillStyle=C.gray;ctx.font=`12px ${FONT}`;ctx.textAlign='center';ctx.fillText('1-9,0:Select | Click:Select | I/Tab/Esc:Close',x+w/2,y+h-10);
+  const sel=inv[selSlot];
+  if(sel){
+    const it=ITEMS[sel.id];
+    if(isNarrow){
+      // Narrow: show inline detail strip below the slots
+      const dy=y+36+rows*(ss+gap)+gap+4;
+      ctx.fillStyle=C.hud;ctx.font=`bold 13px ${FONT}`;ctx.textAlign='left';
+      ctx.fillText(`${it.icon} ${it.name} x${sel.qty}`,x+8,dy+12);
+      ctx.fillStyle='#BBB';ctx.font=`10px ${FONT}`;
+      const descTrim=it.desc.length>60?it.desc.slice(0,58)+'…':it.desc;
+      ctx.fillText(descTrim,x+8,dy+26);
+      ctx.fillStyle=C.gray;ctx.font=`10px ${FONT}`;
+      const priceLine=[];
+      if(it.buy>0)priceLine.push(`Buy ${fmt(it.buy)}`);
+      if(it.sell>0)priceLine.push(`Sell ${fmt(it.sell)}`);
+      if(priceLine.length)ctx.fillText(priceLine.join(' | '),x+8,dy+40);
+    } else {
+      // Wide: side panel
+      const dx=x+cols*(ss+gap)+gap+10,dy=y+36;
+      ctx.fillStyle=C.hud;ctx.font=`bold 14px ${FONT}`;ctx.textAlign='left';
+      ctx.fillText(`${it.icon} ${it.name}`,dx,dy+16);
+      ctx.fillStyle='#CCC';ctx.font=`12px ${FONT}`;ctx.textAlign='left';
+      wrapText(it.desc,dx,dy+36,155,15);
+      ctx.fillStyle=C.gray;
+      if(it.buy>0)ctx.fillText(`Buy: ${fmt(it.buy)}`,dx,dy+80);
+      if(it.sell>0)ctx.fillText(`Sell: ${fmt(it.sell)}`,dx,dy+94);
+      ctx.fillText(`Qty: ${sel.qty}`,dx,dy+108);
+    }
+  }
+  ctx.fillStyle=C.gray;ctx.font=`${isNarrow?10:12}px ${FONT}`;ctx.textAlign='center';
+  ctx.fillText(isNarrow?'Tap slot to select':'1-9,0:Select | Click:Select | I/Tab/Esc:Close',x+w/2,y+h-10);
 }
 
 function drawChest(){
