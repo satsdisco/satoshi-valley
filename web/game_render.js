@@ -164,27 +164,100 @@ function drawTile(x,y,tile){
       const sR=[0,0,20,0][econ.phase]; // Euphoria adds warmth
       const sG=[0,10,-10,-20][econ.phase]; // Capitulation desaturates
       const sB=[0,0,0,10][econ.phase]; // Capitulation adds blue
-      const baseR=Math.floor(30+gn*30+sR);const baseG=Math.floor(90+gn*50+gn2*20+sG);const baseB=Math.floor(15+gn*20+sB);
-      ctx.fillStyle=`rgb(${Math.max(0,Math.min(255,baseR))},${Math.max(0,Math.min(255,baseG))},${Math.max(0,Math.min(255,baseB))})`;ctx.fillRect(sx,sy,ST,ST);
-      // Subtle lighter patches using second noise octave
-      if(gn2>0.55){ctx.fillStyle=`rgba(80,160,50,${(gn2-0.55)*0.4})`;ctx.fillRect(sx,sy,ST,ST);}
-      // Darker patches for depth
-      if(gn<0.4){ctx.fillStyle=`rgba(15,50,10,${(0.4-gn)*0.25})`;ctx.fillRect(sx,sy,ST,ST);}
-      // Sparse grass tufts (use noise-based seeding, not modulo)
+      // WARMER, more saturated base palette — lush cozy green
+      const baseR=Math.floor(48+gn*34+sR);
+      const baseG=Math.floor(115+gn*48+gn2*22+sG);
+      const baseB=Math.floor(42+gn*22+sB);
+      ctx.fillStyle=`rgb(${Math.max(0,Math.min(255,baseR))},${Math.max(0,Math.min(255,baseG))},${Math.max(0,Math.min(255,baseB))})`;
+      ctx.fillRect(sx,sy,ST,ST);
+      // Lighter sun-warmed patches (more visible for painterly feel)
+      if(gn2>0.5){
+        ctx.fillStyle=`rgba(130,195,80,${(gn2-0.5)*0.55})`;
+        ctx.fillRect(sx,sy,ST,ST);
+      }
+      // Mid-tone mottling — adds hand-painted variation
+      if(gn>0.45&&gn<0.65){
+        ctx.fillStyle=`rgba(95,175,55,0.25)`;
+        ctx.fillRect(sx,sy,ST,ST);
+      }
+      // Cool shadow patches (moss undertones)
+      if(gn<0.38){
+        ctx.fillStyle=`rgba(20,65,20,${(0.38-gn)*0.35})`;
+        ctx.fillRect(sx,sy,ST,ST);
+      }
+      // ── PIXEL-LEVEL DITHER — scatter tiny warm+cool speckles
+      // Use a seeded pattern so it's stable across frames
+      const dBase=(x*97+y*61);
+      for(let d1=0;d1<8;d1++){
+        const hash=(dBase+d1*113)%97;
+        const dpx=sx+(hash%ST);
+        const dpy=sy+((hash*3)%ST);
+        const shade=hash%5;
+        if(shade===0)ctx.fillStyle='rgba(160,210,90,0.35)';      // warm highlight
+        else if(shade===1)ctx.fillStyle='rgba(40,95,30,0.4)';    // deep shadow
+        else if(shade===2)ctx.fillStyle='rgba(120,180,65,0.3)';  // mid warm
+        else continue;
+        ctx.fillRect(dpx,dpy,1,1);
+      }
+      // ── GRASS BLADES — tiny vertical strokes for texture
       const gSeed=(x*31+y*17)%37;
+      // Always draw a couple of blades per tile for consistent coverage
+      const bladeCount=2+(gSeed%3);
+      for(let bl=0;bl<bladeCount;bl++){
+        const bhash=(gSeed*7+bl*23)%ST;
+        const bX=sx+bhash;
+        const bY=sy+((bhash*3+bl*11)%ST);
+        const bH=2+(bhash%3);
+        ctx.fillStyle=(bl%2)?'rgba(90,160,50,0.7)':'rgba(60,125,35,0.6)';
+        ctx.fillRect(bX,bY,1,bH);
+        // Tiny highlight tip
+        ctx.fillStyle='rgba(180,220,100,0.5)';
+        ctx.fillRect(bX,bY,1,1);
+      }
+      // Clover clusters — tiny 3-leaf groups sparsely
+      if(gSeed===5){
+        ctx.fillStyle='rgba(70,135,45,0.75)';
+        ctx.fillRect(sx+18,sy+22,2,2);
+        ctx.fillRect(sx+20,sy+22,2,2);
+        ctx.fillRect(sx+19,sy+20,2,2);
+        // Tiny white clover flower
+        ctx.fillStyle='rgba(245,245,230,0.85)';
+        ctx.fillRect(sx+19,sy+19,1,1);
+      }
+      // Larger grass tufts
       if(gSeed<4){
-        ctx.fillStyle=`rgba(60,140,40,0.6)`;
+        ctx.fillStyle='rgba(70,155,45,0.75)';
         ctx.fillRect(sx+10+gSeed*6,sy+8+gSeed*3,1,7);
         ctx.fillRect(sx+14+gSeed*5,sy+12+gSeed*2,1,5);
+        ctx.fillStyle='rgba(180,220,100,0.5)';
+        ctx.fillRect(sx+10+gSeed*6,sy+8+gSeed*3,1,1);
       }
-      // Very sparse wildflowers
-      if(gSeed===1){ctx.fillStyle='#E8C840';ctx.fillRect(sx+22,sy+18,2,2);}
-      if(gSeed===17){ctx.fillStyle='#D0D0F0';ctx.fillRect(sx+14,sy+28,2,2);}
-      // Ground clutter — tiny scattered details like Stardew
-      if(gSeed===3){ctx.fillStyle='rgba(80,60,30,0.2)';ctx.fillRect(sx+30,sy+36,3,2);} // twig
-      if(gSeed===7){ctx.fillStyle='rgba(100,90,70,0.25)';ctx.beginPath();ctx.arc(sx+38,sy+10,2,0,Math.PI*2);ctx.fill();} // pebble
-      if(gSeed===12){ctx.fillStyle='rgba(60,100,40,0.3)';ctx.fillRect(sx+6,sy+40,4,3);} // small weed
-      if(gSeed===20){ctx.fillStyle='rgba(90,80,50,0.2)';ctx.fillRect(sx+24,sy+30,2,4);} // stick
+      // Wildflowers — a bit more frequent and with proper color
+      if(gSeed===1){
+        ctx.fillStyle='#F0D040';ctx.fillRect(sx+22,sy+18,2,2);
+        ctx.fillStyle='#FFEC80';ctx.fillRect(sx+22,sy+18,1,1);
+      }
+      if(gSeed===17){
+        ctx.fillStyle='#F0F0FF';ctx.fillRect(sx+14,sy+28,2,2);
+        ctx.fillStyle='#FFE060';ctx.fillRect(sx+15,sy+29,1,1);
+      }
+      if(gSeed===11){
+        ctx.fillStyle='#E06890';ctx.fillRect(sx+30,sy+14,2,2);
+        ctx.fillStyle='#F8A0C0';ctx.fillRect(sx+30,sy+14,1,1);
+      }
+      if(gSeed===25){
+        ctx.fillStyle='#8060D8';ctx.fillRect(sx+6,sy+32,2,2);
+      }
+      // Ground clutter — tiny scattered details
+      if(gSeed===3){ctx.fillStyle='rgba(80,60,30,0.35)';ctx.fillRect(sx+30,sy+36,3,2);}
+      if(gSeed===7){
+        ctx.fillStyle='rgba(140,130,110,0.45)';
+        ctx.beginPath();ctx.arc(sx+38,sy+10,2,0,Math.PI*2);ctx.fill();
+        ctx.fillStyle='rgba(200,195,180,0.35)';
+        ctx.fillRect(sx+37,sy+9,1,1);
+      }
+      if(gSeed===12){ctx.fillStyle='rgba(70,125,40,0.5)';ctx.fillRect(sx+6,sy+40,4,3);}
+      if(gSeed===20){ctx.fillStyle='rgba(100,85,55,0.35)';ctx.fillRect(sx+24,sy+30,2,4);}
       // Edge blending — soft transition where grass meets non-grass
       const tN=getTile(x,y-1),tS=getTile(x,y+1),tW=getTile(x-1,y),tE=getTile(x+1,y);
       if(!TERRAIN_GRASS.has(tN)){ctx.fillStyle='rgba(120,100,60,0.18)';ctx.fillRect(sx,sy,ST,6);ctx.fillStyle='rgba(80,65,35,0.12)';ctx.fillRect(sx+4,sy,ST-8,3);}
@@ -351,26 +424,96 @@ function drawTile(x,y,tile){
       if((x*13+y*7)%11<3){ctx.fillStyle='rgba(210,190,140,0.15)';ctx.fillRect(sx+4,sy+12,ST-8,2);ctx.fillRect(sx+8,sy+28,ST-16,2);}
       break;}
     case T.PATH:{
-      // Smooth dirt path with subtle noise variation
-      const pn=tileNoise2[y*MAP_W+x];
-      const pR=Math.floor(130+pn*20);const pG=Math.floor(115+pn*15);const pB=Math.floor(90+pn*15);
-      ctx.fillStyle=`rgb(${pR},${pG},${pB})`;ctx.fillRect(sx,sy,ST,ST);
-      // Subtle pebble/texture details
+      // ── COBBLESTONE PATH — individual hand-laid stones w/ moss ──────
+      // Dark mortar base (what shows between stones)
+      ctx.fillStyle='#3A3228';
+      ctx.fillRect(sx,sy,ST,ST);
+      // Cobblestones — 4x4 grid of irregular rounded stones
+      const cobblesPerSide=4;
+      const cSize=ST/cobblesPerSide;
+      for(let cy=0;cy<cobblesPerSide;cy++){
+        for(let cx=0;cx<cobblesPerSide;cx++){
+          // Seeded pseudo-random per stone (stable across frames)
+          const h1=((x*cobblesPerSide+cx)*91+(y*cobblesPerSide+cy)*137)%100;
+          const h2=((x*cobblesPerSide+cx)*53+(y*cobblesPerSide+cy)*211)%100;
+          // Jittered position so stones aren't a perfect grid
+          const jx=sx+cx*cSize+(h1%3)-1;
+          const jy=sy+cy*cSize+(h2%3)-1;
+          const cSz=cSize-1+(h1%2);
+          // Stone color variant (3 shades of warm grey)
+          const stoneShade=h2%5;
+          let stoneCol, stoneLight, stoneDark;
+          if(stoneShade===0){stoneCol='#8A8078';stoneLight='#A89E94';stoneDark='#5A524A';}
+          else if(stoneShade===1){stoneCol='#948A80';stoneLight='#B4AA9E';stoneDark='#625A52';}
+          else if(stoneShade===2){stoneCol='#9C927E';stoneLight='#BAB094';stoneDark='#665E4E';}
+          else if(stoneShade===3){stoneCol='#807868';stoneLight='#9E9484';stoneDark='#4E4838';}
+          else{stoneCol='#8E8470';stoneLight='#AAA088';stoneDark='#5E5644';}
+          // Rounded stone body
+          ctx.fillStyle=stoneDark;
+          ctx.beginPath();
+          ctx.ellipse(jx+cSz/2,jy+cSz/2,cSz/2,cSz/2-0.5,0,0,Math.PI*2);
+          ctx.fill();
+          // Main stone fill (smaller, inset)
+          ctx.fillStyle=stoneCol;
+          ctx.beginPath();
+          ctx.ellipse(jx+cSz/2,jy+cSz/2,cSz/2-0.5,cSz/2-1,0,0,Math.PI*2);
+          ctx.fill();
+          // Light highlight on upper-left of each stone (directional lighting)
+          ctx.fillStyle=stoneLight;
+          ctx.beginPath();
+          ctx.ellipse(jx+cSz/2-0.5,jy+cSz/2-0.5,cSz/2-1.5,cSz/2-2,0,0,Math.PI*2);
+          ctx.fill();
+          // Tiny top glint
+          ctx.fillStyle='rgba(255,255,255,0.25)';
+          ctx.fillRect(jx+1,jy+1,1,1);
+          // Occasional moss growing in cracks between stones
+          if(h1%13===0){
+            ctx.fillStyle='rgba(70,130,40,0.65)';
+            ctx.fillRect(jx+cSz-1,jy+cSz/2,1,1);
+          }
+          if(h2%17===0){
+            ctx.fillStyle='rgba(55,115,35,0.55)';
+            ctx.fillRect(jx+cSz/2,jy+cSz-1,1,1);
+          }
+        }
+      }
+      // Occasional small weed or dandelion growing between stones
       const pSeed=(x*23+y*11)%29;
-      if(pSeed<5){ctx.fillStyle=`rgba(100,85,65,0.3)`;ctx.fillRect(sx+8+pSeed*5,sy+10+pSeed*4,6,4);}
-      if(pSeed>22){ctx.fillStyle=`rgba(170,150,120,0.25)`;ctx.fillRect(sx+12+pSeed%5*6,sy+20,8,5);}
-      // Worn center line (paths get lighter in the middle from foot traffic)
-      ctx.fillStyle='rgba(180,165,140,0.12)';ctx.fillRect(sx+ST/4,sy,ST/2,ST);
-      // Path edge blending — grassy edges where path meets grass
+      if(pSeed===3){
+        ctx.fillStyle='rgba(55,115,35,0.8)';
+        ctx.fillRect(sx+18,sy+22,1,3);
+        ctx.fillStyle='rgba(90,150,50,0.7)';
+        ctx.fillRect(sx+17,sy+21,3,1);
+      }
+      if(pSeed===17){
+        // Dandelion
+        ctx.fillStyle='rgba(60,120,35,0.7)';
+        ctx.fillRect(sx+32,sy+14,1,3);
+        ctx.fillStyle='#F0C030';
+        ctx.fillRect(sx+31,sy+13,3,1);
+      }
+      // Path edge blending — grass encroaching on the edges
       const ptN=getTile(x,y-1),ptS=getTile(x,y+1),ptW=getTile(x-1,y),ptE=getTile(x+1,y);
-      if(TERRAIN_GRASS.has(ptN)){ctx.fillStyle='rgba(50,100,30,0.2)';ctx.fillRect(sx+2,sy,ST-4,4);
-        ctx.fillStyle='rgba(60,120,35,0.15)';for(let i=0;i<4;i++)ctx.fillRect(sx+4+i*10,sy,2,6+((x+i)%3)*2);}
-      if(TERRAIN_GRASS.has(ptS)){ctx.fillStyle='rgba(50,100,30,0.2)';ctx.fillRect(sx+2,sy+ST-4,ST-4,4);
-        ctx.fillStyle='rgba(60,120,35,0.15)';for(let i=0;i<4;i++)ctx.fillRect(sx+6+i*10,sy+ST-6-((x+i)%3)*2,2,6);}
-      if(TERRAIN_GRASS.has(ptW)){ctx.fillStyle='rgba(50,100,30,0.2)';ctx.fillRect(sx,sy+2,4,ST-4);
-        ctx.fillStyle='rgba(60,120,35,0.15)';for(let i=0;i<3;i++)ctx.fillRect(sx,sy+6+i*12,6+((y+i)%3)*2,2);}
-      if(TERRAIN_GRASS.has(ptE)){ctx.fillStyle='rgba(50,100,30,0.2)';ctx.fillRect(sx+ST-4,sy+2,4,ST-4);
-        ctx.fillStyle='rgba(60,120,35,0.15)';for(let i=0;i<3;i++)ctx.fillRect(sx+ST-6-((y+i)%3)*2,sy+8+i*12,6,2);}
+      if(TERRAIN_GRASS.has(ptN)){
+        ctx.fillStyle='rgba(50,100,30,0.35)';ctx.fillRect(sx+2,sy,ST-4,3);
+        ctx.fillStyle='rgba(70,135,40,0.5)';
+        for(let i=0;i<5;i++)ctx.fillRect(sx+3+i*9,sy,1,3+((x+i)%3));
+      }
+      if(TERRAIN_GRASS.has(ptS)){
+        ctx.fillStyle='rgba(50,100,30,0.35)';ctx.fillRect(sx+2,sy+ST-3,ST-4,3);
+        ctx.fillStyle='rgba(70,135,40,0.5)';
+        for(let i=0;i<5;i++)ctx.fillRect(sx+4+i*9,sy+ST-4-((x+i)%3),1,4);
+      }
+      if(TERRAIN_GRASS.has(ptW)){
+        ctx.fillStyle='rgba(50,100,30,0.35)';ctx.fillRect(sx,sy+2,3,ST-4);
+        ctx.fillStyle='rgba(70,135,40,0.5)';
+        for(let i=0;i<4;i++)ctx.fillRect(sx,sy+4+i*10,3+((y+i)%3),1);
+      }
+      if(TERRAIN_GRASS.has(ptE)){
+        ctx.fillStyle='rgba(50,100,30,0.35)';ctx.fillRect(sx+ST-3,sy+2,3,ST-4);
+        ctx.fillStyle='rgba(70,135,40,0.5)';
+        for(let i=0;i<4;i++)ctx.fillRect(sx+ST-4-((y+i)%3),sy+6+i*10,4,1);
+      }
       break;}
     case T.WALL:{
       // Detailed log cabin walls
