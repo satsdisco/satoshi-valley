@@ -154,8 +154,8 @@ const COMBAT_SKILLS = {
 };
 
 // Mine dimensions — bigger for regular floors, even bigger for boss
-const MINE_W_NORMAL = 50, MINE_H_NORMAL = 40;
-const MINE_W_BOSS = 60, MINE_H_BOSS = 50;
+const MINE_W_NORMAL = 64, MINE_H_NORMAL = 50;
+const MINE_W_BOSS = 76, MINE_H_BOSS = 60;
 let MINE_W = MINE_W_NORMAL, MINE_H = MINE_H_NORMAL;
 
 // New tile types for dungeon hazards
@@ -211,11 +211,11 @@ function generateMineFloor(level) {
   for(let i=0;i<roomCount;i++){
     const rtype = i===0 ? 'normal' : (i===roomCount-1 && isBoss ? 'arena' : roomTypes[Math.floor(Math.random()*roomTypes.length)]);
     let rw, rh;
-    if(rtype==='arena'){rw=10+Math.floor(Math.random()*5);rh=8+Math.floor(Math.random()*4);}
-    else if(rtype==='corridor'){rw=Math.random()<0.5?2+Math.floor(Math.random()*2):8+Math.floor(Math.random()*6);rh=rw<4?8+Math.floor(Math.random()*6):2+Math.floor(Math.random()*2);}
-    else if(rtype==='treasure'){rw=4+Math.floor(Math.random()*2);rh=4+Math.floor(Math.random()*2);}
-    else if(rtype==='ambush'){rw=6+Math.floor(Math.random()*3);rh=6+Math.floor(Math.random()*3);}
-    else{rw=5+Math.floor(Math.random()*5);rh=4+Math.floor(Math.random()*4);}
+    if(rtype==='arena'){rw=12+Math.floor(Math.random()*6);rh=10+Math.floor(Math.random()*5);}
+    else if(rtype==='corridor'){rw=Math.random()<0.5?3+Math.floor(Math.random()*2):10+Math.floor(Math.random()*6);rh=rw<5?10+Math.floor(Math.random()*6):3+Math.floor(Math.random()*2);}
+    else if(rtype==='treasure'){rw=5+Math.floor(Math.random()*3);rh=5+Math.floor(Math.random()*3);}
+    else if(rtype==='ambush'){rw=8+Math.floor(Math.random()*3);rh=7+Math.floor(Math.random()*3);}
+    else{rw=7+Math.floor(Math.random()*5);rh=6+Math.floor(Math.random()*4);}
     
     const rx=2+Math.floor(Math.random()*(w-rw-4));
     const ry=2+Math.floor(Math.random()*(h-rh-4));
@@ -276,14 +276,14 @@ function generateMineFloor(level) {
     while(cy2!==r2.y){m[cy2][cx2]=T.STONE;cy2+=cy2<r2.y?1:-1;}
   }
   
-  // Add environmental hazards
-  const hazardRooms = rooms.filter(r=>r.type==='ambush'||r.type==='arena');
+  // Add environmental hazards — only in ambush rooms, sparse, with 2-tile safe border
+  const hazardRooms = rooms.filter(r=>r.type==='ambush');
   for(const hr of hazardRooms){
     const hazardType = level < 3 ? T_ELECTRIC : T_LAVA;
-    const count = 3+Math.floor(Math.random()*4);
+    const count = 1+Math.floor(Math.random()*2); // 1-2 hazards, not 3-6
     for(let j=0;j<count;j++){
-      const hx=hr.rx+1+Math.floor(Math.random()*(hr.w-2));
-      const hy=hr.ry+1+Math.floor(Math.random()*(hr.h-2));
+      const hx=hr.rx+2+Math.floor(Math.random()*Math.max(1,hr.w-4));
+      const hy=hr.ry+2+Math.floor(Math.random()*Math.max(1,hr.h-4));
       if(m[hy]&&m[hy][hx]===T.STONE)m[hy][hx]=hazardType;
     }
   }
@@ -322,12 +322,21 @@ function generateMineFloor(level) {
     }
   }
   
-  // Enemies — more enemies, placed in rooms
+  // Enemies — scaled down so you're not mobbed. Spread across rooms, max 2 per room.
   const enemies=[];
-  const enemyCount=5+level*3+Math.floor(Math.random()*4);
+  const enemyCount=3+level*2+Math.floor(Math.random()*3);
+  const perRoomCount={};
   const enemyTypes=level<1?['malware_bot','phishing_worm']:level<2?['malware_bot','phishing_worm','script_kiddie']:level<3?['script_kiddie','cryptojacker','ransomware']:level<4?['cryptojacker','ransomware','fiat_printer']:['ransomware','fiat_printer','zero_day'];
   for(let i=0;i<enemyCount;i++){
-    const room=rooms[1+Math.floor(Math.random()*(rooms.length-1))];
+    // Pick a room that doesn't already have 2+ enemies (spread them out)
+    let room=null;
+    for(let tries=0;tries<6;tries++){
+      const candidate=rooms[1+Math.floor(Math.random()*(rooms.length-1))];
+      const rid=candidate.rx+','+candidate.ry;
+      if((perRoomCount[rid]||0)<2){room=candidate;break;}
+    }
+    if(!room)continue;
+    const rid=room.rx+','+room.ry;
     const ex=room.rx+1+Math.floor(Math.random()*Math.max(1,room.w-2));
     const ey=room.ry+1+Math.floor(Math.random()*Math.max(1,room.h-2));
     if(m[ey]&&m[ey][ex]===T.STONE){
@@ -337,12 +346,13 @@ function generateMineFloor(level) {
         _mt:0,_atkCd:0,_hitFlash:0,_lungeX:0,_lungeY:0,_telegraphing:0,
         _patrolDir:Math.random()<0.5?1:-1,_spawnTimer:0,_visible:type!=='zero_day',
         _grabbed:false,_phase:1,_shockwaveTimer:0,_zigzag:0});
+      perRoomCount[rid]=(perRoomCount[rid]||0)+1;
     }
   }
-  // Ambush rooms get extra enemies
+  // Ambush rooms get ONE extra enemy (was 2-3)
   for(const r of rooms){
     if(r.type==='ambush'){
-      for(let j=0;j<2+Math.floor(Math.random()*2);j++){
+      for(let j=0;j<1;j++){
         const ex=r.rx+1+Math.floor(Math.random()*Math.max(1,r.w-2));
         const ey=r.ry+1+Math.floor(Math.random()*Math.max(1,r.h-2));
         if(m[ey]&&m[ey][ex]===T.STONE){
@@ -473,16 +483,43 @@ function drawMine(){
     ctx.strokeStyle=`rgba(255,100,100,${0.6*fwAlpha})`;ctx.lineWidth=2;ctx.strokeRect(fsx+2,fsy+2,ST-4,ST-4);
     ctx.fillStyle=`rgba(255,60,60,${0.2+Math.sin(_now/200)*0.1})`;ctx.font='14px serif';ctx.textAlign='center';ctx.fillText('🔥',fsx+ST/2,fsy+ST/2+5);
   }
-  // Draw crates
+  // Draw crates — with clear "loot inside" visual tells
+  let nearestCrateDist=99,nearestCrateSx=0,nearestCrateSy=0;
   for(const cr of mineCrates){
     const csx=cr.x*ST-cam.x,csy=cr.y*ST-cam.y;
     if(csx>canvas.width+ST||csy>canvas.height+ST||csx<-ST||csy<-ST)continue;
+    // Pulsing golden glow around crate so it reads as "interactive"
+    const pulse=0.4+Math.sin(_now/350+cr.x+cr.y)*0.2;
+    ctx.fillStyle=`rgba(247,147,26,${pulse*0.25})`;
+    ctx.beginPath();ctx.arc(csx+ST/2,csy+ST/2,ST*0.7,0,Math.PI*2);ctx.fill();
+    // Wood crate body
     ctx.fillStyle='#6B4E2A';ctx.fillRect(csx+6,csy+8,ST-12,ST-12);
     ctx.fillStyle='#8B6E3A';ctx.fillRect(csx+8,csy+10,ST-16,ST-16);
-    ctx.strokeStyle='#4A3520';ctx.lineWidth=1;ctx.strokeRect(csx+6,csy+8,ST-12,ST-12);
-    ctx.fillStyle='#FFD700';ctx.fillRect(csx+ST/2-3,csy+ST/2-1,6,4);
-    // Show HP dots
-    for(let ch=0;ch<cr.hp;ch++){ctx.fillStyle='#4F4';ctx.fillRect(csx+10+ch*8,csy+ST-6,4,3);}
+    // Wood planks
+    ctx.strokeStyle='#4A3520';ctx.lineWidth=1;
+    ctx.strokeRect(csx+6,csy+8,ST-12,ST-12);
+    ctx.beginPath();ctx.moveTo(csx+6,csy+ST/2);ctx.lineTo(csx+ST-6,csy+ST/2);ctx.stroke();
+    // Gold lock/clasp
+    ctx.fillStyle='#FFD700';ctx.fillRect(csx+ST/2-3,csy+ST/2-2,6,4);
+    ctx.fillStyle='#CC9500';ctx.fillRect(csx+ST/2-2,csy+ST/2-1,4,2);
+    // HP dots (hits left)
+    for(let ch=0;ch<cr.hp;ch++){ctx.fillStyle='#4F4';ctx.fillRect(csx+10+ch*6,csy+ST-6,3,3);}
+    // Bouncing "?" above crate so you know it's lootable
+    const bounce=Math.sin(_now/250+cr.x)*3;
+    ctx.fillStyle='#FFD700';ctx.strokeStyle='#000';ctx.lineWidth=3;
+    ctx.font=`bold 14px ${FONT}`;ctx.textAlign='center';
+    ctx.strokeText('?',csx+ST/2,csy-4+bounce);
+    ctx.fillText('?',csx+ST/2,csy-4+bounce);
+    // Track nearest crate for hint text
+    const dx=cr.x-player.x,dy=cr.y-player.y;
+    const d=Math.abs(dx)+Math.abs(dy);
+    if(d<nearestCrateDist){nearestCrateDist=d;nearestCrateSx=csx;nearestCrateSy=csy;}
+  }
+  // Hint text when player is adjacent to a crate
+  if(nearestCrateDist<=2){
+    ctx.fillStyle='rgba(0,0,0,0.7)';ctx.fillRect(nearestCrateSx-20,nearestCrateSy-26,ST+40,16);
+    ctx.fillStyle='#FFD700';ctx.font=`bold 10px ${FONT}`;ctx.textAlign='center';
+    ctx.fillText('ATTACK TO BREAK',nearestCrateSx+ST/2,nearestCrateSy-14);
   }
   // Draw stairs
   if(f.stairsUp){const sx=f.stairsUp.x*ST-cam.x,sy=f.stairsUp.y*ST-cam.y;
