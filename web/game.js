@@ -1990,12 +1990,6 @@ function drawIntro() {
     ctx.fillText('v0.6', canvas.width - 20, canvas.height - 12);
     ctx.textAlign = 'left';
     ctx.fillText('↑↓ Navigate  Enter Select', 20, canvas.height - 12);
-    // Tiny build/debug tag so we can confirm which build is actually running
-    ctx.globalAlpha = 0.5;
-    ctx.fillStyle = '#888';
-    ctx.font = `10px ${FONT}`;
-    ctx.fillText(`build v27 • mobile=${isMobile} • small=${isSmallScreen} • ${canvas.width}x${canvas.height}`, 20, 18);
-    ctx.globalAlpha = 1;
   } else {
     // Story slides
     ctx.fillStyle = C.white;
@@ -4849,32 +4843,14 @@ function draw(){
 // ============================================================
 // GAME LOOP
 // ============================================================
-let _frameCount = 0;
 function gameLoop(now){
   try{
     const dt=Math.min(.1,(now-lastTime)/1000);lastTime=now;
     update(dt);draw();
-    // ---- DIAGNOSTIC OVERLAY (always on top, always visible) ----
-    // If we see nothing but this, canvas is rendering but game draw
-    // code isn't. If we see nothing at all, the canvas itself is broken.
-    _frameCount++;
-    ctx.save();
-    ctx.globalAlpha = 1;
-    ctx.shadowBlur = 0;
-    ctx.fillStyle = '#0a0';
-    ctx.fillRect(0, 0, 260, 22);
-    ctx.fillStyle = '#0f0';
-    ctx.font = 'bold 12px monospace';
-    ctx.textAlign = 'left';
-    ctx.textBaseline = 'top';
-    ctx.fillText(`v30 f${_frameCount} ${canvas.width}x${canvas.height} m${isMobile?1:0} s${isSmallScreen?1:0} ${gameState}`, 4, 5);
-    ctx.restore();
   }catch(e){
-    ctx.fillStyle='#F00';ctx.fillRect(0,0,canvas.width,80);
-    ctx.fillStyle='#FFF';ctx.font='bold 14px monospace';ctx.textAlign='left';ctx.textBaseline='top';
-    ctx.fillText('ERROR: '+e.message,10,10);
-    ctx.fillText('Stack: '+(e.stack?e.stack.split('\n')[1]:''),10,30);
-    ctx.fillText('canvas='+canvas.width+'x'+canvas.height+' frame='+_frameCount,10,50);
+    ctx.fillStyle='#F00';ctx.font='16px Courier New';ctx.textAlign='left';
+    ctx.fillText('ERROR: '+e.message,20,30);
+    ctx.fillText('Stack: '+(e.stack?e.stack.split('\n')[1]:''),20,50);
     console.error('GAME ERROR:',e);
     return; // stop loop
   }
