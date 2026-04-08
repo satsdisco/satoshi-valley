@@ -949,81 +949,167 @@ function drawDecor(d) {
         ctx.fillRect(px+1,wallBot-7,1,1);ctx.fillRect(px+pilW-2,wallBot-7,1,1);
       }
 
-      // ── 4. BAY WINDOW (protruding display, left half of facade) ──────
-      const bayW=Math.floor(rw*0.45), bayH=Math.floor(wallH*0.7);
-      const bayX=rx+10, bayY=wallTop+8;
-      const bayProtrude=6;
-      // Protrusion base (below window) — extends down past wall bottom a bit
-      ctx.fillStyle=PAL.wallXD;
-      ctx.fillRect(bayX-bayProtrude,bayY+bayH,bayW+bayProtrude*2,wallBot-(bayY+bayH)+2);
-      ctx.fillStyle=PAL.wall;
-      ctx.fillRect(bayX-bayProtrude+1,bayY+bayH+1,bayW+bayProtrude*2-2,wallBot-(bayY+bayH));
-      // Horizontal trim strip under window
-      ctx.fillStyle=PAL.trim;ctx.fillRect(bayX-bayProtrude-2,bayY+bayH-1,bayW+bayProtrude*2+4,3);
-      ctx.fillStyle=PAL.trimD;ctx.fillRect(bayX-bayProtrude-2,bayY+bayH+2,bayW+bayProtrude*2+4,1);
+      // ── 4. STOREFRONT DISPLAY WINDOW (divided-light, 6 panes) ────────
+      // Dimensions — big, tall, proportional to the left half of the facade
+      const winW=Math.floor(rw*0.44), winH=Math.floor(wallH*0.62);
+      const winX=rx+12, winY=wallTop+14;
+      const cols=3, rows=2;
 
-      // Striped awning ABOVE bay — red & white (classic hardware store)
-      const awY=bayY-13, awH=11;
-      // Awning scalloped edge
-      ctx.fillStyle=PAL.trimD;
-      ctx.fillRect(bayX-bayProtrude-4,awY,bayW+bayProtrude*2+8,awH);
-      const stripeW=7;
-      for(let i=0;i<Math.ceil((bayW+bayProtrude*2+8)/stripeW);i++){
-        ctx.fillStyle=i%2===0?'#E8E0D0':PAL.trim;
-        ctx.fillRect(bayX-bayProtrude-4+i*stripeW,awY,stripeW,awH);
+      // Outer decorative wood header board (above the window)
+      const hdrH=8;
+      ctx.fillStyle=PAL.wallXD;
+      ctx.fillRect(winX-5,winY-hdrH-4,winW+10,hdrH+2);
+      ctx.fillStyle=PAL.trim;
+      ctx.fillRect(winX-4,winY-hdrH-3,winW+8,hdrH);
+      ctx.fillStyle=PAL.trimL;ctx.fillRect(winX-4,winY-hdrH-3,winW+8,1);
+      ctx.fillStyle=PAL.trimD;ctx.fillRect(winX-4,winY-5,winW+8,2);
+      // Decorative dentil blocks along the header
+      ctx.fillStyle=PAL.wallXD;
+      for(let i=0;i<Math.floor((winW+8)/6);i++){
+        ctx.fillRect(winX-4+i*6+1,winY-5,3,2);
       }
-      // Scalloped bottom
+
+      // Striped awning ABOVE the header — red & white
+      const awY=winY-hdrH-14, awH=10;
+      ctx.fillStyle=PAL.trimD;ctx.fillRect(winX-6,awY,winW+12,awH);
+      const stripeW=6;
+      for(let i=0;i<Math.ceil((winW+12)/stripeW);i++){
+        ctx.fillStyle=i%2===0?'#E8E0D0':PAL.trim;
+        ctx.fillRect(winX-6+i*stripeW,awY+1,stripeW,awH-1);
+      }
+      // Scalloped fringe bottom
       ctx.fillStyle=PAL.trimD;
-      for(let i=0;i<Math.ceil((bayW+bayProtrude*2+8)/6);i++){
+      for(let i=0;i<Math.ceil((winW+12)/6);i++){
         ctx.beginPath();
-        ctx.arc(bayX-bayProtrude-4+i*6+3,awY+awH,3,0,Math.PI);
+        ctx.arc(winX-6+i*6+3,awY+awH,3,0,Math.PI);
         ctx.fill();
       }
-      // Awning top edge highlight
-      ctx.fillStyle='rgba(255,255,255,0.2)';ctx.fillRect(bayX-bayProtrude-4,awY,bayW+bayProtrude*2+8,1);
+      ctx.fillStyle='rgba(255,255,255,0.22)';ctx.fillRect(winX-6,awY,winW+12,1);
 
-      // Bay window frame (thick dark wood)
-      ctx.fillStyle=PAL.wallXD;ctx.fillRect(bayX-2,bayY-2,bayW+4,bayH+4);
-      // 3 glass panes (center larger, sides angled-look)
-      const paneW=Math.floor((bayW-6)/3);
-      for(let i=0;i<3;i++){
-        const pxi=bayX+2+i*(paneW+2);
-        // Glass — warm interior light
-        ctx.fillStyle='rgba(255,220,150,0.35)';
-        ctx.fillRect(pxi,bayY+2,paneW,bayH-4);
-        // Glare diagonal
-        ctx.fillStyle='rgba(255,255,255,0.18)';
-        ctx.fillRect(pxi+1,bayY+3,paneW*0.4,bayH-6);
-        // Pane divider
-        ctx.fillStyle=PAL.wallD;
-        ctx.fillRect(pxi+paneW/2-0.5,bayY+2,1,bayH-4);
+      // Thick wood window frame (outer)
+      ctx.fillStyle=PAL.wallXD;ctx.fillRect(winX-3,winY-3,winW+6,winH+6);
+      ctx.fillStyle=PAL.wallD;ctx.fillRect(winX-2,winY-2,winW+4,winH+4);
+      // Inner frame highlight (light catches the top/left of the frame)
+      ctx.fillStyle=PAL.wall;
+      ctx.fillRect(winX-2,winY-2,winW+4,1);
+      ctx.fillRect(winX-2,winY-2,1,winH+4);
+
+      // Glass background — warm interior showing through (single fill, then mullions)
+      const glassGrad=ctx.createLinearGradient(winX,winY,winX,winY+winH);
+      glassGrad.addColorStop(0,'rgba(120,90,50,0.9)');     // shadowy ceiling
+      glassGrad.addColorStop(0.5,'rgba(200,150,80,0.75)'); // warm middle
+      glassGrad.addColorStop(1,'rgba(160,110,60,0.85)');   // shadowed floor
+      ctx.fillStyle=glassGrad;
+      ctx.fillRect(winX,winY,winW,winH);
+
+      // Diagonal glare across the entire window
+      ctx.fillStyle='rgba(255,255,255,0.08)';
+      ctx.beginPath();
+      ctx.moveTo(winX,winY);ctx.lineTo(winX+winW*0.4,winY);
+      ctx.lineTo(winX,winY+winH*0.6);ctx.closePath();ctx.fill();
+
+      // DISPLAY ITEMS — drawn on the glass before mullions so they sit inside the window
+      // Back shelf line suggestion
+      ctx.fillStyle='rgba(40,20,5,0.4)';
+      ctx.fillRect(winX+2,winY+winH*0.58,winW-4,2);
+
+      // Pickaxe — leaning in left third
+      const pickX=winX+winW*0.18, pickY=winY+winH*0.25;
+      ctx.save();ctx.translate(pickX,pickY);ctx.rotate(-0.25);
+      ctx.fillStyle='#4A2810';ctx.fillRect(-1,0,2,winH*0.45); // handle
+      ctx.fillStyle='#6A3818';ctx.fillRect(0,0,1,winH*0.45); // handle highlight
+      // Head
+      ctx.fillStyle=PAL.metalL;ctx.fillRect(-7,-3,14,3);
+      ctx.fillStyle=PAL.metal;ctx.fillRect(-7,-1,14,2);
+      ctx.fillStyle=PAL.metalD;ctx.fillRect(-7,0,5,1);
+      ctx.restore();
+
+      // Lantern — hanging in center, emits a tiny glow halo
+      const lntX=winX+winW*0.5, lntY=winY+winH*0.32;
+      // Glow halo
+      ctx.fillStyle='rgba(255,210,120,0.35)';
+      ctx.beginPath();ctx.arc(lntX,lntY+4,9,0,Math.PI*2);ctx.fill();
+      // Hanging chain
+      ctx.fillStyle=PAL.metalD;ctx.fillRect(lntX-0.5,winY+2,1,lntY-winY-2);
+      // Top cap
+      ctx.fillStyle=PAL.metal;ctx.fillRect(lntX-4,lntY-1,8,2);
+      // Glass body
+      ctx.fillStyle='rgba(255,220,140,0.95)';ctx.fillRect(lntX-3,lntY+1,6,6);
+      ctx.fillStyle='#FFE080';ctx.fillRect(lntX-1,lntY+2,2,4); // flame
+      // Base
+      ctx.fillStyle=PAL.metalD;ctx.fillRect(lntX-4,lntY+7,8,2);
+
+      // Coil of rope — sitting on the shelf in right third
+      const ropX=winX+winW*0.82, ropY=winY+winH*0.52;
+      ctx.fillStyle='#B89868';
+      ctx.beginPath();ctx.ellipse(ropX,ropY,6,3,0,0,Math.PI*2);ctx.fill();
+      ctx.fillStyle='#8A6838';
+      ctx.beginPath();ctx.ellipse(ropX,ropY,4,2,0,0,Math.PI*2);ctx.fill();
+      ctx.fillStyle='#B89868';
+      ctx.beginPath();ctx.ellipse(ropX,ropY,2,1,0,0,Math.PI*2);ctx.fill();
+      ctx.fillStyle='#6A4828';
+      ctx.fillRect(ropX-5,ropY+1,10,1);
+
+      // Shovel in back
+      ctx.fillStyle='#4A2810';ctx.fillRect(winX+winW*0.3,winY+winH*0.15,1,winH*0.4);
+      ctx.fillStyle=PAL.metal;ctx.fillRect(winX+winW*0.3-2,winY+winH*0.5,5,4);
+      ctx.fillStyle=PAL.metalL;ctx.fillRect(winX+winW*0.3-2,winY+winH*0.5,5,1);
+
+      // Small "SALE" tag hanging from top
+      const tagX=winX+winW*0.68, tagY=winY+winH*0.18;
+      ctx.fillStyle=PAL.metalD;ctx.fillRect(tagX,winY+2,1,tagY-winY-2);
+      ctx.fillStyle='#E8D040';
+      ctx.beginPath();
+      ctx.moveTo(tagX-4,tagY);ctx.lineTo(tagX+4,tagY);ctx.lineTo(tagX+5,tagY+3);ctx.lineTo(tagX,tagY+7);ctx.lineTo(tagX-5,tagY+3);ctx.closePath();ctx.fill();
+      ctx.fillStyle='#A88020';ctx.fillRect(tagX-1,tagY+2,2,1);
+
+      // MULLIONS (6-pane grid) — drawn ON TOP so items look like they're behind glass
+      ctx.fillStyle=PAL.wallXD;
+      // Vertical mullions (2 dividers for 3 columns)
+      for(let c=1;c<cols;c++){
+        const mx=winX+(winW/cols)*c-1;
+        ctx.fillRect(mx,winY,2,winH);
+      }
+      // Horizontal mullion (1 divider for 2 rows)
+      const my=winY+winH/2-1;
+      ctx.fillRect(winX,my,winW,2);
+      // Mullion highlights (top-left edge of each)
+      ctx.fillStyle='rgba(255,255,255,0.08)';
+      for(let c=1;c<cols;c++){
+        ctx.fillRect(winX+(winW/cols)*c-1,winY,1,winH);
+      }
+      ctx.fillRect(winX,my,winW,1);
+
+      // Per-pane subtle glare (small triangles top-left of each pane)
+      ctx.fillStyle='rgba(255,255,255,0.12)';
+      for(let c=0;c<cols;c++){
+        for(let r=0;r<rows;r++){
+          const px=winX+(winW/cols)*c+2;
+          const py=winY+(winH/rows)*r+2;
+          const pw=(winW/cols)*0.35, ph=(winH/rows)*0.4;
+          ctx.beginPath();
+          ctx.moveTo(px,py);ctx.lineTo(px+pw,py);ctx.lineTo(px,py+ph);
+          ctx.closePath();ctx.fill();
+        }
       }
 
-      // Display items inside window — recognizable shapes
-      // Pickaxe in left pane
-      const pL=bayX+2+paneW*0.5;
-      ctx.fillStyle='#5A3A18';ctx.fillRect(pL-1,bayY+bayH*0.35,2,bayH*0.4); // handle
-      ctx.fillStyle=PAL.metalL;ctx.fillRect(pL-4,bayY+bayH*0.3,9,2);    // head
-      ctx.fillStyle=PAL.metal;ctx.fillRect(pL-4,bayY+bayH*0.3,3,2);     // shadow
-      // Lantern in center pane
-      const pC=bayX+2+paneW+2+paneW*0.5;
-      ctx.fillStyle=PAL.metalD;ctx.fillRect(pC-3,bayY+bayH*0.4,6,8);
-      ctx.fillStyle='#F8C040';ctx.fillRect(pC-2,bayY+bayH*0.45,4,5); // flame
-      ctx.fillStyle=PAL.metal;ctx.fillRect(pC-3,bayY+bayH*0.38,6,2); // top
-      // Coil of rope in right pane
-      const pR=bayX+2+(paneW+2)*2+paneW*0.5;
-      ctx.fillStyle='#C0A070';
-      ctx.beginPath();ctx.arc(pR,bayY+bayH*0.55,4,0,Math.PI*2);ctx.fill();
-      ctx.fillStyle='#906840';
-      ctx.beginPath();ctx.arc(pR,bayY+bayH*0.55,2.5,0,Math.PI*2);ctx.fill();
-      ctx.fillStyle='#C0A070';
-      ctx.beginPath();ctx.arc(pR,bayY+bayH*0.55,1,0,Math.PI*2);ctx.fill();
-
-      // Window sill underneath
+      // Deep wooden window sill underneath (protrudes, casts shadow)
+      const sillH=5;
+      ctx.fillStyle=PAL.wallXD;
+      ctx.fillRect(winX-6,winY+winH+1,winW+12,sillH);
       ctx.fillStyle=PAL.trim;
-      ctx.fillRect(bayX-4,bayY+bayH,bayW+8,3);
-      ctx.fillStyle=PAL.trimD;
-      ctx.fillRect(bayX-4,bayY+bayH+3,bayW+8,1);
+      ctx.fillRect(winX-6,winY+winH+1,winW+12,2);
+      ctx.fillStyle=PAL.trimL;
+      ctx.fillRect(winX-6,winY+winH+1,winW+12,1);
+      ctx.fillStyle='rgba(0,0,0,0.3)';
+      ctx.fillRect(winX-6,winY+winH+sillH+1,winW+12,2);
+      // Small flower pot on the sill
+      const potX=winX+4, potY=winY+winH-2;
+      ctx.fillStyle='#7A3A18';ctx.fillRect(potX,potY,6,4);
+      ctx.fillStyle='#9A5028';ctx.fillRect(potX,potY,6,1);
+      ctx.fillStyle='#3A6A28';ctx.fillRect(potX+1,potY-3,1,3);ctx.fillRect(potX+3,potY-4,1,4);ctx.fillRect(potX+4,potY-2,1,2);
+      ctx.fillStyle='#E84050';ctx.fillRect(potX+3,potY-5,1,1);
+      ctx.fillStyle='#F0C030';ctx.fillRect(potX+1,potY-4,1,1);
 
       // ── 5. COVERED PORCH / ENTRANCE ZONE (right half) ────────────────
       const porchX=rx+rw*0.52, porchY=wallTop+4;
