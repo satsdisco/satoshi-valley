@@ -13,8 +13,16 @@ let ST = TILE * SCALE;
 // ---- TRUE FULLSCREEN (no DPR scaling — keeps text readable) ----
 let isLandscape = true, isSmallScreen = false, isPortrait = false;
 function resize() {
-  canvas.width = window.innerWidth;
-  canvas.height = window.innerHeight;
+  // Some in-app webviews (Telegram, WhatsApp, etc.) report innerWidth/innerHeight
+  // of 0 when the script first runs, before layout settles. Falling back to
+  // document.documentElement or screen dims prevents a zero-sized canvas =
+  // pure-black screen on mobile.
+  let w = window.innerWidth || document.documentElement.clientWidth || (window.screen && window.screen.width) || 800;
+  let h = window.innerHeight || document.documentElement.clientHeight || (window.screen && window.screen.height) || 600;
+  if (w < 200) w = 800;
+  if (h < 200) h = 600;
+  canvas.width = w;
+  canvas.height = h;
   isLandscape = canvas.width >= canvas.height;
   isPortrait = !isLandscape;
   // "Small" = either dimension under 900w or 500h — phones, mostly.
@@ -34,6 +42,16 @@ function resize() {
 window.addEventListener('resize', resize);
 window.addEventListener('orientationchange', () => setTimeout(resize, 100));
 resize();
+// Retry resize several times after load — in-app webviews (Telegram/WhatsApp)
+// and iOS Safari can settle layout late, so we re-measure aggressively for
+// the first few seconds to catch the real viewport dims.
+window.addEventListener('load', resize);
+if (window.visualViewport) window.visualViewport.addEventListener('resize', resize);
+requestAnimationFrame(resize);
+setTimeout(resize, 100);
+setTimeout(resize, 300);
+setTimeout(resize, 800);
+setTimeout(resize, 2000);
 
 // ---- HUD VISIBILITY (toggleable, persisted) ----
 let hudMinimized = (() => {
@@ -1965,7 +1983,7 @@ function drawIntro() {
     ctx.globalAlpha = 0.5;
     ctx.fillStyle = '#888';
     ctx.font = `10px ${FONT}`;
-    ctx.fillText(`build v24 • mobile=${isMobile} • small=${isSmallScreen}`, 20, 18);
+    ctx.fillText(`build v25 • mobile=${isMobile} • small=${isSmallScreen} • ${canvas.width}x${canvas.height}`, 20, 18);
     ctx.globalAlpha = 1;
   } else {
     // Story slides
