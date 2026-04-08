@@ -1885,8 +1885,13 @@ function drawIntro() {
   ctx.fillStyle = '#000'; ctx.fillRect(0, 0, canvas.width, canvas.height);
   
   const slide = INTRO_SLIDES[introStep];
-  const alpha = Math.min(1, introTimer * 2) * (introStep === INTRO_SLIDES.length - 1 ? 1 : Math.min(1, (slide.dur - introTimer) * 2));
-  
+  // On mobile / small screens, render the title screen at full alpha immediately
+  // (no fade-in) so players never see a pure-black screen on first load.
+  const isTitle = introStep === INTRO_SLIDES.length - 1;
+  const alpha = (isTitle && (isMobile || isSmallScreen))
+    ? 1
+    : Math.min(1, introTimer * 2) * (isTitle ? 1 : Math.min(1, (slide.dur - introTimer) * 2));
+
   ctx.globalAlpha = Math.max(0, alpha);
   
   if (introStep === INTRO_SLIDES.length - 1) {
@@ -1956,6 +1961,12 @@ function drawIntro() {
     ctx.fillText('v0.6', canvas.width - 20, canvas.height - 12);
     ctx.textAlign = 'left';
     ctx.fillText('↑↓ Navigate  Enter Select', 20, canvas.height - 12);
+    // Tiny build/debug tag so we can confirm which build is actually running
+    ctx.globalAlpha = 0.5;
+    ctx.fillStyle = '#888';
+    ctx.font = `10px ${FONT}`;
+    ctx.fillText(`build v24 • mobile=${isMobile} • small=${isSmallScreen}`, 20, 18);
+    ctx.globalAlpha = 1;
   } else {
     // Story slides
     ctx.fillStyle = C.white;
