@@ -9,6 +9,12 @@ const ctx = canvas.getContext('2d');
 const TILE = 16;
 let SCALE = 3;
 let ST = TILE * SCALE;
+// Flag flipped to true once player + cam are initialized. Lets resize()
+// safely decide whether to recenter the camera without doing
+// `typeof player`, which throws ReferenceError in the TDZ for `let`/`const`
+// declarations on strict engines (iOS Safari). This bug was crashing the
+// entire script on mobile since Sprint 19.2.
+let _gameStateReady = false;
 
 // ---- TRUE FULLSCREEN (no DPR scaling — keeps text readable) ----
 let isLandscape = true, isSmallScreen = false, isPortrait = false;
@@ -32,8 +38,11 @@ function resize() {
   if (newScale !== SCALE) {
     SCALE = newScale;
     ST = TILE * SCALE;
-    // Recenter camera on player if the game is already running
-    if (typeof player !== 'undefined' && typeof cam !== 'undefined') {
+    // Recenter camera on player if the game is already running.
+    // Use the _gameStateReady flag instead of `typeof player` — the latter
+    // throws ReferenceError when `player`/`cam` are TDZ-banned `const`
+    // declarations later in the file (iOS Safari).
+    if (_gameStateReady) {
       cam.x = player.x * SCALE - canvas.width / 2;
       cam.y = player.y * SCALE - canvas.height / 2;
     }
@@ -1798,6 +1807,8 @@ function getDayOv(){const h=getHour();if(h<5)return{r:10,g:10,b:30,a:.5};if(h<6.
 function marketMult(){return[.9,1.1,1.5,.7][econ.phase];}
 
 const cam = {x:0,y:0};
+// player + cam are now declared — safe for resize() to recenter the camera.
+_gameStateReady = true;
 
 // ============================================================
 // SAVE / LOAD
@@ -4856,7 +4867,7 @@ function gameLoop(now){
     ctx.font = 'bold 12px monospace';
     ctx.textAlign = 'left';
     ctx.textBaseline = 'top';
-    ctx.fillText(`v29 f${_frameCount} ${canvas.width}x${canvas.height} m${isMobile?1:0} s${isSmallScreen?1:0} ${gameState}`, 4, 5);
+    ctx.fillText(`v30 f${_frameCount} ${canvas.width}x${canvas.height} m${isMobile?1:0} s${isSmallScreen?1:0} ${gameState}`, 4, 5);
     ctx.restore();
   }catch(e){
     ctx.fillStyle='#F00';ctx.fillRect(0,0,canvas.width,80);
