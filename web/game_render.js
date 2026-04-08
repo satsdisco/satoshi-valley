@@ -1945,89 +1945,557 @@ function drawDecor(d) {
       }
     }
 
-    // ── SHED (Mining Shed) ────────────────────────────────────────────────
+    // ── SHED (Mining Shed) — Industrial ASIC farm w/ grit ───────────────
     else if(d.label==='shed'){
-      // Foundation
-      ctx.fillStyle='#3A3A38';ctx.fillRect(rx-2,ry+bh-8,rw+4,8);
+      const SPAL={
+        metal:'#5A5A62', metalL:'#7A7A82', metalXL:'#9A9AA2', metalD:'#2A2A32', metalXD:'#14141A',
+        concrete:'#6A6A66', concreteL:'#8A8A86', concreteD:'#3A3A38',
+        hazard:'#E8B020', hazardD:'#B07010',
+        danger:'#C02020', dangerD:'#701010',
+        orange:'#F7931A', orangeL:'#FFB040',
+        led:'#20E040', ledD:'#083010',
+        rust:'#8A4020', rustL:'#C06828',
+        cable:'#1A1A1A',
+        glass:'rgba(130,160,180,0.3)',
+      };
+      const wallTop=ry+ST;
+      const wallBot=ry+bh-10;
+      const wallH=wallBot-wallTop;
 
-      // Corrugated metal walls — alternating grey stripes
-      for(let i=0;i<Math.floor(rw/4)+1;i++){
-        ctx.fillStyle=i%2===0?'#6A6A68':'#5A5A58';
-        ctx.fillRect(rx+i*4,ry+ST,4,bh-ST-8);
+      // ── 1. CONCRETE FOUNDATION w/ HAZARD STRIPES ─────────────────────
+      ctx.fillStyle=SPAL.concreteD;
+      ctx.fillRect(rx-4,wallBot,rw+8,12);
+      ctx.fillStyle=SPAL.concrete;
+      ctx.fillRect(rx-4,wallBot,rw+8,5);
+      ctx.fillStyle=SPAL.concreteL;
+      ctx.fillRect(rx-4,wallBot,rw+8,1);
+      // Yellow-black hazard stripe trim along the top of the foundation
+      for(let i=0;i<Math.ceil((rw+8)/10);i++){
+        ctx.fillStyle=i%2===0?SPAL.hazard:SPAL.metalXD;
+        ctx.beginPath();
+        ctx.moveTo(rx-4+i*10,wallBot+5);
+        ctx.lineTo(rx-4+i*10+10,wallBot+5);
+        ctx.lineTo(rx-4+i*10+6,wallBot+8);
+        ctx.lineTo(rx-4+i*10-4,wallBot+8);
+        ctx.closePath();ctx.fill();
       }
-      // Horizontal seam lines
-      ctx.fillStyle='rgba(0,0,0,0.15)';
-      for(let i=0;i<Math.floor((bh-ST)/ST);i++){ctx.fillRect(rx,ry+ST+i*ST,rw,3);}
-      // Metal reinforcement verticals
-      ctx.fillStyle='#484846';ctx.fillRect(rx,ry+ST,5,bh-ST-8);ctx.fillRect(rx+rw-5,ry+ST,5,bh-ST-8);
+      // Oil stains on ground
+      ctx.fillStyle='rgba(20,10,5,0.4)';
+      ctx.beginPath();ctx.ellipse(rx+rw*0.3,wallBot+14,8,2,0,0,Math.PI*2);ctx.fill();
+      ctx.beginPath();ctx.ellipse(rx+rw*0.7,wallBot+15,6,2,0,0,Math.PI*2);ctx.fill();
 
-      // 'MINING' stenciled in orange on the wall
-      ctx.fillStyle='#C07010';ctx.font='bold 9px '+FONT;ctx.textAlign='center';
-      ctx.fillText('MINING',rx+rw/2,ry+ST+Math.floor((bh-ST)*0.55));
+      // ── 2. CORRUGATED METAL WALL (proper ribbing) ────────────────────
+      // Base wall
+      ctx.fillStyle=SPAL.metal;
+      ctx.fillRect(rx,wallTop,rw,wallH);
+      // Vertical corrugation ribs — each rib is 4px wide with highlight+shadow
+      const ribW=4;
+      for(let i=0;i<Math.ceil(rw/ribW);i++){
+        const rxi=rx+i*ribW;
+        // Rib highlight (left edge)
+        ctx.fillStyle=SPAL.metalL;
+        ctx.fillRect(rxi,wallTop,1,wallH);
+        // Rib shadow (right edge)
+        ctx.fillStyle=SPAL.metalD;
+        ctx.fillRect(rxi+ribW-1,wallTop,1,wallH);
+        // Valley between ribs
+        ctx.fillStyle='rgba(0,0,0,0.15)';
+        ctx.fillRect(rxi+1,wallTop,1,wallH);
+      }
+      // Horizontal panel seam bands (2 horizontal lines of rivets)
+      for(const seamY of [wallTop+wallH*0.35,wallTop+wallH*0.7]){
+        ctx.fillStyle=SPAL.metalD;
+        ctx.fillRect(rx,seamY,rw,2);
+        ctx.fillStyle=SPAL.metalL;
+        ctx.fillRect(rx,seamY,rw,1);
+        // Rivets along the seam
+        for(let rv=0;rv<Math.floor(rw/10);rv++){
+          ctx.fillStyle=SPAL.metalXL;
+          ctx.fillRect(rx+5+rv*10,seamY,1,1);
+          ctx.fillStyle=SPAL.metalD;
+          ctx.fillRect(rx+5+rv*10,seamY+1,1,1);
+        }
+      }
+      // Rust streaks bleeding from rivets / seams
+      for(let st=0;st<4;st++){
+        const stX=rx+_svRand(d.x,d.y,st*11)*rw;
+        const stY=wallTop+wallH*0.35+1;
+        const stH=_svRand(d.x,d.y,st*13+5)*wallH*0.25;
+        ctx.fillStyle=SPAL.rust;
+        ctx.fillRect(stX,stY,1,stH);
+        ctx.fillStyle=SPAL.rustL;
+        ctx.fillRect(stX,stY,1,Math.min(2,stH));
+      }
 
-      // Single small barred window
-      const sw=ST-12,sh=ST-18;
-      const swx=rx+ST*0.5,swy=ry+ST+12;
-      ctx.fillStyle='#484846';ctx.fillRect(swx-3,swy-3,sw+6,sh+6);
-      ctx.fillStyle='rgba(120,160,180,0.2)';ctx.fillRect(swx,swy,sw,sh);
-      // Window bars
-      ctx.fillStyle='#383836';
-      ctx.fillRect(swx+sw/2-1,swy,2,sh);
-      ctx.fillRect(swx,swy+sh/2-1,sw,2);
-      // Vertical bars
-      for(let b=0;b<3;b++){ctx.fillRect(swx+b*(sw/3),swy,2,sh);}
+      // ── 3. CORNER I-BEAM REINFORCEMENTS ──────────────────────────────
+      for(const bX of [rx-1,rx+rw-4]){
+        ctx.fillStyle=SPAL.metalD;
+        ctx.fillRect(bX,wallTop-2,5,wallH+4);
+        ctx.fillStyle=SPAL.metal;
+        ctx.fillRect(bX+1,wallTop-2,3,wallH+4);
+        ctx.fillStyle=SPAL.metalL;
+        ctx.fillRect(bX+1,wallTop-2,1,wallH+4);
+        // Bolt heads along the beam
+        for(let bi=0;bi<Math.floor(wallH/12);bi++){
+          ctx.fillStyle=SPAL.metalXL;
+          ctx.fillRect(bX+2,wallTop+4+bi*12,1,2);
+        }
+      }
 
-      // Power cable — thin dark line from right wall
-      ctx.strokeStyle='#2A2A28';ctx.lineWidth=2;
-      ctx.beginPath();ctx.moveTo(rx+rw,ry+ST+bh*0.3-ST);ctx.lineTo(rx+rw+20,ry+ST+bh*0.2-ST);ctx.stroke();
+      // ── 4. BIG INDUSTRIAL ROLL-UP GARAGE DOOR (visual, left-center) ──
+      const ruW=rw*0.38, ruH=wallH*0.75;
+      const ruX=rx+rw*0.08, ruY=wallBot-ruH;
+      // Door frame
+      ctx.fillStyle=SPAL.metalXD;
+      ctx.fillRect(ruX-4,ruY-4,ruW+8,ruH+4);
+      ctx.fillStyle=SPAL.hazard;
+      ctx.fillRect(ruX-4,ruY-4,ruW+8,2); // yellow header
+      // Door panels — horizontal slats (roll-up segments)
+      const slatH=7;
+      for(let sl=0;sl<Math.ceil(ruH/slatH);sl++){
+        const slY=ruY+sl*slatH;
+        ctx.fillStyle=sl%2===0?SPAL.metalL:SPAL.metal;
+        ctx.fillRect(ruX,slY,ruW,slatH-1);
+        ctx.fillStyle=SPAL.metalD;
+        ctx.fillRect(ruX,slY+slatH-1,ruW,1);
+        // Horizontal groove highlight
+        ctx.fillStyle=SPAL.metalXL;
+        ctx.fillRect(ruX,slY,ruW,1);
+      }
+      // Chain mechanism on the right side
+      ctx.strokeStyle=SPAL.metalD;ctx.lineWidth=1;
+      for(let ch=0;ch<8;ch++){
+        ctx.beginPath();
+        ctx.arc(ruX+ruW-3,ruY+ch*4+2,1,0,Math.PI*2);
+        ctx.stroke();
+      }
+      // Door handle/lock
+      ctx.fillStyle=SPAL.metalXL;
+      ctx.fillRect(ruX+ruW/2-3,ruY+ruH-10,6,4);
+      ctx.fillStyle=SPAL.metalD;
+      ctx.fillRect(ruX+ruW/2-2,ruY+ruH-9,4,2);
 
-      // Exhaust vent on right side
-      const evx=rx+rw-12,evy=ry+ST+bh*0.65-ST;
-      ctx.fillStyle='#505050';ctx.fillRect(evx,evy,10,12);
-      ctx.fillStyle='#404040';ctx.fillRect(evx+2,evy+2,6,8); // vent opening
-      // Heat shimmer (subtle flicker)
-      const hs=0.04+Math.sin(t*4+0.5)*0.02;
-      ctx.fillStyle=`rgba(200,180,100,${hs})`;ctx.fillRect(evx+2,evy-4,6,6);
+      // Orange warning stripe across the bottom of the door
+      for(let wi=0;wi<Math.ceil(ruW/6);wi++){
+        ctx.fillStyle=wi%2===0?SPAL.hazard:SPAL.metalXD;
+        ctx.fillRect(ruX+wi*6,ruY+ruH-4,6,3);
+      }
 
-      // Heavy metal door — grey, with handle
+      // ── 5. BARRED WINDOWS (2 small windows, top of wall) ─────────────
+      const wiW=ST-16, wiH=10;
+      for(let wi=0;wi<2;wi++){
+        const wx=rx+rw*0.55+wi*(wiW+10);
+        const wy=wallTop+6;
+        // Frame
+        ctx.fillStyle=SPAL.metalD;
+        ctx.fillRect(wx-2,wy-2,wiW+4,wiH+4);
+        ctx.fillStyle=SPAL.metal;
+        ctx.fillRect(wx-1,wy-1,wiW+2,wiH+2);
+        // Glass w/ faint blue interior light (server room)
+        ctx.fillStyle=SPAL.glass;
+        ctx.fillRect(wx,wy,wiW,wiH);
+        // Subtle data-flow flicker
+        const dataFlick=0.15+Math.sin(_now/150+wi*7)*0.1;
+        ctx.fillStyle=`rgba(60,140,220,${dataFlick})`;
+        ctx.fillRect(wx,wy,wiW,wiH);
+        // Bars
+        ctx.fillStyle=SPAL.metalXD;
+        for(let b=0;b<3;b++)ctx.fillRect(wx+b*(wiW/3),wy,1,wiH);
+        ctx.fillRect(wx,wy+wiH/2,wiW,1);
+      }
+
+      // ── 6. 'MINING' stencil + spray-painted ₿ graffiti ───────────────
+      // Stenciled MINING (scuffed/weathered)
+      ctx.fillStyle=SPAL.hazardD;
+      ctx.font='bold 11px '+FONT;ctx.textAlign='center';
+      ctx.fillText('MINING',rx+rw*0.5,wallTop+wallH*0.5);
+      ctx.fillStyle=SPAL.hazard;
+      ctx.fillText('MINING',rx+rw*0.5,wallTop+wallH*0.5-1);
+      // Scuff marks
+      ctx.fillStyle='rgba(0,0,0,0.3)';
+      ctx.fillRect(rx+rw*0.5-20,wallTop+wallH*0.5-2,3,1);
+      ctx.fillRect(rx+rw*0.5+15,wallTop+wallH*0.5-3,4,1);
+
+      // Spray-paint ₿ graffiti (with drip)
+      const grX=rx+rw*0.87, grY=wallTop+wallH*0.42;
+      ctx.fillStyle=SPAL.orange;
+      ctx.font='bold 14px '+FONT;ctx.textAlign='center';
+      ctx.fillText('₿',grX,grY);
+      ctx.fillStyle=SPAL.orangeL;
+      ctx.fillText('₿',grX-1,grY-1);
+      // Paint drip
+      ctx.fillStyle=SPAL.orange;
+      ctx.fillRect(grX-1,grY,1,6);
+      ctx.fillStyle=SPAL.orangeL;
+      ctx.fillRect(grX+3,grY-2,1,4);
+      // Spray splatter dots
+      for(let sp=0;sp<6;sp++){
+        const spa=_svRand(d.x,d.y,sp*17);
+        ctx.fillStyle=`rgba(247,147,26,${0.3+spa*0.4})`;
+        ctx.fillRect(grX-6+spa*12,grY-6+_svRand(d.x,d.y,sp*19)*12,1,1);
+      }
+
+      // ── 7. WARNING SIGNS ─────────────────────────────────────────────
+      // High voltage sign (triangle)
+      const hvX=rx+rw*0.85, hvY=wallTop+wallH*0.15;
+      ctx.fillStyle=SPAL.metalXD;
+      ctx.beginPath();
+      ctx.moveTo(hvX,hvY);ctx.lineTo(hvX+10,hvY+9);ctx.lineTo(hvX-10,hvY+9);
+      ctx.closePath();ctx.fill();
+      ctx.fillStyle=SPAL.hazard;
+      ctx.beginPath();
+      ctx.moveTo(hvX,hvY+1);ctx.lineTo(hvX+9,hvY+8);ctx.lineTo(hvX-9,hvY+8);
+      ctx.closePath();ctx.fill();
+      // Lightning bolt icon
+      ctx.fillStyle=SPAL.metalXD;
+      ctx.beginPath();
+      ctx.moveTo(hvX+1,hvY+3);ctx.lineTo(hvX-2,hvY+5);ctx.lineTo(hvX,hvY+5);ctx.lineTo(hvX-1,hvY+7);ctx.lineTo(hvX+2,hvY+5);ctx.lineTo(hvX,hvY+5);
+      ctx.closePath();ctx.fill();
+
+      // ── 8. ELECTRICAL BREAKER BOX on wall (left side) ────────────────
+      const ebX=rx+4, ebY=wallTop+wallH*0.2;
+      ctx.fillStyle=SPAL.metalXD;
+      ctx.fillRect(ebX-1,ebY-1,12,16);
+      ctx.fillStyle=SPAL.metal;
+      ctx.fillRect(ebX,ebY,10,14);
+      ctx.fillStyle=SPAL.metalL;
+      ctx.fillRect(ebX,ebY,10,1);
+      // Lock
+      ctx.fillStyle=SPAL.metalXL;
+      ctx.fillRect(ebX+8,ebY+6,1,2);
+      // Warning label
+      ctx.fillStyle=SPAL.hazard;
+      ctx.fillRect(ebX+1,ebY+2,8,3);
+      ctx.fillStyle=SPAL.metalXD;
+      ctx.fillRect(ebX+2,ebY+3,1,1);
+      ctx.fillRect(ebX+4,ebY+3,2,1);
+      ctx.fillRect(ebX+7,ebY+3,1,1);
+      // Conduit pipe going up
+      ctx.fillStyle=SPAL.metalD;
+      ctx.fillRect(ebX+4,wallTop-2,2,ebY-wallTop+2);
+      ctx.fillStyle=SPAL.metalL;
+      ctx.fillRect(ebX+4,wallTop-2,1,ebY-wallTop+2);
+
+      // ── 9. THICK CABLE BUNDLES from right wall snaking to the ground ─
+      ctx.strokeStyle=SPAL.cable;ctx.lineWidth=4;
+      for(let cbi=0;cbi<3;cbi++){
+        const cbStartY=wallTop+wallH*0.4+cbi*6;
+        ctx.beginPath();
+        ctx.moveTo(rx+rw,cbStartY);
+        ctx.quadraticCurveTo(rx+rw+8,cbStartY+15,rx+rw+18,wallBot+8+cbi*2);
+        ctx.stroke();
+      }
+      ctx.strokeStyle='#3A3A3A';ctx.lineWidth=1.5;
+      for(let cbi=0;cbi<3;cbi++){
+        const cbStartY=wallTop+wallH*0.4+cbi*6+0.5;
+        ctx.beginPath();
+        ctx.moveTo(rx+rw,cbStartY);
+        ctx.quadraticCurveTo(rx+rw+8,cbStartY+15,rx+rw+18,wallBot+8+cbi*2);
+        ctx.stroke();
+      }
+
+      // ── 10. BIG INDUSTRIAL EXHAUST VENT w/ heavy heat shimmer ────────
+      const evX=rx+rw-22, evY=wallTop+wallH*0.15;
+      const evW=14, evH=14;
+      ctx.fillStyle=SPAL.metalXD;
+      ctx.fillRect(evX-2,evY-2,evW+4,evH+4);
+      ctx.fillStyle=SPAL.metalD;
+      ctx.fillRect(evX,evY,evW,evH);
+      // Horizontal louver slats
+      for(let lv=0;lv<4;lv++){
+        ctx.fillStyle=SPAL.metal;
+        ctx.fillRect(evX+1,evY+2+lv*3,evW-2,1);
+        ctx.fillStyle=SPAL.metalL;
+        ctx.fillRect(evX+1,evY+2+lv*3,evW-2,1);
+      }
+      // Heavy heat shimmer rising above
+      for(let hs=0;hs<4;hs++){
+        const hsA=0.12-hs*0.02+Math.sin(t*4+hs)*0.04;
+        const hsY=evY-5-hs*4-((t*3+hs)%3);
+        const hsXO=Math.sin(t*2+hs*1.2)*2;
+        ctx.fillStyle=`rgba(255,200,140,${hsA})`;
+        ctx.fillRect(evX+2+hsXO,hsY,evW-4,2);
+      }
+
+      // ── 11. HEAVY METAL PERSONNEL DOOR (keeps gameplay hitbox) ───────
       const dW4=ST,dH4=ST+12;
-      const dX4=rx+Math.floor(rw/2)-dW4/2;const dY4=ry+bh-dH4;
-      ctx.fillStyle='#2A2A28';ctx.fillRect(dX4-4,dY4,dW4+8,dH4+1);
-      ctx.fillStyle='#484846';ctx.fillRect(dX4,dY4+2,dW4,dH4-2);
-      // Door rivets/bolts
-      ctx.fillStyle='#3A3A38';
-      for(let r=0;r<3;r++){
-        ctx.fillRect(dX4+4,dY4+8+r*14,4,4);
-        ctx.fillRect(dX4+dW4-8,dY4+8+r*14,4,4);
+      const dX4=rx+Math.floor(rw/2)+ST/2;  // shifted right of garage door
+      const dY4=wallBot-dH4;
+      // Deep door frame
+      ctx.fillStyle=SPAL.metalXD;
+      ctx.fillRect(dX4-5,dY4-2,dW4+10,dH4+2);
+      // Door body
+      ctx.fillStyle=SPAL.metalD;
+      ctx.fillRect(dX4-2,dY4,dW4+4,dH4);
+      ctx.fillStyle=SPAL.metal;
+      ctx.fillRect(dX4,dY4+2,dW4,dH4-2);
+      // Orange hazard stripe across top of door
+      for(let wi=0;wi<Math.ceil(dW4/5);wi++){
+        ctx.fillStyle=wi%2===0?SPAL.hazard:SPAL.metalXD;
+        ctx.fillRect(dX4+wi*5,dY4+2,5,3);
       }
-      // Handle — vertical bar style
-      ctx.fillStyle='#888880';ctx.fillRect(dX4+dW4-10,dY4+dH4/2-10,5,20);
-      ctx.fillStyle='#AAAAAA';ctx.fillRect(dX4+dW4-9,dY4+dH4/2-8,3,16);
-      // Door mat
-      ctx.fillStyle='#555550';ctx.fillRect(dX4-4,ry+bh+1,dW4+8,5);
+      // Door observation window (small slit)
+      ctx.fillStyle=SPAL.metalXD;
+      ctx.fillRect(dX4+4,dY4+10,dW4-8,6);
+      ctx.fillStyle=`rgba(60,140,220,${0.2+Math.sin(_now/200)*0.1})`;
+      ctx.fillRect(dX4+5,dY4+11,dW4-10,4);
+      // 3 bars across the observation slit
+      ctx.fillStyle=SPAL.metalD;
+      for(let sb=0;sb<3;sb++)ctx.fillRect(dX4+5+sb*((dW4-10)/3),dY4+11,1,4);
+      // Door rivets/bolts around edges
+      ctx.fillStyle=SPAL.metalL;
+      for(let r=0;r<4;r++){
+        ctx.fillRect(dX4+1,dY4+6+r*10,2,2);
+        ctx.fillRect(dX4+dW4-3,dY4+6+r*10,2,2);
+      }
+      // Vertical bar handle
+      ctx.fillStyle=SPAL.metalXD;
+      ctx.fillRect(dX4+dW4-10,dY4+dH4/2-4,5,18);
+      ctx.fillStyle=SPAL.metalXL;
+      ctx.fillRect(dX4+dW4-9,dY4+dH4/2-3,3,16);
+      ctx.fillStyle=SPAL.metalD;
+      ctx.fillRect(dX4+dW4-9,dY4+dH4/2+10,3,1);
+      // Door kick plate
+      ctx.fillStyle=SPAL.metalXD;
+      ctx.fillRect(dX4,dY4+dH4-6,dW4,4);
+      ctx.fillStyle=SPAL.metal;
+      ctx.fillRect(dX4,dY4+dH4-6,dW4,1);
+      // Metal grate mat
+      ctx.fillStyle=SPAL.metalD;
+      ctx.fillRect(dX4-6,wallBot+2,dW4+12,6);
+      ctx.fillStyle=SPAL.metalXD;
+      for(let gi=0;gi<4;gi++){
+        ctx.fillRect(dX4-6,wallBot+3+gi,dW4+12,1);
+      }
 
-      // Flat metal roof — grey-blue
-      ctx.fillStyle='#5A5A68';ctx.fillRect(rx-6,ry-4,rw+12,ST+6);
-      ctx.fillStyle='#4A4A58';ctx.fillRect(rx-6,ry-4,rw+12,4); // front edge
-      ctx.fillStyle='#6A6A78';
-      for(let p=0;p<Math.ceil((rw+12)/20);p++){ctx.fillRect(rx-6+p*20,ry-4,18,ST+6);}
-      ctx.fillStyle='rgba(0,0,0,0.2)';ctx.fillRect(rx-8,ry+ST+2,rw+16,4);
+      // ── 12. PALLET of shrink-wrapped ASICs (left of garage door) ─────
+      const plX=rx-18, plY=wallBot-14;
+      // Wooden pallet
+      ctx.fillStyle='#6A4828';
+      ctx.fillRect(plX,plY+10,18,4);
+      ctx.fillStyle='#4A3018';
+      ctx.fillRect(plX,plY+14,18,1);
+      // Pallet gaps
+      ctx.fillStyle='#3A2010';
+      for(let pg=0;pg<3;pg++)ctx.fillRect(plX+2+pg*5,plY+11,1,3);
+      // Shrink-wrapped box on top
+      ctx.fillStyle='#8A8A90';
+      ctx.fillRect(plX+1,plY,16,11);
+      ctx.fillStyle='rgba(200,220,240,0.3)';
+      ctx.fillRect(plX+2,plY+1,14,9); // plastic wrap sheen
+      ctx.fillStyle='rgba(255,255,255,0.25)';
+      ctx.fillRect(plX+2,plY+1,4,9); // highlight
+      // Label on the box
+      ctx.fillStyle=SPAL.orange;
+      ctx.fillRect(plX+6,plY+3,6,3);
+      ctx.fillStyle='#FFF';
+      ctx.fillRect(plX+7,plY+4,1,1);
+      // Box strapping
+      ctx.fillStyle='#2A2A2A';
+      ctx.fillRect(plX+1,plY+5,16,1);
 
-      // Satellite dish / antenna on roof
-      const antX=rx+rw*0.6,antY=ry-16;
-      ctx.fillStyle='#888880';ctx.fillRect(antX,antY,3,14); // mast
-      ctx.fillStyle='#AAAAAA';ctx.fillRect(antX-8,antY,18,4); // dish top
-      ctx.fillStyle='#909088';ctx.fillRect(antX-6,antY+4,14,2); // dish body
+      // ── 13. METAL ROOF w/ multiple industrial fixtures ───────────────
+      const roofY=ry-5;
+      const roofH=ST+8;
+      // Base roof slab (slightly sloped look)
+      ctx.fillStyle=SPAL.metalD;
+      ctx.fillRect(rx-8,roofY,rw+16,roofH);
+      ctx.fillStyle=SPAL.metal;
+      ctx.fillRect(rx-8,roofY+1,rw+16,roofH-2);
+      // Corrugated roof panels
+      for(let p=0;p<Math.ceil((rw+16)/6);p++){
+        ctx.fillStyle=p%2===0?SPAL.metalL:SPAL.metal;
+        ctx.fillRect(rx-8+p*6,roofY+1,5,roofH-2);
+        ctx.fillStyle=SPAL.metalD;
+        ctx.fillRect(rx-8+p*6+5,roofY+1,1,roofH-2);
+      }
+      // Front eave
+      ctx.fillStyle=SPAL.metalXD;
+      ctx.fillRect(rx-10,roofY+roofH-2,rw+20,3);
+      ctx.fillStyle=SPAL.metalXL;
+      ctx.fillRect(rx-10,roofY+roofH-2,rw+20,1);
+      // Eave shadow
+      ctx.fillStyle='rgba(0,0,0,0.35)';
+      ctx.fillRect(rx-10,roofY+roofH+1,rw+20,3);
 
-      // Blinking LED light on roof (red, toggles)
+      // ── 14. HVAC COOLING UNIT w/ spinning fan ────────────────────────
+      const hvcX=rx+rw*0.15, hvcY=roofY-18;
+      const hvcW=26, hvcH=18;
+      // Unit housing
+      ctx.fillStyle=SPAL.metalD;
+      ctx.fillRect(hvcX-1,hvcY-1,hvcW+2,hvcH+2);
+      ctx.fillStyle=SPAL.metal;
+      ctx.fillRect(hvcX,hvcY,hvcW,hvcH);
+      ctx.fillStyle=SPAL.metalL;
+      ctx.fillRect(hvcX,hvcY,hvcW,1);
+      // Louvered side panels
+      ctx.fillStyle=SPAL.metalD;
+      for(let lv=0;lv<5;lv++){
+        ctx.fillRect(hvcX+2,hvcY+3+lv*2,6,1);
+        ctx.fillRect(hvcX+hvcW-8,hvcY+3+lv*2,6,1);
+      }
+      // Spinning fan (center)
+      const fanCX=hvcX+hvcW/2, fanCY=hvcY+hvcH/2;
+      ctx.fillStyle=SPAL.metalXD;
+      ctx.beginPath();ctx.arc(fanCX,fanCY,7,0,Math.PI*2);ctx.fill();
+      ctx.fillStyle=SPAL.metalD;
+      ctx.beginPath();ctx.arc(fanCX,fanCY,6,0,Math.PI*2);ctx.fill();
+      // Fan blades (rotating)
+      const fanRot=_now/40;
+      ctx.save();
+      ctx.translate(fanCX,fanCY);
+      ctx.rotate(fanRot);
+      ctx.fillStyle=SPAL.metalL;
+      for(let bl=0;bl<4;bl++){
+        ctx.save();
+        ctx.rotate(bl*Math.PI/2);
+        ctx.beginPath();
+        ctx.moveTo(0,0);
+        ctx.lineTo(5,-1);ctx.lineTo(5,1);
+        ctx.closePath();ctx.fill();
+        ctx.restore();
+      }
+      ctx.fillStyle=SPAL.metalXD;
+      ctx.beginPath();ctx.arc(0,0,1.5,0,Math.PI*2);ctx.fill();
+      ctx.restore();
+      // Unit label (orange stripe)
+      ctx.fillStyle=SPAL.orange;
+      ctx.fillRect(hvcX,hvcY+hvcH-3,hvcW,2);
+
+      // ── 15. SMOKE STACK / VENT PIPE w/ steam ─────────────────────────
+      const vpX=rx+rw*0.45, vpY=roofY-20;
+      ctx.fillStyle=SPAL.metalXD;
+      ctx.fillRect(vpX-1,vpY,8,20);
+      ctx.fillStyle=SPAL.metal;
+      ctx.fillRect(vpX,vpY,6,20);
+      ctx.fillStyle=SPAL.metalL;
+      ctx.fillRect(vpX,vpY,1,20);
+      // Cap
+      ctx.fillStyle=SPAL.metalXD;
+      ctx.fillRect(vpX-3,vpY-3,12,4);
+      ctx.fillStyle=SPAL.metal;
+      ctx.fillRect(vpX-3,vpY-3,12,1);
+      // Animated steam
+      for(let sm=0;sm<5;sm++){
+        const smA=0.25-sm*0.04+Math.sin(t*2+sm)*0.06;
+        const smY=vpY-6-sm*8-((t*10+sm*5)%10);
+        const smXo=Math.sin(t+sm*1.3)*3;
+        ctx.fillStyle=`rgba(220,220,230,${smA})`;
+        ctx.beginPath();ctx.arc(vpX+3+smXo,smY,3+sm*0.8,0,Math.PI*2);ctx.fill();
+        ctx.fillStyle=`rgba(255,255,255,${smA*0.4})`;
+        ctx.beginPath();ctx.arc(vpX+3+smXo-1,smY-1,2,0,Math.PI*2);ctx.fill();
+      }
+
+      // ── 16. SATELLITE DISH ───────────────────────────────────────────
+      const dshX=rx+rw*0.72, dshY=roofY-14;
+      // Mast
+      ctx.fillStyle=SPAL.metalXD;
+      ctx.fillRect(dshX,dshY,2,14);
+      ctx.fillStyle=SPAL.metalL;
+      ctx.fillRect(dshX,dshY,1,14);
+      // Dish (angled)
+      ctx.fillStyle=SPAL.metalD;
+      ctx.beginPath();
+      ctx.ellipse(dshX-3,dshY,6,4,0,0,Math.PI*2);
+      ctx.fill();
+      ctx.fillStyle=SPAL.metal;
+      ctx.beginPath();
+      ctx.ellipse(dshX-3,dshY,5,3,0,0,Math.PI*2);
+      ctx.fill();
+      ctx.fillStyle=SPAL.metalL;
+      ctx.beginPath();
+      ctx.ellipse(dshX-4,dshY-1,3,1.5,0,0,Math.PI*2);
+      ctx.fill();
+      // LNB on front
+      ctx.fillStyle=SPAL.metalXD;
+      ctx.fillRect(dshX-5,dshY-1,4,2);
+
+      // ── 17. ANTENNAE ARRAY (3 antennas, varying heights) ─────────────
+      for(let an=0;an<3;an++){
+        const anX=rx+rw*0.88+an*3;
+        const anH=10+an*4;
+        ctx.fillStyle=SPAL.metalXD;
+        ctx.fillRect(anX,roofY-anH,1,anH);
+        // Cross bars
+        ctx.fillStyle=SPAL.metalL;
+        ctx.fillRect(anX-1,roofY-anH+2,3,1);
+        ctx.fillRect(anX-2,roofY-anH+5,5,1);
+        // Blinking tip LED
+        const tipOn=Math.floor(_now/700+an)%2===0;
+        ctx.fillStyle=tipOn?'#FF4040':'#401010';
+        ctx.fillRect(anX-0.5,roofY-anH-1,2,2);
+        if(tipOn){
+          ctx.fillStyle='rgba(255,60,60,0.3)';
+          ctx.beginPath();ctx.arc(anX,roofY-anH,3,0,Math.PI*2);ctx.fill();
+        }
+      }
+
+      // ── 18. SOLAR PANEL on roof (angled) ─────────────────────────────
+      const spX=rx+rw*0.32, spY=roofY-10;
+      ctx.fillStyle=SPAL.metalD;
+      ctx.fillRect(spX-1,spY,20,10);
+      ctx.fillStyle='#1A3050';
+      ctx.fillRect(spX,spY+1,18,8);
+      // Solar cells grid
+      ctx.fillStyle='#2A4880';
+      for(let sc=0;sc<4;sc++){
+        for(let sr=0;sr<2;sr++){
+          ctx.fillRect(spX+1+sc*4.5,spY+2+sr*4,4,3);
+        }
+      }
+      // Sun glint
+      if(_hour>=6&&_hour<=20){
+        ctx.fillStyle='rgba(255,255,200,0.3)';
+        ctx.fillRect(spX+2,spY+2,6,2);
+      }
+      // Support legs
+      ctx.fillStyle=SPAL.metalXD;
+      ctx.fillRect(spX+2,spY+10,1,3);
+      ctx.fillRect(spX+17,spY+10,1,3);
+
+      // ── 19. SECURITY CAMERA (swivel) ─────────────────────────────────
+      const scX=rx+rw-4, scY=roofY+3;
+      ctx.fillStyle=SPAL.metalXD;
+      ctx.fillRect(scX-1,scY,3,3);
+      ctx.fillStyle=SPAL.metalD;
+      ctx.fillRect(scX-1,scY+3,3,4);
+      // Camera lens body
+      const camSwing=Math.sin(t*0.4)*2;
+      ctx.fillStyle=SPAL.metalD;
+      ctx.fillRect(scX-4+camSwing,scY+5,7,4);
+      ctx.fillStyle=SPAL.metalXL;
+      ctx.fillRect(scX-4+camSwing,scY+5,7,1);
+      // Lens
+      ctx.fillStyle='#1A1A1A';
+      ctx.beginPath();ctx.arc(scX-3+camSwing,scY+7,1.5,0,Math.PI*2);ctx.fill();
+      ctx.fillStyle='#E04040';
+      ctx.fillRect(scX-4+camSwing,scY+5,1,1); // rec light
+
+      // ── 20. Multi-LED strip along roof edge ──────────────────────────
+      for(let ld=0;ld<Math.floor(rw/8);ld++){
+        const ldX=rx+4+ld*8;
+        const ldOn=(Math.floor(_now/(200+ld*30))+ld)%3===0;
+        ctx.fillStyle=ldOn?SPAL.led:SPAL.ledD;
+        ctx.fillRect(ldX,roofY+roofH-1,2,1);
+      }
+      // Old corner blinking red LED (kept for character)
       const ledOn=Math.floor(_now/500)%2===0;
       ctx.fillStyle=ledOn?'#FF2020':'#600000';
-      ctx.beginPath();ctx.arc(rx+rw*0.2,ry-2,3,0,Math.PI*2);ctx.fill();
+      ctx.beginPath();ctx.arc(rx+rw*0.08,roofY+3,3,0,Math.PI*2);ctx.fill();
       if(ledOn){
-        ctx.fillStyle='rgba(255,0,0,0.2)';
-        ctx.beginPath();ctx.arc(rx+rw*0.2,ry-2,7,0,Math.PI*2);ctx.fill();
+        ctx.fillStyle='rgba(255,0,0,0.35)';
+        ctx.beginPath();ctx.arc(rx+rw*0.08,roofY+3,7,0,Math.PI*2);ctx.fill();
       }
-      
+
+      // ── 21. AMBIENT HEAT SHIMMER rising off the entire roof ──────────
+      for(let sh=0;sh<6;sh++){
+        const shX=rx+_svRand(d.x,d.y,sh*29)*rw;
+        const shPhase=(t*2+sh*0.7)%4;
+        const shY=roofY-4-shPhase*5;
+        ctx.fillStyle=`rgba(255,180,100,${(1-shPhase/4)*0.1})`;
+        ctx.fillRect(shX,shY,2,1);
+      }
+
       // Show rig count and status on shed exterior
       const shedRigs = rigs.filter(r => r.interior === 'shed');
       const activeRigs = shedRigs.filter(r => r.powered && r.dur > 0 && !r.oh);
