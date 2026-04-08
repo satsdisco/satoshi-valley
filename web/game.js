@@ -78,6 +78,12 @@ const FONT = '"Courier New", monospace';
 // `let` so ?mobile=1 URL param or a runtime toggle can override for testing
 let isMobile = /Android|iPhone|iPad|iPod|webOS/i.test(navigator.userAgent) || ('ontouchstart' in window);
 if (typeof location !== 'undefined' && location.search.indexOf('mobile=1') !== -1) isMobile = true;
+// ?reset=1 nukes all persisted state (save, HUD prefs, etc.) so we can get a
+// clean first-time load on mobile for debugging. Runs before anything reads
+// localStorage.
+if (typeof location !== 'undefined' && location.search.indexOf('reset=1') !== -1) {
+  try { localStorage.clear(); console.log('[sv] reset=1 → localStorage cleared'); } catch (e) {}
+}
 const touch = {
   // Virtual joystick state
   joyActive: false, joyStartX: 0, joyStartY: 0, joyX: 0, joyY: 0, joyDx: 0, joyDy: 0,
@@ -1983,7 +1989,7 @@ function drawIntro() {
     ctx.globalAlpha = 0.5;
     ctx.fillStyle = '#888';
     ctx.font = `10px ${FONT}`;
-    ctx.fillText(`build v25 • mobile=${isMobile} • small=${isSmallScreen} • ${canvas.width}x${canvas.height}`, 20, 18);
+    ctx.fillText(`build v26 • mobile=${isMobile} • small=${isSmallScreen} • ${canvas.width}x${canvas.height}`, 20, 18);
     ctx.globalAlpha = 1;
   } else {
     // Story slides
