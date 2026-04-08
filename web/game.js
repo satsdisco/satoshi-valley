@@ -42,16 +42,10 @@ function resize() {
 window.addEventListener('resize', resize);
 window.addEventListener('orientationchange', () => setTimeout(resize, 100));
 resize();
-// Retry resize several times after load — in-app webviews (Telegram/WhatsApp)
-// and iOS Safari can settle layout late, so we re-measure aggressively for
-// the first few seconds to catch the real viewport dims.
-window.addEventListener('load', resize);
-if (window.visualViewport) window.visualViewport.addEventListener('resize', resize);
-requestAnimationFrame(resize);
-setTimeout(resize, 100);
-setTimeout(resize, 300);
-setTimeout(resize, 800);
-setTimeout(resize, 2000);
+// One gentle retry after the window load event catches late layout in
+// in-app webviews. No spammy setTimeouts / visualViewport listeners — those
+// were resizing the canvas mid-frame and tearing the render.
+window.addEventListener('load', () => setTimeout(resize, 50));
 
 // ---- HUD VISIBILITY (toggleable, persisted) ----
 let hudMinimized = (() => {
@@ -1989,7 +1983,7 @@ function drawIntro() {
     ctx.globalAlpha = 0.5;
     ctx.fillStyle = '#888';
     ctx.font = `10px ${FONT}`;
-    ctx.fillText(`build v26 • mobile=${isMobile} • small=${isSmallScreen} • ${canvas.width}x${canvas.height}`, 20, 18);
+    ctx.fillText(`build v27 • mobile=${isMobile} • small=${isSmallScreen} • ${canvas.width}x${canvas.height}`, 20, 18);
     ctx.globalAlpha = 1;
   } else {
     // Story slides
