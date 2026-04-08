@@ -4564,9 +4564,18 @@ function drawPauseMenu() {
 // ---- NPC hearts in HUD near NPC ----
 function drawInteriorNPC(n) {
   const sx=n.x*SCALE-cam.x, sy=n.y*SCALE-cam.y;
-  const w=ST, h=ST+8, px=sx-w/2, py=sy-h/2;
+  const actualW=ST, actualH=ST+8;
+  const actualPx=sx-actualW/2, actualPy=sy-actualH/2;
+  // Same reference-box transform trick as drawPlayer/drawNPC — keeps
+  // hardcoded pixel offsets from collapsing on small screens.
+  const REF_W=48, REF_H=56;
+  ctx.save();
+  ctx.translate(actualPx, actualPy);
+  if (actualW !== REF_W || actualH !== REF_H) ctx.scale(actualW/REF_W, actualH/REF_H);
+  const w=REF_W, h=REF_H, px=0, py=0;
+  const refSx=REF_W/2, refSy=REF_H/2;
   // Shadow
-  ctx.fillStyle='rgba(0,0,0,.15)';ctx.beginPath();ctx.ellipse(sx,sy+h/2,12,4,0,0,Math.PI*2);ctx.fill();
+  ctx.fillStyle='rgba(0,0,0,.15)';ctx.beginPath();ctx.ellipse(refSx,refSy+h/2,12,4,0,0,Math.PI*2);ctx.fill();
   // Body
   ctx.fillStyle=n.col;ctx.fillRect(px+8,py+14,w-16,h-28);
   // Head
@@ -4579,10 +4588,11 @@ function drawInteriorNPC(n) {
   const dist=Math.hypot(n.x-player.x, n.y-player.y);
   if(dist<64){
     ctx.fillStyle=C.white;ctx.font=`bold 13px ${FONT}`;ctx.textAlign='center';
-    ctx.fillText(n.name,sx,py-10);
+    ctx.fillText(n.name,refSx,py-10);
     ctx.fillStyle=C.gray;ctx.font=`12px ${FONT}`;
-    ctx.fillText('[E] Talk',sx,py-24);
+    ctx.fillText('[E] Talk',refSx,py-24);
   }
+  ctx.restore();
 }
 
 function drawNPCHearts(npc) {

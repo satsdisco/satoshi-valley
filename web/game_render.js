@@ -1266,13 +1266,24 @@ function drawFence(fence){
 
 function drawPlayer(){
   const sx=player.x*SCALE-cam.x,sy=player.y*SCALE-cam.y;
-  const w=ST+4,h=ST+16,px=sx-w/2,py=sy-h/2;
+  // Reference sprite box: hardcoded offsets below assume a 52x64 box
+  // (SCALE=3). On small screens SCALE=2 gives 36x48, which collapses
+  // symmetric left/right body parts. Draw into a reference box via a
+  // canvas transform so the art always renders correctly.
+  const actualW=ST+4, actualH=ST+16;
+  const actualPx=sx-actualW/2, actualPy=sy-actualH/2;
+  const REF_W=52, REF_H=64;
+  ctx.save();
+  ctx.translate(actualPx, actualPy);
+  if (actualW !== REF_W || actualH !== REF_H) ctx.scale(actualW/REF_W, actualH/REF_H);
+  const w=REF_W, h=REF_H, px=0, py=0;
+  const refSx=REF_W/2, refSy=REF_H/2;
   const bob=player.moving?Math.sin(player.wf*Math.PI/2)*2:0;
   const lo=player.moving?Math.sin(player.wf*Math.PI)*5:0;
   const as=player.moving?Math.sin(player.wf*Math.PI)*7:0;
   
   // Shadow
-  ctx.fillStyle='rgba(0,0,0,.2)';ctx.beginPath();ctx.ellipse(sx,sy+h/2+3,16,6,0,0,Math.PI*2);ctx.fill();
+  ctx.fillStyle='rgba(0,0,0,.2)';ctx.beginPath();ctx.ellipse(refSx,refSy+h/2+3,16,6,0,0,Math.PI*2);ctx.fill();
   
   // Legs with jeans
   ctx.fillStyle='#3A4A6A'; // jeans blue
@@ -1291,11 +1302,11 @@ function drawPlayer(){
   ctx.fillStyle=C.darkOrange;
   ctx.fillRect(px+14,py+34+bob,w-28,8);
   // Zipper line
-  ctx.fillStyle='#DDD';ctx.fillRect(sx-1,py+18+bob,2,h-38);
+  ctx.fillStyle='#DDD';ctx.fillRect(refSx-1,py+18+bob,2,h-38);
   
   // Bitcoin logo on chest
   ctx.fillStyle='#FFF';ctx.font=`bold 16px ${FONT}`;ctx.textAlign='center';
-  ctx.fillText('₿',sx,py+32+bob);
+  ctx.fillText('₿',refSx,py+32+bob);
   
   // Arms with skin + hoodie sleeve
   ctx.fillStyle=C.orange;
@@ -1332,17 +1343,18 @@ function drawPlayer(){
   ctx.fillStyle=C.orange;
   ctx.fillRect(px+6,py+2+bob,w-12,4); // brim
   // Cap ₿
-  ctx.fillStyle='#FFF';ctx.font=`bold 8px ${FONT}`;ctx.fillText('₿',sx,py+3+bob);
+  ctx.fillStyle='#FFF';ctx.font=`bold 8px ${FONT}`;ctx.fillText('₿',refSx,py+3+bob);
   
   // Selected item in hand
   const sel=getSelected();
   if(sel){
     ctx.font='14px serif';
-    ctx.fillText(ITEMS[sel.id].icon, sx + (player.facing.x>0?18:-18), py+32+bob);
+    ctx.fillText(ITEMS[sel.id].icon, refSx + (player.facing.x>0?18:-18), py+32+bob);
     // Item name above head
     ctx.fillStyle='rgba(0,0,0,.6)';ctx.font=`13px ${FONT}`;
-    ctx.fillText(ITEMS[sel.id].name,sx,py-12);
+    ctx.fillText(ITEMS[sel.id].name,refSx,py-12);
   }
+  ctx.restore();
 }
 
 function drawAnimal(a){
@@ -1373,15 +1385,23 @@ function drawAnimal(a){
 
 function drawNPC(n){
   const sx=n.x*SCALE-cam.x,sy=n.y*SCALE-cam.y;
-  const w=ST+4,h=ST+16,px=sx-w/2,py=sy-h/2;
-  if(sx>canvas.width+w||sy>canvas.height+h||sx<-w||sy<-h)return;
+  const actualW=ST+4, actualH=ST+16;
+  if(sx>canvas.width+actualW||sy>canvas.height+actualH||sx<-actualW||sy<-actualH)return;
+  // Reference-box transform — see drawPlayer for rationale.
+  const actualPx=sx-actualW/2, actualPy=sy-actualH/2;
+  const REF_W=52, REF_H=64;
+  ctx.save();
+  ctx.translate(actualPx, actualPy);
+  if (actualW !== REF_W || actualH !== REF_H) ctx.scale(actualW/REF_W, actualH/REF_H);
+  const w=REF_W, h=REF_H, px=0, py=0;
+  const refSx=REF_W/2, refSy=REF_H/2;
   const bob=n.moving?Math.sin((n.wf||0)*Math.PI/2)*2:0;
   const lo=n.moving?Math.sin((n.wf||0)*Math.PI)*4:0;
   const as=n.moving?Math.sin((n.wf||0)*Math.PI)*5:0;
   const eyeOff=player?((n.x<player.x)?2:(n.x>player.x)?-2:0):0;
   
   // Shadow
-  ctx.fillStyle='rgba(0,0,0,.18)';ctx.beginPath();ctx.ellipse(sx,sy+h/2+3,16,6,0,0,Math.PI*2);ctx.fill();
+  ctx.fillStyle='rgba(0,0,0,.18)';ctx.beginPath();ctx.ellipse(refSx,refSy+h/2+3,16,6,0,0,Math.PI*2);ctx.fill();
 
   // === PER-NPC UNIQUE DESIGNS ===
   if(n.name==='Hodl Hannah'){
@@ -1392,7 +1412,7 @@ function drawNPC(n){
     ctx.fillStyle='#FF69B4';ctx.fillRect(px+8,py+18+bob,w-16,h-38);
     ctx.fillStyle='#E05A9E';ctx.fillRect(px+14,py+34+bob,w-28,6); // belt line
     // ₿ necklace
-    ctx.fillStyle='#FFD700';ctx.font='bold 10px '+FONT;ctx.textAlign='center';ctx.fillText('₿',sx,py+28+bob);
+    ctx.fillStyle='#FFD700';ctx.font='bold 10px '+FONT;ctx.textAlign='center';ctx.fillText('₿',refSx,py+28+bob);
     // Arms
     ctx.fillStyle='#FF69B4';ctx.fillRect(px+1,py+18+bob-as,10,12);ctx.fillRect(px+w-11,py+18+bob+as,10,12);
     ctx.fillStyle=C.skin;ctx.fillRect(px+2,py+28+bob-as,8,8);ctx.fillRect(px+w-10,py+28+bob+as,8,8);
@@ -1414,8 +1434,8 @@ function drawNPC(n){
     ctx.fillStyle='#4455FF';ctx.fillRect(px+8,py+18+bob,w-16,h-38);
     ctx.fillStyle='#3344DD';ctx.fillRect(px+14,py+20+bob,2,h-42); // lapel left
     ctx.fillRect(px+w-16,py+20+bob,2,h-42); // lapel right
-    ctx.fillStyle='#DDD';ctx.fillRect(sx-1,py+20+bob,2,h-40); // tie
-    ctx.fillStyle='#FF4444';ctx.fillRect(sx-2,py+22+bob,4,8); // red tie knot
+    ctx.fillStyle='#DDD';ctx.fillRect(refSx-1,py+20+bob,2,h-40); // tie
+    ctx.fillStyle='#FF4444';ctx.fillRect(refSx-2,py+22+bob,4,8); // red tie knot
     // Arms
     ctx.fillStyle='#4455FF';ctx.fillRect(px+1,py+18+bob-as,10,12);ctx.fillRect(px+w-11,py+18+bob+as,10,12);
     ctx.fillStyle=C.skin;ctx.fillRect(px+2,py+28+bob-as,8,8);ctx.fillRect(px+w-10,py+28+bob+as,8,8);
@@ -1437,7 +1457,7 @@ function drawNPC(n){
     // Body — grey suit, white shirt front
     ctx.fillStyle='#777';ctx.fillRect(px+8,py+18+bob,w-16,h-38);
     ctx.fillStyle='#EEE';ctx.fillRect(px+16,py+20+bob,w-32,h-42); // white shirt
-    ctx.fillStyle='#333';ctx.fillRect(sx-1,py+20+bob,2,h-40); // black tie
+    ctx.fillStyle='#333';ctx.fillRect(refSx-1,py+20+bob,2,h-40); // black tie
     // Gold pocket watch chain
     ctx.fillStyle='#FFD700';ctx.fillRect(px+12,py+30+bob,8,2);
     // Arms
@@ -1512,7 +1532,7 @@ function drawNPC(n){
     // Body — navy power suit
     ctx.fillStyle='#1A1A6B';ctx.fillRect(px+8,py+18+bob,w-16,h-38);
     ctx.fillStyle='#EEE';ctx.fillRect(px+16,py+20+bob,w-32,h-42); // white shirt
-    ctx.fillStyle='#F7931A';ctx.fillRect(sx-2,py+20+bob,4,h-42); // ORANGE tie (Bitcoin orange!)
+    ctx.fillStyle='#F7931A';ctx.fillRect(refSx-2,py+20+bob,4,h-42); // ORANGE tie (Bitcoin orange!)
     // Power shoulders
     ctx.fillStyle='#1A1A6B';ctx.fillRect(px+4,py+18+bob,w-8,6);
     // Arms
@@ -1635,11 +1655,11 @@ function drawNPC(n){
     if(rel.hearts>=10){
       // Max hearts — green heart
       ctx.fillStyle='#44FF88';ctx.font=`bold 18px serif`;ctx.textAlign='center';
-      ctx.fillText('♥',sx,markerY);
+      ctx.fillText('♥',refSx,markerY);
     } else if(n.name==='The Hermit'&&foundWords.length<5){
       // Seed fragment hint — orange puzzle
       ctx.font=`16px serif`;ctx.textAlign='center';
-      ctx.fillText('🧩',sx,markerY);
+      ctx.fillText('🧩',refSx,markerY);
     } else if(NPC_QUESTS[n.name]){
       // Has active quest — orange quest marker
       const aq=getActiveQuest(n.name);
@@ -1647,23 +1667,24 @@ function drawNPC(n){
       ctx.fillStyle=qReady?'#44FF44':'#FF8800'; // green=ready, orange=in progress
       ctx.shadowColor='rgba(0,0,0,0.8)';ctx.shadowBlur=3;
       ctx.font=`bold 18px ${FONT}`;ctx.textAlign='center';
-      ctx.fillText(qReady?'✅':'❗',sx,markerY);
+      ctx.fillText(qReady?'✅':'❗',refSx,markerY);
       ctx.shadowBlur=0;
     }} else if(rel.talked===false){
       // Hasn't talked today — yellow !
       ctx.fillStyle='#FFD700';
       ctx.shadowColor='rgba(0,0,0,0.8)';ctx.shadowBlur=3;
       ctx.font=`bold 20px ${FONT}`;ctx.textAlign='center';
-      ctx.fillText('!',sx,markerY);
+      ctx.fillText('!',refSx,markerY);
       ctx.shadowBlur=0;
     }
   }
   const dist=Math.hypot(n.x-player.x,n.y-player.y);
   if(dist<48){
-    ctx.fillStyle=C.white;ctx.font=`bold 13px ${FONT}`;ctx.textAlign='center';ctx.fillText(n.name,sx,py-8);
+    ctx.fillStyle=C.white;ctx.font=`bold 13px ${FONT}`;ctx.textAlign='center';ctx.fillText(n.name,refSx,py-8);
     ctx.fillStyle=C.gray;ctx.font=`12px ${FONT}`;
-    ctx.fillText(n.role==='shop'||n.role==='seeds'?'[E] Talk  [B] Shop':n.role==='market'?'[E] Talk  [B] Sell Crops':'[E] Talk',sx,py-20);
+    ctx.fillText(n.role==='shop'||n.role==='seeds'?'[E] Talk  [B] Shop':n.role==='market'?'[E] Talk  [B] Sell Crops':'[E] Talk',refSx,py-20);
   }
+  ctx.restore();
 }
 
 function drawRig(r){
