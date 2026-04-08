@@ -75,6 +75,18 @@ const JOYSTICK_DEAD = 10;
 if (isMobile) {
   canvas.addEventListener('touchstart', e => {
     e.preventDefault();
+    // Intro / title menu / dialog / pause / shop / inventory: route taps to the
+    // existing click handler instead of joystick/action processing. Without this
+    // the intro screen and title menu are unreachable on mobile because
+    // preventDefault() above suppresses the synthetic click event.
+    if (gameState !== 'playing' || dlg || pauseOpen || shopOpen || invOpen || chestOpen || craftOpen || citadelMenuOpen) {
+      const t0 = e.changedTouches[0];
+      if (t0) {
+        mouseX = t0.clientX; mouseY = t0.clientY;
+        canvas.dispatchEvent(new MouseEvent('click', { clientX: t0.clientX, clientY: t0.clientY }));
+      }
+      return;
+    }
     for (const t of e.changedTouches) {
       // Left half = joystick
       // Priority: UI buttons first (regardless of side)
@@ -695,9 +707,13 @@ let foundWords = []; // indices of found words
 // GAME STATE
 // ============================================================
 let gameState = 'intro'; // 'intro', 'playing', 'paused'
-let introStep = 0;
+// On mobile / small screens, skip the 40-second cinematic intro and jump
+// straight to the title menu. Phone players don't want to read 9 timed slides
+// before they can even tap a button.
+let introStep = (isMobile || isSmallScreen) ? (typeof INTRO_SLIDES !== 'undefined' ? INTRO_SLIDES.length - 1 : 0) : 0;
 let introTimer = 0;
 let introFade = 1;
+let titleMenuOpen = (isMobile || isSmallScreen); // open immediately on mobile
 let tutorialStep = 0;
 let tutorialDone = false;
 let showObjectives = false;
@@ -707,7 +723,7 @@ let minimapOpen = true;
 let interior = null; // null = overworld, or {type, map, w, h, furniture, doorX, returnX, returnY}
 let doorCooldown = 0; // prevent instant re-entry after exiting
 let transition = null; // {type:'fadeIn'|'fadeOut', timer, duration, callback}
-let titleMenuOpen = false;
+// titleMenuOpen declared above (defaults open on mobile)
 let titleCur = 0;
 let titleTip = '';
 let interiorNPCs = []; // NPCs present in current interior
