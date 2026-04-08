@@ -138,10 +138,21 @@ if (isMobile) {
         touch.actionTouchId = t.identifier;
         // Check if tapped an action button
         const bx = canvas.width - 80, by = canvas.height - 200;
-        if (Math.hypot(t.clientX - bx, t.clientY - by) < 35) { touch.btnAttack = true; jp['e'] = true; }
-        else if (Math.hypot(t.clientX - (bx - 70), t.clientY - (by + 20)) < 30) { touch.btnSkill1 = true; jp['1'] = true; }
-        else if (Math.hypot(t.clientX - (bx + 10), t.clientY - (by - 70)) < 30) { touch.btnSkill2 = true; jp['2'] = true; }
-        else if (Math.hypot(t.clientX - (bx + 70), t.clientY - (by + 20)) < 30) { touch.btnSkill3 = true; jp['3'] = true; }
+        if (Math.hypot(t.clientX - bx, t.clientY - by) < 35) {
+          touch.btnAttack = true;
+          if (mineFloor) {
+            // In a dungeon: attack / interact
+            jp['e'] = true;
+          } else {
+            // Overworld: use selected tool (axe, hoe, watering, planting) + interact
+            jp['r'] = true;
+            jp['e'] = true;
+          }
+        }
+        // Combat skill buttons — only active in dungeons
+        else if (mineFloor && Math.hypot(t.clientX - (bx - 70), t.clientY - (by + 20)) < 30) { touch.btnSkill1 = true; jp['1'] = true; }
+        else if (mineFloor && Math.hypot(t.clientX - (bx + 10), t.clientY - (by - 70)) < 30) { touch.btnSkill2 = true; jp['2'] = true; }
+        else if (mineFloor && Math.hypot(t.clientX - (bx + 70), t.clientY - (by + 20)) < 30) { touch.btnSkill3 = true; jp['3'] = true; }
         // Top buttons
         else if (t.clientY < 60 && t.clientX > canvas.width - 60) { touch.btnPause = true; jp['escape'] = true; }
         else if (t.clientY < 60 && t.clientX > canvas.width - 120) { touch.btnInventory = true; jp['i'] = true; }
@@ -4694,29 +4705,42 @@ function drawTouchControls(){
   
   // Action buttons (right side)
   const bx=canvas.width-80, by=canvas.height-200;
-  
-  // Attack button (big, center)
+  const inMine = !!mineFloor;
+
+  // Main action button — big, center
+  // Mine: attack | Overworld: use-selected-tool (axe, hoe, water, plant, interact)
   ctx.fillStyle=touch.btnAttack?'rgba(247,147,26,0.6)':'rgba(247,147,26,0.25)';
   ctx.beginPath();ctx.arc(bx,by,32,0,Math.PI*2);ctx.fill();
   ctx.strokeStyle='rgba(247,147,26,0.6)';ctx.lineWidth=2;
   ctx.beginPath();ctx.arc(bx,by,32,0,Math.PI*2);ctx.stroke();
   ctx.fillStyle='#FFF';ctx.font=`bold 14px ${FONT}`;ctx.textAlign='center';
-  ctx.fillText('⚔️',bx,by+2);ctx.fillText('ATK',bx,by+16);
-  
-  // Skill 1 — Orange Pill (left of attack)
-  ctx.fillStyle=touch.btnSkill1?'rgba(247,147,26,0.6)':'rgba(100,60,20,0.3)';
-  ctx.beginPath();ctx.arc(bx-70,by+20,26,0,Math.PI*2);ctx.fill();
-  ctx.fillStyle='#F90';ctx.font='16px serif';ctx.fillText('💊',bx-70,by+24);
-  
-  // Skill 2 — Lightning (above attack)
-  ctx.fillStyle=touch.btnSkill2?'rgba(255,221,68,0.6)':'rgba(100,100,30,0.3)';
-  ctx.beginPath();ctx.arc(bx+10,by-70,26,0,Math.PI*2);ctx.fill();
-  ctx.fillStyle='#FF0';ctx.font='16px serif';ctx.fillText('⚡',bx+10,by-66);
-  
-  // Skill 3 — 51% Attack (right of attack)
-  ctx.fillStyle=touch.btnSkill3?'rgba(255,68,68,0.6)':'rgba(100,30,30,0.3)';
-  ctx.beginPath();ctx.arc(bx+70,by+20,26,0,Math.PI*2);ctx.fill();
-  ctx.fillStyle='#F44';ctx.font='16px serif';ctx.fillText('💥',bx+70,by+24);
+  if (inMine) {
+    ctx.fillText('⚔️',bx,by+2);ctx.fillText('ATK',bx,by+16);
+  } else {
+    // Show the selected tool icon so you know what the button will do
+    const sel = inv[selSlot];
+    const icon = (sel && ITEMS[sel.id]) ? ITEMS[sel.id].icon : '✋';
+    ctx.font='20px serif';ctx.fillText(icon,bx,by+4);
+    ctx.font=`bold 11px ${FONT}`;ctx.fillText('USE',bx,by+18);
+  }
+
+  // Combat skill buttons — only shown when in a dungeon
+  if (inMine) {
+    // Skill 1 — Orange Pill (left of attack)
+    ctx.fillStyle=touch.btnSkill1?'rgba(247,147,26,0.6)':'rgba(100,60,20,0.3)';
+    ctx.beginPath();ctx.arc(bx-70,by+20,26,0,Math.PI*2);ctx.fill();
+    ctx.fillStyle='#F90';ctx.font='16px serif';ctx.fillText('💊',bx-70,by+24);
+
+    // Skill 2 — Lightning (above attack)
+    ctx.fillStyle=touch.btnSkill2?'rgba(255,221,68,0.6)':'rgba(100,100,30,0.3)';
+    ctx.beginPath();ctx.arc(bx+10,by-70,26,0,Math.PI*2);ctx.fill();
+    ctx.fillStyle='#FF0';ctx.font='16px serif';ctx.fillText('⚡',bx+10,by-66);
+
+    // Skill 3 — 51% Attack (right of attack)
+    ctx.fillStyle=touch.btnSkill3?'rgba(255,68,68,0.6)':'rgba(100,30,30,0.3)';
+    ctx.beginPath();ctx.arc(bx+70,by+20,26,0,Math.PI*2);ctx.fill();
+    ctx.fillStyle='#F44';ctx.font='16px serif';ctx.fillText('💥',bx+70,by+24);
+  }
   
   // Top-right quick buttons
   // Pause
