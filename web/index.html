@@ -14,6 +14,33 @@ canvas { display: block; width: 100vw; height: 100vh; image-rendering: pixelated
 </head>
 <body>
 <canvas id="game"></canvas>
+<script>
+// Top-level error trap — catches anything that explodes during script load
+// before our own in-loop handler can run. Paints directly to the canvas so
+// mobile users never see a pure-black screen with no explanation.
+(function(){
+  function paintErr(msg, src, line){
+    try {
+      var c = document.getElementById('game');
+      if (!c.width || !c.height) { c.width = window.innerWidth||800; c.height = window.innerHeight||600; }
+      var x = c.getContext('2d');
+      x.fillStyle = '#300'; x.fillRect(0,0,c.width,c.height);
+      x.fillStyle = '#fff'; x.font = 'bold 14px monospace'; x.textBaseline = 'top';
+      x.fillText('LOAD ERROR:', 10, 10);
+      x.fillText(String(msg).slice(0, 80), 10, 32);
+      if (src) x.fillText(String(src).split('/').pop() + ':' + line, 10, 54);
+      x.fillText('canvas='+c.width+'x'+c.height+' iw='+window.innerWidth+' ih='+window.innerHeight, 10, 76);
+      x.fillText('ua='+navigator.userAgent.slice(0,60), 10, 98);
+    } catch(e){}
+  }
+  window.addEventListener('error', function(ev){
+    paintErr(ev.message || 'unknown', ev.filename, ev.lineno);
+  });
+  window.addEventListener('unhandledrejection', function(ev){
+    paintErr('unhandled promise: '+(ev.reason&&ev.reason.message||ev.reason), '', 0);
+  });
+})();
+</script>
 <!--
   Script load order matters (Sprint 17 modularization).
   - game_audio / game_quests / game_mines load BEFORE game.js: they
@@ -25,12 +52,12 @@ canvas { display: block; width: 100vw; height: 100vh; image-rendering: pixelated
     invoked from inside gameLoop/draw at runtime — after this script
     has executed — so the forward reference is safe.
 -->
-<script src="sprites.js?v=27"></script>
-<script src="music.js?v=27"></script>
-<script src="game_audio.js?v=27"></script>
-<script src="game_quests.js?v=27"></script>
-<script src="game_mines.js?v=27"></script>
-<script src="game.js?v=27"></script>
-<script src="game_render.js?v=27"></script>
+<script src="sprites.js?v=28"></script>
+<script src="music.js?v=28"></script>
+<script src="game_audio.js?v=28"></script>
+<script src="game_quests.js?v=28"></script>
+<script src="game_mines.js?v=28"></script>
+<script src="game.js?v=28"></script>
+<script src="game_render.js?v=28"></script>
 </body>
 </html>
