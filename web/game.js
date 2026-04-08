@@ -482,11 +482,30 @@ canvas.addEventListener('click', e => {
     }
     return;
   }
-  // Hotbar (always visible)
-  const hbXh=(canvas.width-480)/2, hbYh=canvas.height-64;
-  if (e.clientY>=hbYh&&e.clientY<=hbYh+44) {
-    const rel=e.clientX-hbXh;
-    if (rel>=0&&rel<480) { const slot=Math.floor(rel/48); if(slot>=0&&slot<10&&rel%48<44){selSlot=slot;sfx.interact();return;} }
+  // Hotbar (always visible) — use the live rect stored during drawHUD so we always
+  // hit-test the REAL drawn slots (fixes mobile where slot sizes/positions differ)
+  const hb = _hotbarRect;
+  // Extra vertical padding on mobile so fat-finger taps still register
+  const hbPad = isMobile ? 6 : 0;
+  if (hb.w > 0 && e.clientY >= hb.y - hbPad && e.clientY <= hb.y + hb.h + hbPad) {
+    const rel = e.clientX - hb.x;
+    const slotStride = hb.slotW + hb.slotGap;
+    if (rel >= -hbPad && rel <= hb.w + hbPad) {
+      const slot = Math.floor((rel + hb.slotGap/2) / slotStride);
+      if (slot >= 0 && slot < hb.n) {
+        // Second tap on already-selected slot = USE (tool/consumable) — mobile shortcut
+        if (isMobile && slot === selSlot) {
+          const selItem = inv[selSlot];
+          if (selItem) {
+            jp['r'] = true;
+            jp['g'] = true; // also trigger eat (bread/coffee)
+          }
+        }
+        selSlot = slot;
+        sfx.interact();
+        return;
+      }
+    }
   }
   // World entities
   const wx=(e.clientX+cam.x)/SCALE, wy=(e.clientY+cam.y)/SCALE;
@@ -776,6 +795,8 @@ const INTERIOR_MAPS = {}; // generated once, keyed by building type
 const INV_SIZE = 20;
 const inv = [];
 let selSlot = 0;
+// Live hotbar rect, updated every frame in drawHUD — used for accurate click/tap hit-testing
+let _hotbarRect = {x:0, y:0, w:0, h:0, slotW:44, slotGap:4, n:10};
 function addItem(id,qty=1){const it=ITEMS[id];if(!it)return false;if(it.stack){const s=inv.find(s=>s&&s.id===id);if(s){s.qty+=qty;return true;}}const e=inv.findIndex(s=>!s);if(e===-1&&inv.length>=INV_SIZE)return false;if(e>=0)inv[e]={id,qty};else inv.push({id,qty});return true;}
 function removeItem(id,qty=1){const s=inv.find(s=>s&&s.id===id&&s.qty>=qty);if(!s)return false;s.qty-=qty;if(s.qty<=0){const i=inv.indexOf(s);inv[i]=null;}return true;}
 function hasItem(id){const s=inv.find(s=>s&&s.id===id);return s&&s.qty>0;}
@@ -3767,26 +3788,60 @@ function drawHUD(){
     ctx.fillText('↓ Walk south to exit ↓',canvas.width/2,canvas.height-73);
   }
   
-  // Hotbar — scale down on small screens
+  // Hotbar — bigger, finger-friendly slots on mobile
   const hbN=10;
-  const hbW = isSmallScreen ? 32 : 44;
-  const hbH = isSmallScreen ? 32 : 44;
-  const hbGap = isSmallScreen ? 3 : 4;
-  const hbBottomMargin = isSmallScreen ? 8 : 20;
+  // Mobile: fit 10 slots as wide as possible while leaving 16px margin
+  let hbW, hbGap, hbBottomMargin;
+  if (isMobile) {
+    hbGap = 3;
+    const maxHbW = Math.floor((canvas.width - 16 - hbN*hbGap) / hbN);
+    hbW = Math.max(36, Math.min(48, maxHbW)); // 36-48px slots
+    hbBottomMargin = 12;
+  } else if (isSmallScreen) {
+    hbW = 38; hbGap = 3; hbBottomMargin = 8;
+  } else {
+    hbW = 44; hbGap = 4; hbBottomMargin = 20;
+  }
+  const hbH = hbW;
   const hbTW=hbN*(hbW+hbGap);
   const hbX=(canvas.width-hbTW)/2;
   const hbY=canvas.height-hbH-hbBottomMargin;
-  ctx.fillStyle='rgba(8,8,12,0.7)';rr(hbX-4,hbY-4,hbTW+8,hbH+8,6);
+  // Store globally so the click handler can hit-test the REAL rect
+  _hotbarRect = {x:hbX, y:hbY, w:hbTW, h:hbH, slotW:hbW, slotGap:hbGap, n:hbN};
+  ctx.fillStyle='rgba(8,8,12,0.78)';rr(hbX-4,hbY-4,hbTW+8,hbH+8,6);
   for(let i=0;i<hbN;i++){
     const x=hbX+i*(hbW+hbGap);
-    ctx.fillStyle=i===selSlot?'rgba(247,147,26,.25)':'rgba(20,20,25,.8)';ctx.fillRect(x,hbY,hbW,hbH);
-    ctx.strokeStyle=i===selSlot?C.hud:'#333';ctx.lineWidth=i===selSlot?2:1;ctx.strokeRect(x,hbY,hbW,hbH);
-    ctx.fillStyle='#444';ctx.font=`11px ${FONT}`;ctx.textAlign='left';ctx.fillText(`${(i+1)%10}`,x+3,hbY+10);
+    // Brighter selection highlight for clarity on mobile
+    if(i===selSlot){
+      ctx.fillStyle='rgba(247,147,26,0.35)';ctx.fillRect(x,hbY,hbW,hbH);
+      ctx.strokeStyle=C.hud;ctx.lineWidth=3;ctx.strokeRect(x,hbY,hbW,hbH);
+      // Corner glow
+      ctx.fillStyle='rgba(255,200,80,0.5)';
+      ctx.fillRect(x,hbY,4,4);ctx.fillRect(x+hbW-4,hbY,4,4);
+      ctx.fillRect(x,hbY+hbH-4,4,4);ctx.fillRect(x+hbW-4,hbY+hbH-4,4,4);
+    } else {
+      ctx.fillStyle='rgba(20,20,25,0.85)';ctx.fillRect(x,hbY,hbW,hbH);
+      ctx.strokeStyle='#333';ctx.lineWidth=1;ctx.strokeRect(x,hbY,hbW,hbH);
+    }
+    // Slot number (smaller on mobile so it doesn't crowd the icon)
+    ctx.fillStyle='#666';ctx.font=`${isMobile?9:11}px ${FONT}`;ctx.textAlign='left';
+    ctx.fillText(`${(i+1)%10}`,x+3,hbY+10);
     const sl=inv[i];if(sl&&ITEMS[sl.id]){
       const sprName = ITEM_SPRITES[sl.id];
-      if(sprName && SpriteCache[sprName]){drawSprite(sprName,x+6,hbY+6,2);}
-      else{ctx.font='20px serif';ctx.textAlign='center';ctx.fillText(ITEMS[sl.id].icon,x+hbW/2,hbY+hbH/2+6);}
-      if(sl.qty>1){ctx.fillStyle=C.white;ctx.font=`bold 12px ${FONT}`;ctx.fillText(sl.qty,x+hbW-8,hbY+hbH-4);}}
+      if(sprName && SpriteCache[sprName]){
+        // Scale sprite to slot size
+        const sScale=Math.max(2,Math.floor(hbW/18));
+        drawSprite(sprName,x+(hbW-16*sScale/2)/2,hbY+(hbH-16*sScale/2)/2,sScale);
+      } else{
+        ctx.font=`${Math.floor(hbW*0.55)}px serif`;ctx.textAlign='center';
+        ctx.fillText(ITEMS[sl.id].icon,x+hbW/2,hbY+hbH/2+hbW*0.2);
+      }
+      if(sl.qty>1){
+        ctx.fillStyle='#000';ctx.font=`bold ${isMobile?11:12}px ${FONT}`;ctx.textAlign='right';
+        ctx.fillText(sl.qty,x+hbW-3,hbY+hbH-3);
+        ctx.fillStyle=C.white;ctx.fillText(sl.qty,x+hbW-4,hbY+hbH-4);
+      }
+    }
   }
   
   // Mobile touch controls overlay
