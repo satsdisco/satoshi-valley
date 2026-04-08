@@ -714,13 +714,238 @@ function drawDecor(d) {
       ctx.fillStyle='#8A6A40';ctx.fillRect(fx+4,fy+14,ST-8,8);
     }
     else if(d.item==='market_stall'){
-      ctx.fillStyle='#7A5A30';ctx.fillRect(fx+4,fy+20,ST-8,14);
-      ctx.fillStyle='#6A4A20';ctx.fillRect(fx+6,fy+34,4,8);ctx.fillRect(fx+ST-10,fy+34,4,8);
-      const canopyCol=['#CC4444','#CC8844','#44AA44','#4488CC'][(d.x+d.y)%4];
-      ctx.fillStyle=canopyCol;ctx.fillRect(fx+2,fy+12,ST-4,10);
-      ctx.fillStyle='#44AA44';ctx.fillRect(fx+8,fy+16,6,4);
-      ctx.fillStyle='#CC8844';ctx.fillRect(fx+18,fy+16,6,4);
-      ctx.fillStyle='#CCCC44';ctx.fillRect(fx+28,fy+17,5,3);
+      // ── FARMER'S MARKET STALL — proper wooden structure w/ produce ──
+      const stallIdx=(d.x*3+d.y*7)%4;
+      const palettes=[
+        {stripe1:'#C83838',stripe2:'#F0E4C8',sign:'#8A1010'}, // red/cream
+        {stripe1:'#E8801C',stripe2:'#F0E4C8',sign:'#A04810'}, // orange/cream
+        {stripe1:'#3A9030',stripe2:'#F0E4C8',sign:'#205818'}, // green/cream
+        {stripe1:'#2868B0',stripe2:'#F0E4C8',sign:'#103858'}, // blue/cream
+      ];
+      const P=palettes[stallIdx];
+      const woodD='#4A2810', wood='#7A4820', woodL='#9A6028', woodXL='#B87838';
+
+      // Ground shadow
+      ctx.fillStyle='rgba(0,0,0,0.28)';
+      ctx.beginPath();
+      ctx.ellipse(fx+ST/2,fy+ST+2,ST*0.48,4,0,0,Math.PI*2);
+      ctx.fill();
+
+      // ── Back posts (thin, behind the counter)
+      ctx.fillStyle=woodD;
+      ctx.fillRect(fx+3,fy-2,2,ST+4);
+      ctx.fillRect(fx+ST-5,fy-2,2,ST+4);
+
+      // ── Counter front frame (dark wood)
+      ctx.fillStyle=woodD;
+      ctx.fillRect(fx+2,fy+16,ST-4,ST-18);
+      // Front planks
+      ctx.fillStyle=wood;
+      ctx.fillRect(fx+3,fy+17,ST-6,ST-20);
+      // Vertical plank separators
+      ctx.fillStyle=woodD;
+      for(let pk=1;pk<4;pk++){
+        ctx.fillRect(fx+3+pk*((ST-6)/4),fy+17,1,ST-20);
+      }
+      // Top plank highlight
+      ctx.fillStyle=woodL;
+      ctx.fillRect(fx+3,fy+17,ST-6,1);
+      // Bottom shadow
+      ctx.fillStyle='rgba(0,0,0,0.3)';
+      ctx.fillRect(fx+3,fy+ST-4,ST-6,1);
+
+      // ── Counter top (planked surface where produce sits)
+      ctx.fillStyle=woodD;
+      ctx.fillRect(fx+1,fy+14,ST-2,4);
+      ctx.fillStyle=woodXL;
+      ctx.fillRect(fx+1,fy+14,ST-2,1);
+      ctx.fillStyle=woodL;
+      ctx.fillRect(fx+1,fy+15,ST-2,2);
+
+      // ── Cloth skirt hanging from counter (tablecloth)
+      ctx.fillStyle=P.stripe1;
+      ctx.fillRect(fx+2,fy+ST-3,ST-4,3);
+      // Scalloped fringe on the skirt
+      ctx.fillStyle=P.stripe2;
+      for(let fi=0;fi<Math.ceil((ST-4)/4);fi++){
+        ctx.beginPath();
+        ctx.arc(fx+4+fi*4,fy+ST,1.5,0,Math.PI);
+        ctx.fill();
+      }
+
+      // ── PRODUCE on the counter — varies per stall
+      const pxC=fx+ST/2, pyC=fy+11;
+      if(stallIdx===0){
+        // APPLES — pile of red circles
+        ctx.fillStyle='#902020';
+        for(let ap=0;ap<5;ap++){
+          const apX=fx+5+ap*5, apY=pyC+1;
+          ctx.beginPath();ctx.arc(apX,apY,2.5,0,Math.PI*2);ctx.fill();
+        }
+        // Highlight on each apple
+        ctx.fillStyle='#E04040';
+        for(let ap=0;ap<5;ap++){
+          const apX=fx+5+ap*5, apY=pyC+1;
+          ctx.beginPath();ctx.arc(apX-0.5,apY-0.5,1,0,Math.PI*2);ctx.fill();
+        }
+        // Top apple
+        ctx.fillStyle='#902020';
+        ctx.beginPath();ctx.arc(fx+12,pyC-2,2.5,0,Math.PI*2);ctx.fill();
+        ctx.fillStyle='#E04040';
+        ctx.beginPath();ctx.arc(fx+11.5,pyC-2.5,1,0,Math.PI*2);ctx.fill();
+        // Apple stems (dark)
+        ctx.fillStyle='#4A2810';
+        for(let ap=0;ap<5;ap++)ctx.fillRect(fx+5+ap*5,pyC-1,1,1);
+      }
+      else if(stallIdx===1){
+        // CARROTS — orange triangles with green tops, standing up
+        for(let ct=0;ct<5;ct++){
+          const ctX=fx+5+ct*5;
+          // Green top
+          ctx.fillStyle='#2A6020';
+          ctx.fillRect(ctX-1,pyC-3,1,2);
+          ctx.fillRect(ctX,pyC-4,1,3);
+          ctx.fillRect(ctX+1,pyC-3,1,2);
+          // Orange body (carrot triangle)
+          ctx.fillStyle='#E07018';
+          ctx.beginPath();
+          ctx.moveTo(ctX-1,pyC-1);ctx.lineTo(ctX+2,pyC-1);ctx.lineTo(ctX+0.5,pyC+3);
+          ctx.closePath();ctx.fill();
+          ctx.fillStyle='#F09028';
+          ctx.fillRect(ctX-1,pyC-1,1,1);
+        }
+        // Wicker basket lines underneath
+        ctx.fillStyle='#6A4020';
+        ctx.fillRect(fx+3,pyC+2,ST-6,2);
+        ctx.fillStyle='#8A5028';
+        ctx.fillRect(fx+3,pyC+2,ST-6,1);
+      }
+      else if(stallIdx===2){
+        // CABBAGES / lettuces — layered green circles
+        for(let cb=0;cb<3;cb++){
+          const cbX=fx+8+cb*8, cbY=pyC+1;
+          ctx.fillStyle='#2A6020';
+          ctx.beginPath();ctx.arc(cbX,cbY,3.5,0,Math.PI*2);ctx.fill();
+          ctx.fillStyle='#3A8028';
+          ctx.beginPath();ctx.arc(cbX,cbY,2.5,0,Math.PI*2);ctx.fill();
+          ctx.fillStyle='#4AA038';
+          ctx.beginPath();ctx.arc(cbX-0.5,cbY-0.5,1.5,0,Math.PI*2);ctx.fill();
+          // Leaf crinkle lines
+          ctx.fillStyle='rgba(0,0,0,0.25)';
+          ctx.fillRect(cbX-2,cbY,4,1);
+          ctx.fillRect(cbX,cbY-2,1,4);
+        }
+      }
+      else{
+        // BREAD + CHEESE
+        // Loaf of bread (left)
+        ctx.fillStyle='#8A5820';
+        ctx.beginPath();
+        ctx.ellipse(fx+8,pyC+1,5,2.5,0,0,Math.PI*2);
+        ctx.fill();
+        ctx.fillStyle='#B87838';
+        ctx.beginPath();
+        ctx.ellipse(fx+8,pyC,5,2,0,0,Math.PI*2);
+        ctx.fill();
+        // Crust slashes
+        ctx.fillStyle='#6A4018';
+        ctx.fillRect(fx+6,pyC-1,1,2);
+        ctx.fillRect(fx+8,pyC-1,1,2);
+        ctx.fillRect(fx+10,pyC-1,1,2);
+        // Cheese wheel (center)
+        ctx.fillStyle='#B88018';
+        ctx.beginPath();
+        ctx.ellipse(fx+18,pyC+1,4,3,0,0,Math.PI*2);
+        ctx.fill();
+        ctx.fillStyle='#E8B830';
+        ctx.beginPath();
+        ctx.ellipse(fx+18,pyC,4,2,0,0,Math.PI*2);
+        ctx.fill();
+        // Wedge cut out
+        ctx.fillStyle='#F0C840';
+        ctx.beginPath();
+        ctx.moveTo(fx+18,pyC);
+        ctx.lineTo(fx+22,pyC);
+        ctx.lineTo(fx+20,pyC+2);
+        ctx.closePath();ctx.fill();
+        // Jar (right)
+        ctx.fillStyle='#9AC0D8';
+        ctx.fillRect(fx+25,pyC-2,4,6);
+        ctx.fillStyle='#C8E0F0';
+        ctx.fillRect(fx+25,pyC-2,1,6);
+        // Jar lid
+        ctx.fillStyle='#D03030';
+        ctx.fillRect(fx+24,pyC-3,6,1);
+      }
+
+      // ── Striped awning (scalloped fabric draped between posts)
+      const awY=fy+4, awH=8;
+      ctx.fillStyle=P.stripe1;
+      ctx.fillRect(fx+1,awY,ST-2,awH);
+      // Stripes
+      const stripeW=3;
+      for(let si=0;si<Math.ceil((ST-2)/stripeW);si++){
+        ctx.fillStyle=si%2===0?P.stripe1:P.stripe2;
+        ctx.fillRect(fx+1+si*stripeW,awY,stripeW,awH);
+      }
+      // Top highlight
+      ctx.fillStyle='rgba(255,255,255,0.25)';
+      ctx.fillRect(fx+1,awY,ST-2,1);
+      // Support beam (dark wood across the top of the awning)
+      ctx.fillStyle=woodD;
+      ctx.fillRect(fx+1,awY-2,ST-2,2);
+      ctx.fillStyle=woodL;
+      ctx.fillRect(fx+1,awY-2,ST-2,1);
+      // Scalloped fringe along the bottom of the awning
+      ctx.fillStyle=P.sign;
+      for(let fi=0;fi<Math.ceil((ST-2)/4);fi++){
+        ctx.beginPath();
+        ctx.arc(fx+3+fi*4,awY+awH,2,0,Math.PI);
+        ctx.fill();
+      }
+      // Little pennants hanging below the fringe
+      for(let pn=0;pn<3;pn++){
+        ctx.fillStyle=['#E04020','#F0C020','#2870C0'][pn];
+        const pnX=fx+6+pn*10;
+        ctx.beginPath();
+        ctx.moveTo(pnX,awY+awH+2);
+        ctx.lineTo(pnX+3,awY+awH+2);
+        ctx.lineTo(pnX+1.5,awY+awH+5);
+        ctx.closePath();ctx.fill();
+      }
+
+      // ── Chalkboard price sign hanging off the front
+      const cbX=fx+ST-8, cbY=fy+18;
+      ctx.fillStyle='#3A2A10';
+      ctx.fillRect(cbX-1,cbY-1,8,7);
+      ctx.fillStyle='#1A1A14';
+      ctx.fillRect(cbX,cbY,6,5);
+      ctx.fillStyle='#E8D8A0';
+      ctx.fillRect(cbX+1,cbY+1,4,1);
+      ctx.fillRect(cbX+1,cbY+3,3,1);
+      // "Price" marks (dashes)
+      ctx.fillStyle='#C08030';
+      ctx.fillRect(cbX+3,cbY+1,1,1);
+
+      // ── Hanging paper lantern from middle of awning
+      const lnX=fx+ST/2, lnY=awY+awH+3;
+      ctx.strokeStyle='#2A1808';ctx.lineWidth=1;
+      ctx.beginPath();
+      ctx.moveTo(lnX,awY+awH);ctx.lineTo(lnX,lnY);
+      ctx.stroke();
+      ctx.fillStyle='#E08030';
+      ctx.beginPath();
+      ctx.ellipse(lnX,lnY+2,2,2.5,0,0,Math.PI*2);
+      ctx.fill();
+      ctx.fillStyle='#F0C040';
+      ctx.beginPath();
+      ctx.ellipse(lnX-0.5,lnY+1.5,1,1.5,0,0,Math.PI*2);
+      ctx.fill();
+      // Lantern glow at night
+      if(typeof _isNight!=='undefined'&&_isNight){
+        ctx.fillStyle='rgba(255,180,80,0.2)';
+        ctx.beginPath();ctx.arc(lnX,lnY+2,8,0,Math.PI*2);ctx.fill();
+      }
     }
   }
   else if(d.type==='roof'){
