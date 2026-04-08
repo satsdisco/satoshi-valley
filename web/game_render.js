@@ -2053,112 +2053,627 @@ function drawDecor(d) {
       }
     }
 
-    // ── HALL (Town Hall) ──────────────────────────────────────────────────
+    // ── HALL (Town Hall) — Grand civic stone building w/ columns ─────────
     else if(d.label==='hall'){
-      // Foundation — stone base
-      ctx.fillStyle='#3A3A40';ctx.fillRect(rx-4,ry+bh-10,rw+8,10);
-      ctx.fillStyle='#4A4A50';
-      for(let i=0;i<Math.floor((rw+8)/16);i++){ctx.fillRect(rx-4+i*16,ry+bh-10,14,9);}
+      const HPAL={
+        stone:'#7A7A84', stoneL:'#9A9AA4', stoneXL:'#B4B4BE', stoneD:'#4A4A54', stoneXD:'#2A2A34',
+        marble:'#D8D8E0', marbleL:'#F0F0F4', marbleD:'#A8A8B4',
+        oak:'#2A1808', oakL:'#4A2810', oakXL:'#6A3818',
+        brass:'#C8A020', brassL:'#F8D040', brassD:'#8A6810',
+        slate:'#3A3A48', slateL:'#5A5A68', slateXL:'#7A7A88', slateD:'#1A1A24',
+        fire:'rgba(255,140,40,0.85)', fireBright:'rgba(255,200,100,0.95)',
+        winGlow2:'rgba(255,220,140,0.7)',
+      };
+      const wallTop=ry+ST;
+      const wallBot=ry+bh-16;
+      const wallH=wallBot-wallTop;
 
-      // Stone brick walls — grey with brick pattern
-      ctx.fillStyle='#5A5A62';ctx.fillRect(rx,ry+ST,rw,bh-ST-10);
-      // Horizontal mortar lines
-      ctx.fillStyle='rgba(0,0,0,0.12)';
-      for(let i=0;i<Math.floor((bh-ST)/10);i++){ctx.fillRect(rx,ry+ST+i*10+8,rw,2);}
-      // Vertical brick joints (every 3rd pixel offset by row)
-      for(let row=0;row<Math.floor((bh-ST)/10);row++){
-        const offset=row%2===0?0:8;
-        for(let col=0;col<Math.ceil(rw/16);col++){
-          ctx.fillRect(rx+col*16+offset,ry+ST+row*10,2,8);
+      // ── 1. MASSIVE STEPPED STONE FOUNDATION (plinth) ─────────────────
+      const plY=wallBot;
+      // Outer bottom step
+      ctx.fillStyle=HPAL.stoneXD;
+      ctx.fillRect(rx-8,plY+10,rw+16,8);
+      ctx.fillStyle=HPAL.stone;
+      ctx.fillRect(rx-8,plY+10,rw+16,2);
+      ctx.fillStyle=HPAL.stoneD;
+      ctx.fillRect(rx-8,plY+17,rw+16,1);
+      // Middle step
+      ctx.fillStyle=HPAL.stoneXD;
+      ctx.fillRect(rx-5,plY+3,rw+10,10);
+      ctx.fillStyle=HPAL.stoneL;
+      ctx.fillRect(rx-5,plY+3,rw+10,2);
+      ctx.fillStyle=HPAL.stoneD;
+      ctx.fillRect(rx-5,plY+12,rw+10,1);
+      // Base course
+      ctx.fillStyle=HPAL.stoneXD;
+      ctx.fillRect(rx-2,plY-2,rw+4,7);
+      ctx.fillStyle=HPAL.stoneL;
+      ctx.fillRect(rx-2,plY-2,rw+4,2);
+
+      // ── 2. ASHLAR STONE WALL (big cut blocks) ────────────────────────
+      ctx.fillStyle=HPAL.stoneD;ctx.fillRect(rx,wallTop,rw,wallH);
+      const blockH=11;
+      for(let row=0;row<Math.ceil(wallH/blockH);row++){
+        const rowY=wallTop+row*blockH;
+        const offset=row%2===0?0:12;
+        for(let col=0;col<Math.ceil(rw/24)+1;col++){
+          const bx=rx+col*24+offset;
+          if(bx>rx+rw)continue;
+          const r=_svRand(d.x,d.y,row*19+col+200);
+          // Three shade variants for natural stone
+          ctx.fillStyle=r>0.66?HPAL.stoneL:r>0.33?HPAL.stone:HPAL.stoneD;
+          ctx.fillRect(bx,rowY,23,blockH-1);
+          // Top-edge highlight
+          ctx.fillStyle='rgba(255,255,255,0.09)';
+          ctx.fillRect(bx,rowY,23,1);
+          // Right-edge shadow (mortar)
+          ctx.fillStyle=HPAL.stoneXD;
+          ctx.fillRect(bx+23,rowY,1,blockH-1);
+          // Tiny weathering dot
+          if(r>0.8){
+            ctx.fillStyle='rgba(0,0,0,0.18)';
+            ctx.fillRect(bx+2+Math.floor(r*16),rowY+2+Math.floor(r*6),1,1);
+          }
+        }
+        // Mortar line below the row
+        ctx.fillStyle='rgba(0,0,0,0.3)';
+        ctx.fillRect(rx,rowY+blockH-1,rw,1);
+      }
+
+      // ── 3. RUSTICATED CORNER QUOINS (bigger chunkier corner stones) ──
+      const qW=9, qH=13;
+      for(const qx of [rx-3,rx+rw-qW+3]){
+        for(let qRow=0;qRow<Math.ceil(wallH/qH);qRow++){
+          const qy=wallTop+qRow*qH;
+          const shift=qRow%2===0?0:3;
+          ctx.fillStyle=HPAL.stoneXD;
+          ctx.fillRect(qx-1+shift,qy-1,qW+2,qH);
+          ctx.fillStyle=HPAL.stoneL;
+          ctx.fillRect(qx+shift,qy,qW,qH-2);
+          // Top highlight
+          ctx.fillStyle=HPAL.stoneXL;
+          ctx.fillRect(qx+shift,qy,qW,2);
+          // Right shadow
+          ctx.fillStyle=HPAL.stoneD;
+          ctx.fillRect(qx+qW-1+shift,qy,1,qH-2);
         }
       }
-      // Subtle stone variation
-      ctx.fillStyle='rgba(255,255,255,0.04)';
-      ctx.fillRect(rx+rw*0.2,ry+ST,rw*0.15,bh-ST-10);
-      ctx.fillRect(rx+rw*0.6,ry+ST,rw*0.1,bh-ST-10);
 
-      // Two tall narrow windows with dark frames
-      const tww=ST-14,twh=ST+4;const twy=ry+ST+12;
-      const tw1x=rx+ST*0.7,tw2x=rx+rw-ST*0.7-tww;
-      for(const twx of [tw1x,tw2x]){
-        ctx.fillStyle='#2A2A30';ctx.fillRect(twx-3,twy-3,tww+6,twh+6);
-        ctx.fillStyle=winGlow;ctx.fillRect(twx,twy,tww,twh);
-        ctx.fillStyle='rgba(255,255,255,0.1)';ctx.fillRect(twx,twy,tww/2,twh);
-        ctx.fillStyle='#2A2A30';ctx.fillRect(twx+tww/2-1,twy,2,twh);
-        // Arched top
-        ctx.fillStyle='#2A2A30';ctx.beginPath();ctx.arc(twx+tww/2,twy,tww/2+3,Math.PI,0);ctx.fill();
-        ctx.fillStyle=winGlow;ctx.beginPath();ctx.arc(twx+tww/2,twy,tww/2,Math.PI,0);ctx.fill();
+      // ── 4. TALL ARCHED WINDOWS (2 pairs, leaded glass) ───────────────
+      const winCount=4;
+      const winW=ST-10, winH=wallH*0.55;
+      const winSpacing=rw/(winCount+1);
+      for(let wi=0;wi<winCount;wi++){
+        // Skip middle two (center is door area). Only draw at positions 0,1 & 2,3 but spread around middle
+        const idx=wi<2?wi:wi+1; // skip position 2 for door
+        const wx=rx+winSpacing*(idx+1)-winW/2;
+        const wy=wallTop+wallH*0.2;
+
+        // Deep stone sill
+        ctx.fillStyle=HPAL.stoneXD;
+        ctx.fillRect(wx-4,wy+winH+1,winW+8,3);
+        ctx.fillStyle=HPAL.stoneL;
+        ctx.fillRect(wx-4,wy+winH+1,winW+8,1);
+        // Stone window surround (rectangular part)
+        ctx.fillStyle=HPAL.stoneXD;
+        ctx.fillRect(wx-3,wy,winW+6,winH+1);
+        ctx.fillStyle=HPAL.stoneL;
+        ctx.fillRect(wx-3,wy,1,winH+1);ctx.fillRect(wx-3,wy,winW+6,1);
+        // Arch (top half-circle)
+        ctx.fillStyle=HPAL.stoneXD;
+        ctx.beginPath();ctx.arc(wx+winW/2,wy,winW/2+3,Math.PI,0);ctx.fill();
+        ctx.fillStyle=HPAL.stoneL;
+        ctx.beginPath();ctx.arc(wx+winW/2,wy,winW/2+3,Math.PI,Math.PI*1.3);ctx.stroke();
+        // Keystone at top of arch
+        ctx.fillStyle=HPAL.stoneXL;
+        ctx.fillRect(wx+winW/2-2,wy-winW/2-4,4,5);
+        ctx.fillStyle=HPAL.stoneD;
+        ctx.fillRect(wx+winW/2-2,wy-winW/2-4,1,5);
+        ctx.fillRect(wx+winW/2+1,wy-winW/2-4,1,5);
+
+        // Glass - warm interior light (brighter when lit at night)
+        const gGrad=ctx.createLinearGradient(wx,wy,wx,wy+winH);
+        gGrad.addColorStop(0,'rgba(255,210,120,0.65)');
+        gGrad.addColorStop(0.5,'rgba(255,180,70,0.8)');
+        gGrad.addColorStop(1,'rgba(180,120,40,0.75)');
+        ctx.fillStyle=gGrad;
+        ctx.fillRect(wx,wy,winW,winH);
+        // Arched glass top
+        ctx.fillStyle=gGrad;
+        ctx.beginPath();ctx.arc(wx+winW/2,wy,winW/2,Math.PI,0);ctx.fill();
+
+        // Mullions — vertical center
+        ctx.fillStyle=HPAL.oak;
+        ctx.fillRect(wx+winW/2-1,wy,2,winH);
+        // 3 horizontal transoms
+        for(let tr=1;tr<4;tr++){
+          ctx.fillRect(wx,wy+(winH/4)*tr-0.5,winW,1);
+        }
+        // Leaded diamond cross pattern
+        ctx.strokeStyle=HPAL.stoneXD;ctx.lineWidth=1;
+        ctx.save();
+        ctx.beginPath();ctx.rect(wx,wy,winW,winH);ctx.clip();
+        for(let off=-winH;off<winW;off+=5){
+          ctx.beginPath();
+          ctx.moveTo(wx+off,wy);ctx.lineTo(wx+off+winH,wy+winH);
+          ctx.stroke();
+        }
+        for(let off=0;off<winW+winH;off+=5){
+          ctx.beginPath();
+          ctx.moveTo(wx+off,wy);ctx.lineTo(wx+off-winH,wy+winH);
+          ctx.stroke();
+        }
+        ctx.restore();
+
+        // Glare
+        ctx.fillStyle='rgba(255,255,255,0.18)';
+        ctx.fillRect(wx+1,wy+1,winW*0.35,winH*0.35);
+
+        // Light pool at night
+        if(isNight){
+          const pulseI=0.2+Math.sin(_t*1.4+wx)*0.06;
+          ctx.fillStyle=`rgba(255,200,100,${pulseI*0.4})`;
+          ctx.beginPath();ctx.ellipse(wx+winW/2,wallBot+10,winW*1.4,12,0,0,Math.PI*2);ctx.fill();
+        }
       }
 
-      // Two columns flanking door area
-      const colY=ry+bh-ST*1.6;const colH=ST*1.4;
-      const colX1=rx+rw/2-ST*0.9,colX2=rx+rw/2+ST*0.9-4;
-      for(const cx of [colX1,colX2]){
-        ctx.fillStyle='#8A8A92';ctx.fillRect(cx,colY,4,colH); // column shaft
-        ctx.fillStyle='#9A9AA2';ctx.fillRect(cx-2,colY,8,5); // capital top
-        ctx.fillStyle='#7A7A82';ctx.fillRect(cx-2,colY+colH-4,8,4); // base
+      // ── 5. GRAND PORTICO — 4 FLUTED COLUMNS + PEDIMENT ───────────────
+      const porT=wallBot-ST*1.7;  // portico top (where pediment sits)
+      const porB=wallBot;          // portico bottom (column bases)
+      const colCount=4;
+      const porW=rw*0.6, porX=rx+rw*0.2;
+      const colSpacing=porW/(colCount-1);
+
+      // Back wall of portico (darker recessed area)
+      ctx.fillStyle='rgba(0,0,0,0.3)';
+      ctx.fillRect(porX,porT,porW,porB-porT);
+
+      // Portico floor (marble slab)
+      ctx.fillStyle=HPAL.marbleD;
+      ctx.fillRect(porX-4,porB-2,porW+8,5);
+      ctx.fillStyle=HPAL.marble;
+      ctx.fillRect(porX-4,porB-2,porW+8,2);
+      // Floor tile lines
+      ctx.fillStyle=HPAL.marbleD;
+      for(let i=0;i<5;i++)ctx.fillRect(porX-4+i*((porW+8)/5),porB-2,1,5);
+
+      // Columns
+      const colBaseH=4, colCapH=5, colShaftH=porB-porT-colBaseH-colCapH-2;
+      for(let ci=0;ci<colCount;ci++){
+        const cx2=porX+ci*colSpacing-3;
+        const colY2=porT+2;
+        // Base (wider plinth)
+        ctx.fillStyle=HPAL.stoneXD;
+        ctx.fillRect(cx2-2,colY2+colCapH+colShaftH,10,colBaseH);
+        ctx.fillStyle=HPAL.marbleD;
+        ctx.fillRect(cx2-2,colY2+colCapH+colShaftH,10,colBaseH-1);
+        ctx.fillStyle=HPAL.marble;
+        ctx.fillRect(cx2-2,colY2+colCapH+colShaftH,10,1);
+        // Shaft (fluted — alternating light/dark stripes for flutes)
+        ctx.fillStyle=HPAL.marbleD;
+        ctx.fillRect(cx2,colY2+colCapH,6,colShaftH);
+        // 3 flutes (vertical highlights)
+        ctx.fillStyle=HPAL.marble;
+        ctx.fillRect(cx2,colY2+colCapH,1,colShaftH);
+        ctx.fillRect(cx2+2,colY2+colCapH,1,colShaftH);
+        ctx.fillRect(cx2+4,colY2+colCapH,1,colShaftH);
+        ctx.fillStyle=HPAL.marbleL;
+        ctx.fillRect(cx2,colY2+colCapH,1,2); // top glint
+        // Shadow on right
+        ctx.fillStyle=HPAL.stoneD;
+        ctx.fillRect(cx2+5,colY2+colCapH,1,colShaftH);
+        // Capital (Doric-style flared top)
+        ctx.fillStyle=HPAL.stoneXD;
+        ctx.fillRect(cx2-3,colY2,12,colCapH);
+        ctx.fillStyle=HPAL.marbleD;
+        ctx.fillRect(cx2-3,colY2+1,12,colCapH-1);
+        ctx.fillStyle=HPAL.marble;
+        ctx.fillRect(cx2-3,colY2+1,12,1);
+        // Abacus (top flat piece)
+        ctx.fillStyle=HPAL.marbleL;
+        ctx.fillRect(cx2-4,colY2,14,2);
+        ctx.fillStyle=HPAL.stoneD;
+        ctx.fillRect(cx2-4,colY2+1,14,1);
       }
 
-      // Triangular pediment above door
-      const pedW=rw*0.6,pedX=rx+rw*0.2;
-      const pedY=ry+bh-ST*1.65;
-      ctx.fillStyle='#6A6A72';
-      ctx.beginPath();ctx.moveTo(pedX,pedY);ctx.lineTo(pedX+pedW,pedY);ctx.lineTo(pedX+pedW/2,pedY-ST*0.5);ctx.closePath();ctx.fill();
-      ctx.fillStyle='#5A5A62';ctx.fillRect(pedX,pedY-2,pedW,3); // pediment base line
+      // ── 6. TRIANGULAR PEDIMENT (entablature + gable) ─────────────────
+      // Architrave/frieze (horizontal band just above columns)
+      const entY=porT-9;
+      ctx.fillStyle=HPAL.stoneXD;
+      ctx.fillRect(porX-8,entY,porW+16,9);
+      ctx.fillStyle=HPAL.marbleD;
+      ctx.fillRect(porX-8,entY+1,porW+16,7);
+      ctx.fillStyle=HPAL.marble;
+      ctx.fillRect(porX-8,entY+1,porW+16,1);
+      ctx.fillStyle=HPAL.stoneD;
+      ctx.fillRect(porX-8,entY+8,porW+16,1);
+      // Triglyphs (decorative vertical notches along frieze)
+      ctx.fillStyle=HPAL.stoneD;
+      for(let tg=0;tg<Math.floor((porW+16)/12);tg++){
+        const tgX=porX-8+tg*12+4;
+        ctx.fillRect(tgX,entY+2,1,5);
+        ctx.fillRect(tgX+2,entY+2,1,5);
+        ctx.fillRect(tgX+4,entY+2,1,5);
+      }
 
-      // Clock face on pediment
-      const clkX=pedX+pedW/2,clkY=pedY-ST*0.25;const clkR=ST*0.18;
-      ctx.fillStyle='#E8E4D8';ctx.beginPath();ctx.arc(clkX,clkY,clkR,0,Math.PI*2);ctx.fill();
-      ctx.fillStyle='#3A3040';ctx.lineWidth=1;ctx.beginPath();ctx.arc(clkX,clkY,clkR,0,Math.PI*2);ctx.stroke();
-      // Hour dots
+      // Pediment triangle
+      const pedW=porW+20, pedX=porX-10;
+      const pedPeakY=entY-ST*0.75;
+      ctx.fillStyle=HPAL.stoneXD;
+      ctx.beginPath();
+      ctx.moveTo(pedX,entY);ctx.lineTo(pedX+pedW/2,pedPeakY);ctx.lineTo(pedX+pedW,entY);
+      ctx.closePath();ctx.fill();
+      // Inner pediment fill (slightly lighter)
+      ctx.fillStyle=HPAL.marbleD;
+      ctx.beginPath();
+      ctx.moveTo(pedX+3,entY-1);ctx.lineTo(pedX+pedW/2,pedPeakY+3);ctx.lineTo(pedX+pedW-3,entY-1);
+      ctx.closePath();ctx.fill();
+      // Top highlight along left slope
+      ctx.strokeStyle=HPAL.marble;ctx.lineWidth=1;
+      ctx.beginPath();
+      ctx.moveTo(pedX+4,entY-1);ctx.lineTo(pedX+pedW/2,pedPeakY+3);
+      ctx.stroke();
+
+      // Clock face in pediment (bigger, marble with brass details)
+      const clkX=pedX+pedW/2,clkY=entY-ST*0.4;const clkR=ST*0.24;
+      // Recessed dark background
+      ctx.fillStyle=HPAL.stoneXD;
+      ctx.beginPath();ctx.arc(clkX,clkY,clkR+3,0,Math.PI*2);ctx.fill();
+      // Marble face
+      ctx.fillStyle=HPAL.marbleL;
+      ctx.beginPath();ctx.arc(clkX,clkY,clkR,0,Math.PI*2);ctx.fill();
+      // Brass rim
+      ctx.strokeStyle=HPAL.brass;ctx.lineWidth=2;
+      ctx.beginPath();ctx.arc(clkX,clkY,clkR,0,Math.PI*2);ctx.stroke();
+      ctx.strokeStyle=HPAL.brassL;ctx.lineWidth=1;
+      ctx.beginPath();ctx.arc(clkX,clkY,clkR-1,0,Math.PI*2);ctx.stroke();
+      // Roman numeral ticks (longer at 12/3/6/9)
       for(let h=0;h<12;h++){
         const ang=h/12*Math.PI*2-Math.PI/2;
-        ctx.fillStyle='#3A3040';ctx.fillRect(clkX+Math.cos(ang)*(clkR-3)-1,clkY+Math.sin(ang)*(clkR-3)-1,2,2);
+        ctx.fillStyle='#2A2030';
+        const len=(h%3===0)?4:2;
+        ctx.fillRect(clkX+Math.cos(ang)*(clkR-len)-1,clkY+Math.sin(ang)*(clkR-len)-1,2,2);
       }
-      // Clock hands based on game time
+      // Clock hands
       const clkHr=getHour()%12,clkMin=(getHour()-Math.floor(getHour()))*60;
       const hAng=(clkHr/12+clkMin/720)*Math.PI*2-Math.PI/2;
       const mAng=clkMin/60*Math.PI*2-Math.PI/2;
-      ctx.strokeStyle='#3A3040';ctx.lineWidth=1.5;
+      ctx.strokeStyle='#2A2030';ctx.lineWidth=2;ctx.lineCap='round';
       ctx.beginPath();ctx.moveTo(clkX,clkY);ctx.lineTo(clkX+Math.cos(hAng)*(clkR-5),clkY+Math.sin(hAng)*(clkR-5));ctx.stroke();
-      ctx.lineWidth=1;
-      ctx.beginPath();ctx.moveTo(clkX,clkY);ctx.lineTo(clkX+Math.cos(mAng)*(clkR-3),clkY+Math.sin(mAng)*(clkR-3));ctx.stroke();
+      ctx.lineWidth=1.5;
+      ctx.beginPath();ctx.moveTo(clkX,clkY);ctx.lineTo(clkX+Math.cos(mAng)*(clkR-2),clkY+Math.sin(mAng)*(clkR-2));ctx.stroke();
+      ctx.lineCap='butt';
+      // Center hub
+      ctx.fillStyle=HPAL.brass;
+      ctx.beginPath();ctx.arc(clkX,clkY,2,0,Math.PI*2);ctx.fill();
 
-      // Grand double door — wider, darker, with brass handles
-      const gdW=ST+12,gdH=ST+14;
-      const gdX=rx+rw/2-gdW/2;const gdY=ry+bh-gdH;
-      ctx.fillStyle='#1A1820';ctx.fillRect(gdX-4,gdY,gdW+8,gdH+1);
-      ctx.fillStyle='#3A3440';ctx.fillRect(gdX,gdY+2,gdW/2-1,gdH-2); // left door
-      ctx.fillStyle='#2E2838';ctx.fillRect(gdX+gdW/2+1,gdY+2,gdW/2-1,gdH-2); // right door
-      // Door panels
-      ctx.fillStyle='rgba(0,0,0,0.15)';
-      ctx.fillRect(gdX+4,gdY+6,gdW/2-7,gdH/2-8);ctx.fillRect(gdX+4,gdY+gdH/2+2,gdW/2-7,gdH/2-10);
-      ctx.fillRect(gdX+gdW/2+3,gdY+6,gdW/2-7,gdH/2-8);ctx.fillRect(gdX+gdW/2+3,gdY+gdH/2+2,gdW/2-7,gdH/2-10);
-      // Brass handles
-      ctx.fillStyle='#C8A020';
-      ctx.fillRect(gdX+gdW/2-6,gdY+gdH/2-4,4,10);ctx.fillRect(gdX+gdW/2+3,gdY+gdH/2-4,4,10);
-      // 'TOWN HALL' carved into stone lintel
-      ctx.fillStyle='#2A2A30';ctx.fillRect(gdX-8,gdY-12,gdW+16,12);
-      ctx.fillStyle='#8A8A92';ctx.font='bold 7px '+FONT;ctx.textAlign='center';
-      ctx.fillText('TOWN HALL',gdX+gdW/2,gdY-2);
-      // Door mat
-      ctx.fillStyle='#4A4A50';ctx.fillRect(gdX-6,ry+bh+1,gdW+12,5);
-      ctx.fillStyle='rgba(200,160,20,0.25)';
-      for(let i=0;i<4;i++){ctx.fillRect(gdX-4+i*10,ry+bh+2,8,3);}
+      // ── 7. GRAND DOUBLE DOORS (oak w/ brass studs) ───────────────────
+      const gdW=ST+6, gdH=ST*1.3;
+      const gdX=rx+rw/2-gdW/2, gdY=wallBot-gdH;
+      // Stone lintel above door with 'TOWN HALL' carved inscription
+      const lntY=gdY-14, lntH=14;
+      ctx.fillStyle=HPAL.stoneXD;
+      ctx.fillRect(gdX-10,lntY,gdW+20,lntH);
+      ctx.fillStyle=HPAL.stoneL;
+      ctx.fillRect(gdX-10,lntY,gdW+20,2);
+      ctx.fillStyle=HPAL.stone;
+      ctx.fillRect(gdX-10,lntY+2,gdW+20,10);
+      ctx.fillStyle=HPAL.stoneD;
+      ctx.fillRect(gdX-10,lntY+12,gdW+20,2);
+      // Carved text (darker inset)
+      ctx.fillStyle='rgba(30,25,40,0.85)';
+      ctx.font='bold 8px '+FONT;ctx.textAlign='center';
+      ctx.fillText('TOWN HALL',gdX+gdW/2,lntY+10);
+      ctx.fillStyle='rgba(255,255,255,0.12)';
+      ctx.fillText('TOWN HALL',gdX+gdW/2,lntY+9);
 
-      // Slate grey roof — clean lines
-      ctx.fillStyle='#6A6A72';ctx.fillRect(rx-8,ry-6,rw+16,ST+10);
-      ctx.fillStyle='#5A5A62';
-      for(let i=0;i<Math.ceil((rw+16)/16);i++){ctx.fillRect(rx-8+i*16,ry-6,15,ST+10);}
-      ctx.fillStyle='#4A4A52';ctx.fillRect(rx-8,ry-8,rw+16,4);
-      ctx.fillStyle='rgba(0,0,0,0.22)';ctx.fillRect(rx-10,ry+ST+3,rw+20,5);
+      // Door frame (stone reveal)
+      ctx.fillStyle=HPAL.stoneXD;
+      ctx.fillRect(gdX-4,gdY-2,gdW+8,gdH+2);
+      ctx.fillStyle=HPAL.stone;
+      ctx.fillRect(gdX-3,gdY-1,gdW+6,gdH+1);
+      ctx.fillStyle=HPAL.stoneD;
+      ctx.fillRect(gdX-2,gdY,gdW+4,2);
 
-      // Small ₿ flag on top
-      const flagX=rx+rw/2-1,flagY=ry-18;
-      ctx.fillStyle='#888888';ctx.fillRect(flagX,flagY,2,16); // pole
-      ctx.fillStyle='#C07010';ctx.fillRect(flagX+2,flagY,14,9); // flag orange
-      ctx.fillStyle='#F7931A';ctx.font='bold 7px '+FONT;ctx.textAlign='left';
-      ctx.fillText('₿',flagX+3,flagY+8);
+      // Double doors — dark oak with vertical planks
+      ctx.fillStyle=HPAL.oak;ctx.fillRect(gdX,gdY+1,gdW,gdH-1);
+      // Left door
+      ctx.fillStyle='#3A2010';ctx.fillRect(gdX+1,gdY+2,gdW/2-1,gdH-3);
+      // Right door
+      ctx.fillStyle='#2E1808';ctx.fillRect(gdX+gdW/2+1,gdY+2,gdW/2-2,gdH-3);
+      // Center seam
+      ctx.fillStyle=HPAL.oak;
+      ctx.fillRect(gdX+gdW/2-1,gdY+1,2,gdH-1);
+      // Vertical plank lines on each door
+      ctx.fillStyle='rgba(0,0,0,0.35)';
+      for(let pk=0;pk<3;pk++){
+        ctx.fillRect(gdX+2+pk*(gdW/6),gdY+3,1,gdH-5);
+        ctx.fillRect(gdX+gdW/2+2+pk*(gdW/6),gdY+3,1,gdH-5);
+      }
+      // Recessed panels (4 per door — 2x2 grid)
+      ctx.fillStyle='rgba(0,0,0,0.4)';
+      const panelMargin=3;
+      const panelW=gdW/2-panelMargin*2-1;
+      for(const sideX of [gdX+panelMargin,gdX+gdW/2+panelMargin]){
+        for(let pr=0;pr<2;pr++){
+          const py2=gdY+5+pr*(gdH*0.45);
+          ctx.fillRect(sideX,py2,panelW,gdH*0.3);
+          ctx.fillStyle='rgba(255,230,180,0.08)';
+          ctx.fillRect(sideX,py2,panelW,1);
+          ctx.fillRect(sideX,py2,1,gdH*0.3);
+          ctx.fillStyle='rgba(0,0,0,0.4)';
+        }
+      }
+      // Brass stud rivets around the edges
+      ctx.fillStyle=HPAL.brassL;
+      for(let si=0;si<6;si++){
+        const sy2=gdY+4+si*(gdH-8)/5;
+        ctx.fillRect(gdX+1,sy2,2,2);
+        ctx.fillRect(gdX+gdW-3,sy2,2,2);
+        ctx.fillRect(gdX+gdW/2-3,sy2,2,2);
+        ctx.fillRect(gdX+gdW/2+1,sy2,2,2);
+      }
+      // Big brass ring handles
+      for(const hx of [gdX+gdW/2-7,gdX+gdW/2+4]){
+        ctx.fillStyle=HPAL.brassD;
+        ctx.fillRect(hx-1,gdY+gdH/2-1,4,4); // plate
+        ctx.strokeStyle=HPAL.brass;ctx.lineWidth=2;
+        ctx.beginPath();ctx.arc(hx+1,gdY+gdH/2+4,3,0,Math.PI*2);ctx.stroke();
+        ctx.strokeStyle=HPAL.brassL;ctx.lineWidth=1;
+        ctx.beginPath();ctx.arc(hx+1,gdY+gdH/2+4,3,-Math.PI*0.75,-Math.PI*0.25);ctx.stroke();
+      }
+
+      // Red carpet runner from door out to portico edge
+      ctx.fillStyle='#6A1010';
+      ctx.fillRect(gdX-3,wallBot+3,gdW+6,18);
+      ctx.fillStyle='#8A2018';
+      ctx.fillRect(gdX-3,wallBot+3,gdW+6,2);
+      ctx.fillStyle='#4A0808';
+      ctx.fillRect(gdX-3,wallBot+20,gdW+6,1);
+      // Gold trim along carpet edges
+      ctx.fillStyle=HPAL.brass;
+      ctx.fillRect(gdX-3,wallBot+3,1,18);
+      ctx.fillRect(gdX+gdW+2,wallBot+3,1,18);
+
+      // ── 8. TORCH SCONCES flanking the door (fire glow) ───────────────
+      for(const tsSide of [-1,1]){
+        const tsX=gdX+(tsSide<0?-10:gdW+8);
+        const tsY=gdY+gdH*0.45;
+        // Wall bracket
+        ctx.fillStyle=HPAL.oak;
+        ctx.fillRect(tsX-1,tsY,3,10);
+        ctx.fillStyle=HPAL.brassD;
+        ctx.fillRect(tsX-2,tsY-2,5,3);
+        // Torch body
+        ctx.fillStyle=HPAL.oakL;
+        ctx.fillRect(tsX,tsY-6,2,6);
+        // Flame (animated)
+        const flameFlick=Math.sin(t*8+tsSide)*1.5;
+        ctx.fillStyle=HPAL.fire;
+        ctx.beginPath();
+        ctx.moveTo(tsX-3,tsY-4);
+        ctx.quadraticCurveTo(tsX+1+flameFlick,tsY-14-Math.abs(flameFlick),tsX+5,tsY-4);
+        ctx.closePath();ctx.fill();
+        ctx.fillStyle=HPAL.fireBright;
+        ctx.beginPath();
+        ctx.moveTo(tsX-1,tsY-5);
+        ctx.quadraticCurveTo(tsX+1+flameFlick*0.5,tsY-10,tsX+3,tsY-5);
+        ctx.closePath();ctx.fill();
+        // Glow halo
+        const flGrad=ctx.createRadialGradient(tsX+1,tsY-8,1,tsX+1,tsY-8,30);
+        flGrad.addColorStop(0,'rgba(255,150,50,0.35)');
+        flGrad.addColorStop(1,'rgba(255,150,50,0)');
+        ctx.fillStyle=flGrad;
+        ctx.beginPath();ctx.arc(tsX+1,tsY-8,30,0,Math.PI*2);ctx.fill();
+      }
+
+      // Stone urns flanking the steps (planters)
+      for(const urnSide of [-1,1]){
+        const urnX=rx+rw/2+urnSide*(porW/2+6);
+        const urnY=wallBot+6;
+        // Urn body (curved)
+        ctx.fillStyle=HPAL.stoneXD;
+        ctx.fillRect(urnX-4,urnY,9,2); // top rim
+        ctx.fillStyle=HPAL.stoneL;
+        ctx.fillRect(urnX-4,urnY,9,1);
+        ctx.fillStyle=HPAL.stone;
+        ctx.fillRect(urnX-3,urnY+2,7,8); // main body
+        ctx.fillStyle=HPAL.stoneD;
+        ctx.fillRect(urnX+3,urnY+2,1,8);
+        ctx.fillStyle=HPAL.stoneL;
+        ctx.fillRect(urnX-3,urnY+2,1,8);
+        // Base
+        ctx.fillStyle=HPAL.stoneXD;
+        ctx.fillRect(urnX-4,urnY+10,9,3);
+        ctx.fillStyle=HPAL.stone;
+        ctx.fillRect(urnX-4,urnY+10,9,1);
+        // Plant coming out
+        ctx.fillStyle='#3A6028';
+        ctx.fillRect(urnX-1,urnY-4,1,4);
+        ctx.fillRect(urnX+1,urnY-5,1,5);
+        ctx.fillRect(urnX+3,urnY-3,1,3);
+        ctx.fillStyle='#558A30';
+        ctx.fillRect(urnX-2,urnY-3,1,2);
+        // Flower
+        ctx.fillStyle='#F0C020';
+        ctx.fillRect(urnX+1,urnY-6,2,1);
+      }
+
+      // ── 9. SLATE ROOF (hipped) w/ tile detail ────────────────────────
+      const roofPeakY=ry-ST*0.4;
+      const roofEaveY=wallTop;
+      const roofOver=10;
+      // Base fill
+      ctx.fillStyle=HPAL.slateD;
+      ctx.beginPath();
+      ctx.moveTo(rx-roofOver,roofEaveY);
+      ctx.lineTo(rx+rw*0.15,roofPeakY);
+      ctx.lineTo(rx+rw*0.85,roofPeakY);
+      ctx.lineTo(rx+rw+roofOver,roofEaveY);
+      ctx.closePath();ctx.fill();
+      // Slate tiles — horizontal bands
+      for(let row=0;row<8;row++){
+        const ratio=row/8;
+        const topY=roofPeakY+(roofEaveY-roofPeakY)*ratio;
+        const topHalfW=(rw/2+roofOver)*ratio+rw*0.35*(1-ratio);
+        const bandH=(roofEaveY-roofPeakY)/8;
+        // Skip to keep hipped shape
+        const tileC=row%2===0?HPAL.slate:HPAL.slateL;
+        ctx.fillStyle=tileC;
+        ctx.fillRect(rx+rw/2-topHalfW,topY,topHalfW*2,bandH+1);
+        // Individual tile separators
+        ctx.fillStyle='rgba(0,0,0,0.3)';
+        for(let tc=0;tc<Math.ceil(topHalfW*2/9);tc++){
+          ctx.fillRect(rx+rw/2-topHalfW+tc*9+(row%2)*4,topY,1,bandH);
+        }
+        // Tile shadow line
+        ctx.fillRect(rx+rw/2-topHalfW,topY+bandH-1,topHalfW*2,1);
+      }
+      // Ridge cap
+      ctx.fillStyle=HPAL.slateXL;
+      ctx.fillRect(rx+rw*0.15-2,roofPeakY-2,rw*0.7+4,3);
+      ctx.fillStyle=HPAL.slateD;
+      ctx.fillRect(rx+rw*0.15-2,roofPeakY+1,rw*0.7+4,1);
+      // Decorative iron cresting (little spikes)
+      ctx.fillStyle='#2A2A34';
+      for(let cr=0;cr<Math.floor(rw*0.7/6);cr++){
+        const crX=rx+rw*0.15+cr*6;
+        ctx.fillRect(crX,roofPeakY-5,2,4);
+        ctx.fillRect(crX-1,roofPeakY-5,4,1);
+      }
+      // Eave fascia + shadow
+      ctx.fillStyle=HPAL.stoneXD;
+      ctx.fillRect(rx-roofOver-2,roofEaveY,rw+roofOver*2+4,3);
+      ctx.fillStyle='rgba(0,0,0,0.3)';
+      ctx.fillRect(rx-roofOver-2,roofEaveY+3,rw+roofOver*2+4,3);
+
+      // ── 10. BELL TOWER / BELFRY on top center ────────────────────────
+      const btW=28, btH=26;
+      const btX=rx+rw/2-btW/2, btY=roofPeakY-btH-2;
+      // Base platform
+      ctx.fillStyle=HPAL.stoneXD;
+      ctx.fillRect(btX-4,btY+btH,btW+8,5);
+      ctx.fillStyle=HPAL.stone;
+      ctx.fillRect(btX-4,btY+btH,btW+8,2);
+      // Tower walls (stone)
+      ctx.fillStyle=HPAL.stoneD;
+      ctx.fillRect(btX,btY,btW,btH);
+      // Stone block pattern
+      for(let br=0;br<3;br++){
+        const brY=btY+br*9;
+        const offs=br%2*8;
+        for(let bc=0;bc<4;bc++){
+          const bcX=btX+bc*8+offs;
+          if(bcX>=btX+btW-2)continue;
+          const r=_svRand(d.x,d.y,br*5+bc+900);
+          ctx.fillStyle=r>0.5?HPAL.stoneL:HPAL.stone;
+          ctx.fillRect(bcX,brY,7,8);
+          ctx.fillStyle=HPAL.stoneXD;
+          ctx.fillRect(bcX+7,brY,1,8);
+        }
+      }
+      // Belfry opening (big arched window showing bell)
+      const bellArchX=btX+btW/2-8, bellArchY=btY+6;
+      ctx.fillStyle=HPAL.stoneXD;
+      ctx.fillRect(bellArchX-1,bellArchY,18,14);
+      ctx.beginPath();ctx.arc(bellArchX+8,bellArchY,9,Math.PI,0);ctx.fill();
+      // Interior dark
+      ctx.fillStyle='#0A0810';
+      ctx.fillRect(bellArchX+1,bellArchY+2,14,11);
+      ctx.beginPath();ctx.arc(bellArchX+8,bellArchY,7,Math.PI,0);ctx.fill();
+      // The bell
+      const bellX=bellArchX+8, bellY=bellArchY+2;
+      const bellSway=Math.sin(t*1.2)*0.8;
+      ctx.save();ctx.translate(bellX,bellY);ctx.rotate(bellSway*0.05);
+      // Bell mount
+      ctx.fillStyle=HPAL.oak;
+      ctx.fillRect(-8,-4,16,2);
+      // Bell body
+      ctx.fillStyle=HPAL.brassD;
+      ctx.beginPath();
+      ctx.moveTo(-5,-2);ctx.lineTo(5,-2);
+      ctx.lineTo(6,8);ctx.lineTo(-6,8);
+      ctx.closePath();ctx.fill();
+      ctx.fillStyle=HPAL.brass;
+      ctx.beginPath();
+      ctx.moveTo(-4,-1);ctx.lineTo(3,-1);
+      ctx.lineTo(4,7);ctx.lineTo(-5,7);
+      ctx.closePath();ctx.fill();
+      // Bell highlight
+      ctx.fillStyle=HPAL.brassL;
+      ctx.fillRect(-4,0,1,6);
+      // Bell rim
+      ctx.fillStyle=HPAL.brassD;
+      ctx.fillRect(-6,8,12,1);
+      // Clapper
+      ctx.fillStyle='#2A2020';
+      ctx.fillRect(-1,4,2,5);
+      ctx.restore();
+
+      // Bell tower arched keystone
+      ctx.fillStyle=HPAL.stoneXL;
+      ctx.fillRect(bellArchX+6,bellArchY-10,4,4);
+
+      // Bell tower roof — small pointed cap
+      ctx.fillStyle=HPAL.slateD;
+      ctx.beginPath();
+      ctx.moveTo(btX-3,btY);
+      ctx.lineTo(btX+btW/2,btY-12);
+      ctx.lineTo(btX+btW+3,btY);
+      ctx.closePath();ctx.fill();
+      ctx.fillStyle=HPAL.slate;
+      ctx.beginPath();
+      ctx.moveTo(btX-2,btY);
+      ctx.lineTo(btX+btW/2,btY-11);
+      ctx.lineTo(btX+btW/2,btY);
+      ctx.closePath();ctx.fill();
+      // Slate lines on cap
+      ctx.strokeStyle='rgba(0,0,0,0.35)';ctx.lineWidth=1;
+      for(let sl=0;sl<3;sl++){
+        ctx.beginPath();
+        ctx.moveTo(btX-3+sl*3,btY-sl*3);
+        ctx.lineTo(btX+btW/2,btY-12+sl*3);
+        ctx.stroke();
+      }
+
+      // ── 11. ORANGE ₿ FLAG on top of the belfry (waves) ───────────────
+      const flagX=btX+btW/2-1, flagY=btY-24;
+      // Pole
+      ctx.fillStyle=HPAL.stoneXD;
+      ctx.fillRect(flagX-1,flagY-2,3,12);
+      ctx.fillStyle=HPAL.marbleD;
+      ctx.fillRect(flagX,flagY-2,1,12);
+      // Finial ball on top
+      ctx.fillStyle=HPAL.brass;
+      ctx.beginPath();ctx.arc(flagX,flagY-2,2,0,Math.PI*2);ctx.fill();
+      ctx.fillStyle=HPAL.brassL;
+      ctx.fillRect(flagX-1,flagY-3,1,1);
+      // Waving flag (sinusoidal edge)
+      const flagW=18, flagH=11;
+      ctx.save();
+      ctx.beginPath();
+      ctx.moveTo(flagX+1,flagY);
+      for(let fi=0;fi<=flagW;fi+=2){
+        const wavY=Math.sin(t*3+fi*0.3)*1.5;
+        ctx.lineTo(flagX+1+fi,flagY+wavY);
+      }
+      for(let fi=flagW;fi>=0;fi-=2){
+        const wavY=Math.sin(t*3+fi*0.3)*1.5;
+        ctx.lineTo(flagX+1+fi,flagY+flagH+wavY);
+      }
+      ctx.closePath();
+      ctx.fillStyle='#C05010';
+      ctx.fill();
+      ctx.clip();
+      ctx.fillStyle='#E07020';
+      ctx.fillRect(flagX,flagY,flagW+2,3);
+      ctx.fillStyle='#F7931A';
+      ctx.font='bold 8px '+FONT;ctx.textAlign='center';
+      ctx.fillText('₿',flagX+flagW/2+1,flagY+flagH*0.75);
+      ctx.restore();
+      // Flag shadow stripes
+      ctx.fillStyle='rgba(0,0,0,0.2)';
+      ctx.fillRect(flagX+1,flagY+flagH-2,flagW,2);
     }
 
     // ── DEFAULT building ──────────────────────────────────────────────────
@@ -2189,15 +2704,159 @@ function drawDecor(d) {
     ctx.fillStyle=C.orange;ctx.font='16px serif';ctx.textAlign='center';ctx.fillText('🧩',sx+ST/2,sy+ST/2+5);
   }
   else if(d.type==='citadel_tower'){
-    // Draw a tall tower above the citadel
-    ctx.fillStyle='#5A3818';ctx.fillRect(sx+ST/2-8,sy-ST*1.5,16,ST*1.5+ST*.4);
-    ctx.fillStyle='#6A4820';ctx.fillRect(sx+ST/2-10,sy-ST*1.5,20,8); // parapet
-    // Battlements
-    for(let i=0;i<3;i++){ctx.fillStyle='#5A3818';ctx.fillRect(sx+ST/2-9+i*7,sy-ST*1.5-6,5,8);}
-    // Window
-    ctx.fillStyle='#F7931A';const glow2=0.4+Math.sin(t*2)*0.2;
-    ctx.globalAlpha=glow2;ctx.fillRect(sx+ST/2-3,sy-ST*.9,6,8);ctx.globalAlpha=1;
-    ctx.fillStyle=C.orange;ctx.font='10px serif';ctx.textAlign='center';ctx.fillText('🗼',sx+ST/2,sy-ST*1.2);
+    // GRAND CITADEL KEEP — stone fortress tower
+    const CPAL={
+      stone:'#6A6872', stoneL:'#8A8892', stoneXL:'#A8A6B0', stoneD:'#3A384A', stoneXD:'#1A1824',
+      iron:'#2A2830', ironL:'#4A4854',
+      brass:'#B8881C', brassL:'#E8B040',
+      flame:'rgba(255,160,50,0.9)',
+    };
+    const tCX=sx+ST/2;
+    const towerW=28, towerH=ST*2.6;
+    const tX=tCX-towerW/2, tY=sy-towerH;
+
+    // ── Ground shadow
+    ctx.fillStyle='rgba(0,0,0,0.4)';
+    ctx.beginPath();ctx.ellipse(tCX,sy+4,towerW*0.6,5,0,0,Math.PI*2);ctx.fill();
+
+    // ── Stone base (wider bottom)
+    ctx.fillStyle=CPAL.stoneXD;
+    ctx.fillRect(tX-3,tY+towerH-8,towerW+6,10);
+    ctx.fillStyle=CPAL.stoneL;
+    ctx.fillRect(tX-3,tY+towerH-8,towerW+6,2);
+
+    // ── Main tower shaft (stone blocks)
+    ctx.fillStyle=CPAL.stoneD;
+    ctx.fillRect(tX,tY,towerW,towerH);
+    const brH=8;
+    for(let row=0;row<Math.ceil(towerH/brH);row++){
+      const rY=tY+row*brH;
+      const offs=row%2*7;
+      for(let col=0;col<5;col++){
+        const bX=tX+col*7+offs;
+        if(bX>=tX+towerW-1)continue;
+        const r=(Math.sin(col*13+row*7)*0.5+0.5);
+        ctx.fillStyle=r>0.5?CPAL.stoneL:CPAL.stone;
+        ctx.fillRect(bX,rY,6,brH-1);
+        ctx.fillStyle=CPAL.stoneXD;
+        ctx.fillRect(bX+6,rY,1,brH-1);
+      }
+      ctx.fillStyle='rgba(0,0,0,0.3)';
+      ctx.fillRect(tX,rY+brH-1,towerW,1);
+    }
+
+    // ── Arched doorway at the bottom
+    const dW=10,dH=14;
+    const dX=tCX-dW/2,dY=tY+towerH-dH-2;
+    ctx.fillStyle=CPAL.stoneXD;
+    ctx.fillRect(dX-1,dY,dW+2,dH);
+    ctx.beginPath();ctx.arc(dX+dW/2,dY,dW/2+1,Math.PI,0);ctx.fill();
+    ctx.fillStyle='#0A0610';
+    ctx.fillRect(dX,dY+1,dW,dH-1);
+    ctx.beginPath();ctx.arc(dX+dW/2,dY,dW/2,Math.PI,0);ctx.fill();
+    // Iron portcullis grid
+    ctx.strokeStyle=CPAL.iron;ctx.lineWidth=1;
+    for(let bi=1;bi<4;bi++){
+      ctx.beginPath();ctx.moveTo(dX+(dW/4)*bi,dY);ctx.lineTo(dX+(dW/4)*bi,dY+dH);ctx.stroke();
+    }
+    for(let bi=1;bi<3;bi++){
+      ctx.beginPath();ctx.moveTo(dX,dY+(dH/3)*bi);ctx.lineTo(dX+dW,dY+(dH/3)*bi);ctx.stroke();
+    }
+
+    // ── Arrow-slit windows (3 levels)
+    for(let lv=0;lv<3;lv++){
+      const slY=tY+12+lv*22;
+      for(const slSide of [-6,6]){
+        const slX=tCX+slSide-1;
+        ctx.fillStyle=CPAL.stoneXD;
+        ctx.fillRect(slX-1,slY-1,4,10);
+        // Cross-slit
+        ctx.fillStyle='#1A1420';
+        ctx.fillRect(slX,slY,2,8);
+        ctx.fillRect(slX-1,slY+3,4,2);
+        // Warm glow inside
+        const glow=0.5+Math.sin(t*2+lv+slSide)*0.2;
+        ctx.fillStyle=`rgba(255,160,50,${glow})`;
+        ctx.fillRect(slX,slY+1,2,6);
+      }
+    }
+
+    // ── Battlements (crenellations) at the top
+    const batY=tY-6;
+    ctx.fillStyle=CPAL.stoneD;
+    ctx.fillRect(tX-3,batY+4,towerW+6,6);
+    ctx.fillStyle=CPAL.stoneL;
+    ctx.fillRect(tX-3,batY+4,towerW+6,1);
+    // Individual merlons
+    for(let m=0;m<5;m++){
+      const mx=tX-3+m*((towerW+6)/5);
+      ctx.fillStyle=CPAL.stone;
+      ctx.fillRect(mx,batY-2,5,7);
+      ctx.fillStyle=CPAL.stoneL;
+      ctx.fillRect(mx,batY-2,5,1);
+      ctx.fillStyle=CPAL.stoneXD;
+      ctx.fillRect(mx+4,batY-2,1,7);
+    }
+
+    // ── Brazier/torch on top (animated fire)
+    const brzX=tCX-3, brzY=batY-8;
+    ctx.fillStyle=CPAL.iron;
+    ctx.fillRect(brzX,brzY,6,4);
+    ctx.fillStyle=CPAL.ironL;
+    ctx.fillRect(brzX,brzY,6,1);
+    // Fire
+    const fireFlick=Math.sin(t*10)*1.2;
+    ctx.fillStyle=CPAL.flame;
+    ctx.beginPath();
+    ctx.moveTo(brzX-1,brzY);
+    ctx.quadraticCurveTo(brzX+3+fireFlick,brzY-12,brzX+7,brzY);
+    ctx.closePath();ctx.fill();
+    ctx.fillStyle='rgba(255,220,120,0.95)';
+    ctx.beginPath();
+    ctx.moveTo(brzX+1,brzY);
+    ctx.quadraticCurveTo(brzX+3+fireFlick*0.5,brzY-8,brzX+5,brzY);
+    ctx.closePath();ctx.fill();
+    // Glow halo
+    const bGrad=ctx.createRadialGradient(brzX+3,brzY-4,2,brzX+3,brzY-4,24);
+    bGrad.addColorStop(0,'rgba(255,150,50,0.4)');
+    bGrad.addColorStop(1,'rgba(255,150,50,0)');
+    ctx.fillStyle=bGrad;
+    ctx.beginPath();ctx.arc(brzX+3,brzY-4,24,0,Math.PI*2);ctx.fill();
+
+    // ── Flagpole + waving orange banner from the top
+    const fpX=tCX+10,fpY=batY-14;
+    ctx.fillStyle=CPAL.iron;
+    ctx.fillRect(fpX,fpY,1,18);
+    ctx.fillStyle=CPAL.brass;
+    ctx.beginPath();ctx.arc(fpX,fpY-1,1.5,0,Math.PI*2);ctx.fill();
+    // Banner (vertical, tall and narrow)
+    const bnW=8,bnH=14;
+    ctx.save();
+    ctx.beginPath();
+    ctx.moveTo(fpX+1,fpY+2);
+    for(let fi=0;fi<=bnH;fi+=2){
+      const wvX=Math.sin(t*2.5+fi*0.4)*1.2;
+      ctx.lineTo(fpX+1+bnW+wvX,fpY+2+fi);
+    }
+    ctx.lineTo(fpX+1,fpY+2+bnH);
+    ctx.closePath();
+    ctx.fillStyle='#C05010';
+    ctx.fill();
+    ctx.clip();
+    ctx.fillStyle='#F7931A';
+    ctx.font='bold 9px '+FONT;ctx.textAlign='center';
+    ctx.fillText('₿',fpX+1+bnW/2,fpY+2+bnH/2+3);
+    ctx.restore();
+
+    // ── Faint upward magical particles (citadel energy)
+    for(let pi=0;pi<3;pi++){
+      const phase=(t*0.8+pi*2.1)%3;
+      const paY=tY+towerH*0.5-phase*30;
+      const paX=tCX-6+pi*6+Math.sin(t*2+pi)*2;
+      const alpha=1-phase/3;
+      ctx.fillStyle=`rgba(247,147,26,${alpha*0.6})`;
+      ctx.fillRect(paX,paY,1,1);
+    }
   }
 }
 
