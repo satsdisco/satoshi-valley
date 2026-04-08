@@ -973,128 +973,729 @@ function drawDecor(d) {
     ctx.fillStyle='rgba(0,0,0,0.18)';
     ctx.beginPath();ctx.ellipse(rx+rw/2,ry+bh+4,rw*0.48,6,0,0,Math.PI*2);ctx.fill();
 
-    // ── HOME ──────────────────────────────────────────────────────────────
+    // ── HOME (Uncle Toshi's Legendary Log Cabin) ────────────────────────
     if(d.label==='home'){
-      // Foundation — dark stone strip
-      ctx.fillStyle='#4A3A28';ctx.fillRect(rx-2,ry+bh-8,rw+4,8);
-      ctx.fillStyle='#5A4A34';
-      for(let i=0;i<Math.floor(rw/12);i++){ctx.fillRect(rx+i*12,ry+bh-8,10,3);}
+      const HMPAL={
+        log:'#7A4A28', logL:'#A06838', logXL:'#C88848', logD:'#4A2810', logXD:'#2A1608',
+        logEnd:'#6A3818', logEndL:'#B07840',
+        stone:'#6A5E50', stoneL:'#8A7E70', stoneXL:'#A8A094', stoneD:'#3A3228', stoneXD:'#1A1410',
+        shake:'#6A3018', shakeL:'#8A4020', shakeXL:'#AA5028', shakeD:'#3A1808',
+        iron:'#2A2218', ironL:'#4A4238', ironXL:'#6A6258',
+        brass:'#C8A030', brassL:'#F0C848',
+        shutter:'#2A6030', shutterL:'#3A8038',
+        fire:'rgba(255,150,40,0.75)',
+        amberWin:'rgba(255,200,120,0.85)',
+      };
+      const wallTop=ry+ST;
+      const wallBot=ry+bh-14;
+      const wallH=wallBot-wallTop;
 
-      // Log walls — warm brown base
-      ctx.fillStyle='#7A5030';ctx.fillRect(rx,ry+ST,rw,bh-ST-8);
-      // Horizontal log grain lines
-      ctx.fillStyle='rgba(0,0,0,0.12)';
-      for(let i=0;i<Math.floor((bh-ST)/8);i++){ctx.fillRect(rx,ry+ST+i*8+6,rw,2);}
-      // Subtle lighter highlight on each log
-      ctx.fillStyle='rgba(255,200,130,0.07)';
-      for(let i=0;i<Math.floor((bh-ST)/8);i++){ctx.fillRect(rx,ry+ST+i*8,rw,3);}
-      // Knot details
-      ctx.fillStyle='rgba(0,0,0,0.18)';
-      ctx.beginPath();ctx.ellipse(rx+rw*0.25,ry+ST+bh*0.35,4,3,0,0,Math.PI*2);ctx.fill();
-      ctx.beginPath();ctx.ellipse(rx+rw*0.72,ry+ST+bh*0.55,3,2,0,0,Math.PI*2);ctx.fill();
-      // Corner beams
-      ctx.fillStyle='#5A3818';ctx.fillRect(rx,ry+ST,5,bh-ST-8);ctx.fillRect(rx+rw-5,ry+ST,5,bh-ST-8);
-
-      // Stone chimney — right side
-      const chx=rx+rw-18,chy=ry-ST*0.6;
-      ctx.fillStyle='#5A5050';ctx.fillRect(chx,chy,14,ST*0.6+ST+4);
-      ctx.fillStyle='#4A4040';
-      for(let i=0;i<6;i++){
-        ctx.fillRect(chx+(i%2===0?0:2),chy+i*8,12,6);
-        ctx.fillStyle='rgba(0,0,0,0.15)';ctx.fillRect(chx,chy+i*8+6,14,2);ctx.fillStyle='#4A4040';
-      }
-      ctx.fillStyle='#3A3030';ctx.fillRect(chx-2,chy-4,18,5); // cap
-      // Chimney smoke (animated)
-      const sa=0.25+Math.sin(t*1.8)*0.1;
-      ctx.fillStyle=`rgba(190,190,190,${sa})`;
-      ctx.beginPath();ctx.arc(chx+7+Math.sin(t)*3,chy-12-Math.sin(t*1.3)*5,4+Math.sin(t*2)*1.5,0,Math.PI*2);ctx.fill();
-      ctx.fillStyle=`rgba(200,200,200,${sa*0.7})`;
-      ctx.beginPath();ctx.arc(chx+6+Math.sin(t+1)*4,chy-22-Math.sin(t*1.1)*7,3+Math.sin(t*2.5)*1,0,Math.PI*2);ctx.fill();
-
-      // Left window with flower box
-      const ww=ST-4,wh=ST-10;
-      const wx1=rx+ST*0.6;const wy=ry+ST+10;
-      ctx.fillStyle='#5A3818';ctx.fillRect(wx1-3,wy-3,ww+6,wh+6);
-      ctx.fillStyle=winGlow;ctx.fillRect(wx1,wy,ww,wh);
-      ctx.fillStyle='rgba(255,255,255,0.12)';ctx.fillRect(wx1,wy,ww/2,wh); // glare
-      ctx.fillStyle='#5A3818';ctx.fillRect(wx1+ww/2-1,wy,2,wh);ctx.fillRect(wx1,wy+wh/2-1,ww,2); // cross
-      // Flower box left
-      ctx.fillStyle='#6A4020';ctx.fillRect(wx1-3,wy+wh+3,ww+6,7);
-      ctx.fillStyle='#3A6020';ctx.fillRect(wx1,wy+wh+4,ww,4); // soil
-      // Flowers: red & yellow pixels
-      const flx=[wx1+3,wx1+8,wx1+14,wx1+20,wx1+26];
-      const flc=['#E04040','#F0C020','#E04040','#F0C020','#E04040'];
-      for(let i=0;i<flx.length;i++){ctx.fillStyle=flc[i];ctx.fillRect(flx[i],wy+wh+3,3,4);}
-
-      // Right window with flower box (only if wide enough)
-      if(d.w>=6){
-        const wx2=rx+rw-ST*0.6-ww;
-        ctx.fillStyle='#5A3818';ctx.fillRect(wx2-3,wy-3,ww+6,wh+6);
-        ctx.fillStyle=winGlow;ctx.fillRect(wx2,wy,ww,wh);
-        ctx.fillStyle='rgba(255,255,255,0.12)';ctx.fillRect(wx2,wy,ww/2,wh);
-        ctx.fillStyle='#5A3818';ctx.fillRect(wx2+ww/2-1,wy,2,wh);ctx.fillRect(wx2,wy+wh/2-1,ww,2);
-        ctx.fillStyle='#6A4020';ctx.fillRect(wx2-3,wy+wh+3,ww+6,7);
-        ctx.fillStyle='#3A6020';ctx.fillRect(wx2,wy+wh+4,ww,4);
-        for(let i=0;i<flx.length;i++){ctx.fillStyle=flc[i];ctx.fillRect(wx2+3+i*5-wx1+wx1%5,wy+wh+3,3,4);}
-      }
-
-      // Door — warm wood, ₿ carved
-      const doorW=ST-2,doorH=ST+10;
-      const doorX=rx+Math.floor(rw/2)-doorW/2;const doorY=ry+bh-doorH;
-      ctx.fillStyle='#3A2010';ctx.fillRect(doorX-3,doorY,doorW+6,doorH+1);
-      ctx.fillStyle='#7A5030';ctx.fillRect(doorX,doorY+2,doorW,doorH-2);
-      // Door panels
-      ctx.fillStyle='rgba(0,0,0,0.15)';ctx.fillRect(doorX+4,doorY+6,doorW-8,doorH/2-8);
-      ctx.fillRect(doorX+4,doorY+doorH/2+2,doorW-8,doorH/2-10);
-      // ₿ symbol carved
-      ctx.fillStyle='#5A3818';ctx.font='bold 10px '+FONT;ctx.textAlign='center';
-      ctx.fillText('₿',doorX+doorW/2,doorY+doorH/2+4);
-      // Handle
-      ctx.fillStyle='#C09040';ctx.fillRect(doorX+doorW-9,doorY+doorH/2-2,4,8);
-      // Porch step
-      ctx.fillStyle='#5A4A30';ctx.fillRect(doorX-6,ry+bh-4,doorW+12,6);
-      // Welcome mat
-      ctx.fillStyle='#8A5A30';ctx.fillRect(doorX-4,ry+bh+1,doorW+8,5);
-      ctx.fillStyle='rgba(255,180,80,0.3)';
-      for(let i=0;i<3;i++){ctx.fillRect(doorX-2+i*8,ry+bh+2,6,3);}
-
-      // Lantern — left of door
-      const lx=doorX-14,ly=doorY+doorH/2-4;
-      ctx.fillStyle='#5A4020';ctx.fillRect(lx,ly,4,16); // post
-      ctx.fillStyle='#6A5030';ctx.fillRect(lx-3,ly-8,10,9); // lantern body
-      ctx.fillStyle='rgba(255,200,80,0.7)';ctx.fillRect(lx-1,ly-6,6,5); // flame
-      if(isNight){
-        ctx.fillStyle='rgba(255,200,80,0.15)';
-        ctx.beginPath();ctx.arc(lx+2,ly-3,12,0,Math.PI*2);ctx.fill();
-      }
-
-      // Warm light pools from windows onto ground at night
-      if(isNight){
-        const glowPulse=0.06+Math.sin(_t*1.5)*0.02;
-        ctx.fillStyle=`rgba(255,200,100,${glowPulse})`;
-        ctx.beginPath();ctx.ellipse(wx1+ww/2,ry+bh+8,ww*1.5,10,0,0,Math.PI*2);ctx.fill();
-        if(d.w>=6){const wx2b=rx+rw-ST*0.6-ww;ctx.beginPath();ctx.ellipse(wx2b+ww/2,ry+bh+8,ww*1.5,10,0,0,Math.PI*2);ctx.fill();}
-        // Door light pool
-        ctx.fillStyle=`rgba(255,180,80,${glowPulse*0.8})`;
-        ctx.beginPath();ctx.ellipse(doorX+doorW/2,ry+bh+8,doorW*1.2,12,0,0,Math.PI*2);ctx.fill();
-      }
-
-      // Pitched roof — shingle texture
-      ctx.fillStyle='#8A3820';ctx.fillRect(rx-8,ry-6,rw+16,ST+10);
-      // Shingle rows — alternating slightly different shades
-      for(let row=0;row<4;row++){
-        ctx.fillStyle=row%2===0?'#9A4028':'#7A3018';
-        const rowY=ry-6+row*(ST+10)/4;
-        for(let col=0;col<Math.ceil((rw+16)/12);col++){
-          ctx.fillRect(rx-8+col*12+(row%2)*6,rowY,11,Math.floor((ST+10)/4)-1);
+      // ── 1. STACKED FIELDSTONE FOUNDATION ─────────────────────────────
+      const fndY=wallBot, fndH=14;
+      ctx.fillStyle=HMPAL.stoneXD;
+      ctx.fillRect(rx-4,fndY,rw+8,fndH);
+      // Irregular stones
+      for(let row=0;row<2;row++){
+        const offset=row%2===0?0:7;
+        for(let col=0;col<Math.ceil((rw+8)/14)+1;col++){
+          const bx=rx-4+col*14+offset;
+          if(bx>rx+rw+4)continue;
+          const r=_svRand(d.x,d.y,row*11+col+300);
+          const shade=r>0.66?HMPAL.stoneL:r>0.33?HMPAL.stone:HMPAL.stoneXL;
+          ctx.fillStyle=shade;
+          // Slightly irregular stone shapes
+          ctx.fillRect(bx,fndY+row*7,12+Math.floor(r*2),6);
+          ctx.fillStyle=HMPAL.stoneXD;
+          ctx.fillRect(bx+12+Math.floor(r*2),fndY+row*7,1,6);
+          // Highlight on top of each stone
+          ctx.fillStyle='rgba(255,255,255,0.12)';
+          ctx.fillRect(bx,fndY+row*7,12,1);
         }
       }
-      // Roof ridge
-      ctx.fillStyle='#5A2010';ctx.fillRect(rx-8,ry-8,rw+16,4);
-      // Eaves shadow
-      ctx.fillStyle='rgba(0,0,0,0.22)';ctx.fillRect(rx-10,ry+ST+3,rw+20,5);
-      // Slight overhang shadow on walls
-      ctx.fillStyle='rgba(0,0,0,0.1)';ctx.fillRect(rx,ry+ST+8,rw,8);
+      ctx.fillStyle='rgba(0,0,0,0.35)';
+      ctx.fillRect(rx-4,fndY+6,rw+8,1);
+      ctx.fillRect(rx-4,fndY+13,rw+8,1);
+
+      // ── 2. HAND-HEWN LOG WALLS (horizontal logs w/ notched corners) ──
+      // Background
+      ctx.fillStyle=HMPAL.logD;
+      ctx.fillRect(rx,wallTop,rw,wallH);
+      // Individual logs (stacked horizontally, ~9px each)
+      const logH=9;
+      const logCount=Math.ceil(wallH/logH);
+      for(let i=0;i<logCount;i++){
+        const ly=wallTop+i*logH;
+        // Log body (rounded top curve simulated w/ highlight)
+        ctx.fillStyle=HMPAL.log;
+        ctx.fillRect(rx,ly,rw,logH-1);
+        // Top highlight (catches the light on the round log surface)
+        ctx.fillStyle=HMPAL.logL;
+        ctx.fillRect(rx,ly,rw,2);
+        ctx.fillStyle=HMPAL.logXL;
+        ctx.fillRect(rx,ly,rw,1);
+        // Bottom shadow (where the log meets the one below)
+        ctx.fillStyle='rgba(0,0,0,0.4)';
+        ctx.fillRect(rx,ly+logH-2,rw,2);
+        // Darker mortar line between logs
+        ctx.fillStyle=HMPAL.logXD;
+        ctx.fillRect(rx,ly+logH-1,rw,1);
+        // Wood grain — subtle horizontal streaks
+        if(i%2===0){
+          ctx.fillStyle='rgba(0,0,0,0.12)';
+          ctx.fillRect(rx+rw*0.1,ly+3,rw*0.2,1);
+          ctx.fillRect(rx+rw*0.45,ly+4,rw*0.15,1);
+          ctx.fillRect(rx+rw*0.75,ly+3,rw*0.18,1);
+        }
+        // Occasional knot
+        if(i%3===1){
+          ctx.fillStyle=HMPAL.logXD;
+          ctx.beginPath();
+          ctx.ellipse(rx+rw*(0.2+(i*0.13)%0.7),ly+4,2,1.5,0,0,Math.PI*2);
+          ctx.fill();
+          ctx.fillStyle='rgba(0,0,0,0.3)';
+          ctx.beginPath();
+          ctx.ellipse(rx+rw*(0.2+(i*0.13)%0.7),ly+4.5,1,0.5,0,0,Math.PI*2);
+          ctx.fill();
+        }
+      }
+
+      // ── 3. NOTCHED CORNER LOG ENDS (classic log-cabin overlap) ───────
+      // Each log end sticks out past the wall showing the round cut end
+      for(let i=0;i<logCount;i++){
+        const ly=wallTop+i*logH;
+        const isEvenLog=i%2===0;
+        // Log ends stick out ~5px past each corner
+        // Left side
+        ctx.fillStyle=HMPAL.logEnd;
+        ctx.fillRect(rx-5,ly,6,logH-1);
+        ctx.fillStyle=HMPAL.logEndL;
+        ctx.fillRect(rx-5,ly,6,2);
+        ctx.fillStyle='rgba(0,0,0,0.4)';
+        ctx.fillRect(rx-5,ly+logH-2,6,2);
+        // Round cut rings at the very tip
+        if(isEvenLog){
+          ctx.fillStyle=HMPAL.logEndL;
+          ctx.beginPath();
+          ctx.ellipse(rx-4,ly+logH/2-1,2,2.5,0,0,Math.PI*2);
+          ctx.fill();
+          ctx.fillStyle=HMPAL.logD;
+          ctx.beginPath();
+          ctx.ellipse(rx-4,ly+logH/2-1,1,1.5,0,0,Math.PI*2);
+          ctx.fill();
+          ctx.fillStyle=HMPAL.logEnd;
+          ctx.fillRect(rx-4,ly+logH/2-2,1,1);
+        }
+        // Right side
+        ctx.fillStyle=HMPAL.logEnd;
+        ctx.fillRect(rx+rw-1,ly,6,logH-1);
+        ctx.fillStyle=HMPAL.logEndL;
+        ctx.fillRect(rx+rw-1,ly,6,2);
+        ctx.fillStyle='rgba(0,0,0,0.4)';
+        ctx.fillRect(rx+rw-1,ly+logH-2,6,2);
+        if(isEvenLog){
+          ctx.fillStyle=HMPAL.logEndL;
+          ctx.beginPath();
+          ctx.ellipse(rx+rw+3,ly+logH/2-1,2,2.5,0,0,Math.PI*2);
+          ctx.fill();
+          ctx.fillStyle=HMPAL.logD;
+          ctx.beginPath();
+          ctx.ellipse(rx+rw+3,ly+logH/2-1,1,1.5,0,0,Math.PI*2);
+          ctx.fill();
+          ctx.fillStyle=HMPAL.logEnd;
+          ctx.fillRect(rx+rw+3,ly+logH/2-2,1,1);
+        }
+      }
+
+      // ── 4. WINDOWS (2, w/ shutters + flower boxes + divided lights) ──
+      const ww=ST-6, wh=ST-12;
+      const wy=wallTop+8;
+      const wx1=rx+rw*0.2-ww/2;
+      const wx2=rx+rw*0.8-ww/2;
+
+      function drawToshiWindow(wx, showCat){
+        // Deep frame (recessed look)
+        ctx.fillStyle=HMPAL.logXD;
+        ctx.fillRect(wx-3,wy-3,ww+6,wh+6);
+        ctx.fillStyle=HMPAL.logD;
+        ctx.fillRect(wx-2,wy-2,ww+4,wh+4);
+        ctx.fillStyle=HMPAL.logL;
+        ctx.fillRect(wx-2,wy-2,ww+4,1);
+        // Warm interior glow
+        const flicker=0.88+Math.sin(t*2.5+wx)*0.08;
+        ctx.fillStyle=`rgba(255,200,120,${flicker})`;
+        ctx.fillRect(wx,wy,ww,wh);
+        // Gradient for depth
+        const wg=ctx.createLinearGradient(wx,wy,wx,wy+wh);
+        wg.addColorStop(0,'rgba(120,80,30,0.4)');
+        wg.addColorStop(0.5,'rgba(255,180,70,0)');
+        wg.addColorStop(1,'rgba(100,60,20,0.35)');
+        ctx.fillStyle=wg;ctx.fillRect(wx,wy,ww,wh);
+        // 4-pane divided light (cross mullions)
+        ctx.fillStyle=HMPAL.logXD;
+        ctx.fillRect(wx+ww/2-1,wy,2,wh);
+        ctx.fillRect(wx,wy+wh/2-1,ww,2);
+        // Extra thin mullions (4 panes = 2x2)
+        ctx.fillStyle=HMPAL.logD;
+        ctx.fillRect(wx+ww/4-0.5,wy,1,wh);
+        ctx.fillRect(wx+ww*0.75-0.5,wy,1,wh);
+        // Glass glare
+        ctx.fillStyle='rgba(255,255,255,0.16)';
+        ctx.fillRect(wx+1,wy+1,ww*0.35,wh*0.35);
+        // Cat silhouette in one window (uncle toshi had a cat!)
+        if(showCat){
+          const ctxF=wx+ww*0.35, ctyF=wy+wh*0.75;
+          ctx.fillStyle='rgba(20,10,5,0.75)';
+          // Cat body
+          ctx.beginPath();
+          ctx.ellipse(ctxF,ctyF,5,3,0,0,Math.PI*2);
+          ctx.fill();
+          // Head
+          ctx.beginPath();
+          ctx.arc(ctxF+4,ctyF-1,2,0,Math.PI*2);
+          ctx.fill();
+          // Ears
+          ctx.beginPath();
+          ctx.moveTo(ctxF+3,ctyF-3);ctx.lineTo(ctxF+4,ctyF-4);ctx.lineTo(ctxF+3.5,ctyF-2);
+          ctx.closePath();ctx.fill();
+          ctx.beginPath();
+          ctx.moveTo(ctxF+5,ctyF-3);ctx.lineTo(ctxF+6,ctyF-4);ctx.lineTo(ctxF+4.5,ctyF-2);
+          ctx.closePath();ctx.fill();
+          // Tail curled up
+          ctx.fillRect(ctxF-5,ctyF-2,1,1);
+          ctx.fillRect(ctxF-5,ctyF-3,1,1);
+          ctx.fillRect(ctxF-4,ctyF-4,1,1);
+        }
+        // Sill — protruding wooden shelf
+        ctx.fillStyle=HMPAL.logXD;
+        ctx.fillRect(wx-4,wy+wh+1,ww+8,3);
+        ctx.fillStyle=HMPAL.log;
+        ctx.fillRect(wx-4,wy+wh+1,ww+8,1);
+        ctx.fillStyle='rgba(0,0,0,0.35)';
+        ctx.fillRect(wx-4,wy+wh+4,ww+8,1);
+        // Flower box
+        ctx.fillStyle='#5A3018';
+        ctx.fillRect(wx-3,wy+wh+4,ww+6,6);
+        ctx.fillStyle='#7A4828';
+        ctx.fillRect(wx-3,wy+wh+4,ww+6,1);
+        ctx.fillStyle=HMPAL.logXD;
+        ctx.fillRect(wx-3,wy+wh+9,ww+6,1);
+        // Soil
+        ctx.fillStyle='#2A5018';
+        ctx.fillRect(wx-2,wy+wh+5,ww+4,3);
+        // Flowers — varied
+        const flCols=['#E03030','#F0C020','#E84080','#FFFFFF'];
+        for(let fi=0;fi<6;fi++){
+          // Stem
+          ctx.fillStyle='#2A5018';
+          ctx.fillRect(wx-1+fi*((ww+2)/6),wy+wh+3,1,3);
+          // Bloom
+          ctx.fillStyle=flCols[(fi+Math.floor(wx))%flCols.length];
+          ctx.fillRect(wx-2+fi*((ww+2)/6),wy+wh+2,3,2);
+          ctx.fillStyle='rgba(255,255,255,0.4)';
+          ctx.fillRect(wx-1+fi*((ww+2)/6),wy+wh+2,1,1);
+        }
+        // Trailing vines
+        ctx.fillStyle='#3A7028';
+        ctx.fillRect(wx-3,wy+wh+10,1,3);
+        ctx.fillRect(wx+ww+2,wy+wh+10,1,2);
+
+        // ── Wooden shutters flanking (open, painted green)
+        const shW=5, shH=wh+4;
+        // Left shutter
+        ctx.fillStyle=HMPAL.logXD;
+        ctx.fillRect(wx-9,wy-2,shW,shH);
+        ctx.fillStyle=HMPAL.shutter;
+        ctx.fillRect(wx-8,wy-2,shW-1,shH);
+        ctx.fillStyle=HMPAL.shutterL;
+        ctx.fillRect(wx-8,wy-2,1,shH);
+        // Shutter slats (horizontal louvers)
+        ctx.fillStyle='rgba(0,0,0,0.3)';
+        for(let sl=0;sl<6;sl++)ctx.fillRect(wx-8,wy+1+sl*((shH-2)/6),shW-1,1);
+        // Cut-out heart/star in middle of each shutter
+        ctx.fillStyle='rgba(255,200,100,0.4)';
+        ctx.fillRect(wx-6,wy+wh/2-1,1,2);
+        ctx.fillRect(wx-7,wy+wh/2,3,1);
+
+        // Right shutter (mirrored)
+        ctx.fillStyle=HMPAL.logXD;
+        ctx.fillRect(wx+ww+4,wy-2,shW,shH);
+        ctx.fillStyle=HMPAL.shutter;
+        ctx.fillRect(wx+ww+4,wy-2,shW-1,shH);
+        ctx.fillStyle=HMPAL.shutterL;
+        ctx.fillRect(wx+ww+4,wy-2,1,shH);
+        ctx.fillStyle='rgba(0,0,0,0.3)';
+        for(let sl=0;sl<6;sl++)ctx.fillRect(wx+ww+4,wy+1+sl*((shH-2)/6),shW-1,1);
+        ctx.fillStyle='rgba(255,200,100,0.4)';
+        ctx.fillRect(wx+ww+6,wy+wh/2-1,1,2);
+        ctx.fillRect(wx+ww+5,wy+wh/2,3,1);
+
+        // Iron hinges
+        ctx.fillStyle=HMPAL.iron;
+        ctx.fillRect(wx-9,wy,3,1);ctx.fillRect(wx-9,wy+wh-1,3,1);
+        ctx.fillRect(wx+ww+6,wy,3,1);ctx.fillRect(wx+ww+6,wy+wh-1,3,1);
+
+        // Night glow pool
+        if(isNight){
+          const pulse=0.25+Math.sin(_t*1.5+wx)*0.08;
+          ctx.fillStyle=`rgba(255,190,80,${pulse*0.4})`;
+          ctx.beginPath();ctx.ellipse(wx+ww/2,wallBot+12,ww*1.6,14,0,0,Math.PI*2);ctx.fill();
+          ctx.fillStyle=`rgba(255,220,120,${pulse*0.3})`;
+          ctx.beginPath();ctx.ellipse(wx+ww/2,wallBot+10,ww,10,0,0,Math.PI*2);ctx.fill();
+        }
+      }
+
+      drawToshiWindow(wx1, true);  // left window has the cat
+      drawToshiWindow(wx2, false);
+
+      // ── 5. COVERED FRONT PORCH ───────────────────────────────────────
+      const porchTop=wallBot-ST*0.3;
+      const porchFloorY=wallBot+4;
+      const porchW=rw*0.55, porchX=rx+rw/2-porchW/2;
+      // Porch floor (planks extending out)
+      ctx.fillStyle=HMPAL.logXD;
+      ctx.fillRect(porchX-2,porchFloorY,porchW+4,6);
+      ctx.fillStyle=HMPAL.log;
+      ctx.fillRect(porchX-2,porchFloorY,porchW+4,3);
+      // Plank seams
+      ctx.fillStyle=HMPAL.logD;
+      for(let pl=0;pl<5;pl++){
+        ctx.fillRect(porchX-2+pl*((porchW+4)/5),porchFloorY,1,5);
+      }
+      ctx.fillStyle='rgba(0,0,0,0.3)';
+      ctx.fillRect(porchX-2,porchFloorY+5,porchW+4,1);
+
+      // ── 6. MASSIVE DUTCH DOOR w/ iron hardware ───────────────────────
+      const doorW=ST+2, doorH=ST+14;
+      const doorX=rx+rw/2-doorW/2, doorY=wallBot-doorH;
+      // Deep door frame
+      ctx.fillStyle=HMPAL.logXD;
+      ctx.fillRect(doorX-4,doorY-3,doorW+8,doorH+3);
+      ctx.fillStyle=HMPAL.log;
+      ctx.fillRect(doorX-3,doorY-2,doorW+6,doorH+2);
+      ctx.fillStyle=HMPAL.logL;
+      ctx.fillRect(doorX-3,doorY-2,doorW+6,1);
+      // Door body
+      ctx.fillStyle=HMPAL.logD;
+      ctx.fillRect(doorX,doorY,doorW,doorH);
+      // Vertical planks (5 planks)
+      ctx.fillStyle='#5A3018';
+      for(let pk=0;pk<5;pk++){
+        ctx.fillRect(doorX+1+pk*((doorW-2)/5),doorY+1,((doorW-2)/5)-1,doorH-2);
+      }
+      // Plank highlights
+      ctx.fillStyle='#7A4820';
+      for(let pk=0;pk<5;pk++){
+        ctx.fillRect(doorX+1+pk*((doorW-2)/5),doorY+1,1,doorH-2);
+      }
+      // Horizontal dutch-door split (top half/bottom half divide)
+      const splitY=doorY+doorH*0.5;
+      ctx.fillStyle=HMPAL.logXD;
+      ctx.fillRect(doorX,splitY-1,doorW,3);
+      ctx.fillStyle=HMPAL.logL;
+      ctx.fillRect(doorX,splitY-1,doorW,1);
+      // Iron cross-bands (top + bottom)
+      for(const bandY of [doorY+4,doorY+doorH-8]){
+        ctx.fillStyle=HMPAL.iron;
+        ctx.fillRect(doorX-1,bandY,doorW+2,3);
+        ctx.fillStyle=HMPAL.ironL;
+        ctx.fillRect(doorX-1,bandY,doorW+2,1);
+        // Rivets
+        ctx.fillStyle=HMPAL.ironXL;
+        for(let rv=0;rv<5;rv++){
+          ctx.fillRect(doorX+2+rv*((doorW-4)/4),bandY+1,1,1);
+        }
+      }
+      // Decorative iron strap hinges (fancy curled ends)
+      for(const hgY of [doorY+4,splitY+4,doorY+doorH-8]){
+        ctx.fillStyle=HMPAL.iron;
+        ctx.fillRect(doorX-2,hgY-1,4,5);
+        ctx.beginPath();
+        ctx.arc(doorX-3,hgY+1,2,0,Math.PI*2);
+        ctx.fill();
+      }
+      // Big iron ring handle (bottom half)
+      const hdX=doorX+doorW-6, hdY=doorY+doorH*0.72;
+      ctx.fillStyle=HMPAL.iron;
+      ctx.fillRect(hdX-2,hdY-1,4,3);
+      ctx.strokeStyle=HMPAL.ironXL;ctx.lineWidth=2;
+      ctx.beginPath();ctx.arc(hdX,hdY+4,3,0,Math.PI*2);ctx.stroke();
+      // ₿ coin nailed to the middle (Uncle Toshi's signature)
+      const coinX=doorX+doorW/2, coinY=doorY+doorH*0.3;
+      ctx.fillStyle=HMPAL.brass;
+      ctx.beginPath();ctx.arc(coinX,coinY,5,0,Math.PI*2);ctx.fill();
+      ctx.fillStyle=HMPAL.brassL;
+      ctx.beginPath();ctx.arc(coinX,coinY,4,0,Math.PI*2);ctx.fill();
+      ctx.fillStyle='#A08018';
+      ctx.font='bold 7px '+FONT;ctx.textAlign='center';
+      ctx.fillText('₿',coinX,coinY+3);
+      // Tiny shadow on coin
+      ctx.fillStyle='rgba(0,0,0,0.25)';
+      ctx.fillRect(coinX+3,coinY-1,1,3);
+
+      // ── 7. CARVED WOODEN "TOSHI'S" PLAQUE above the door ─────────────
+      const plqW=56, plqH=14;
+      const plqX=doorX+doorW/2-plqW/2, plqY=doorY-18;
+      ctx.fillStyle=HMPAL.logXD;
+      ctx.fillRect(plqX-1,plqY-1,plqW+2,plqH+2);
+      // Plank body
+      ctx.fillStyle=HMPAL.log;
+      ctx.fillRect(plqX,plqY,plqW,plqH);
+      ctx.fillStyle=HMPAL.logL;
+      ctx.fillRect(plqX,plqY,plqW,1);
+      ctx.fillStyle=HMPAL.logD;
+      ctx.fillRect(plqX,plqY+plqH-1,plqW,1);
+      // Rope hanging points
+      ctx.strokeStyle=HMPAL.logXD;ctx.lineWidth=2;
+      ctx.beginPath();ctx.moveTo(plqX+4,plqY);ctx.lineTo(plqX+2,plqY-4);ctx.stroke();
+      ctx.beginPath();ctx.moveTo(plqX+plqW-4,plqY);ctx.lineTo(plqX+plqW-2,plqY-4);ctx.stroke();
+      // Carved text — "TOSHI'S" with burn-in effect
+      ctx.fillStyle='rgba(20,10,0,0.85)';
+      ctx.font='bold 9px '+FONT;ctx.textAlign='center';
+      ctx.fillText("TOSHI'S",plqX+plqW/2,plqY+10);
+      // Subtle glow highlight
+      ctx.fillStyle='rgba(255,200,100,0.15)';
+      ctx.fillText("TOSHI'S",plqX+plqW/2,plqY+9);
+      // Tiny ₿ symbol carved on each end
+      ctx.fillStyle='rgba(20,10,0,0.7)';
+      ctx.font='bold 7px '+FONT;
+      ctx.fillText('₿',plqX+6,plqY+10);
+      ctx.fillText('₿',plqX+plqW-6,plqY+10);
+
+      // ── 8. WELCOME MAT ───────────────────────────────────────────────
+      ctx.fillStyle='#5A2818';
+      ctx.fillRect(doorX-4,porchFloorY+6,doorW+8,5);
+      ctx.fillStyle='#8A4828';
+      ctx.fillRect(doorX-4,porchFloorY+6,doorW+8,1);
+      // Woven pattern
+      ctx.fillStyle='rgba(255,180,80,0.3)';
+      for(let i=0;i<4;i++){ctx.fillRect(doorX-2+i*7,porchFloorY+7,5,3);}
+
+      // ── 9. OLD ROCKING CHAIR on the porch (right side) ───────────────
+      const rcX=rx+rw-18, rcY=wallBot-14;
+      // Rockers (curved bottom)
+      ctx.strokeStyle=HMPAL.logD;ctx.lineWidth=2;
+      ctx.beginPath();
+      ctx.moveTo(rcX-4,rcY+14);
+      ctx.quadraticCurveTo(rcX+2,rcY+18,rcX+10,rcY+14);
+      ctx.stroke();
+      // Legs
+      ctx.fillStyle=HMPAL.logD;
+      ctx.fillRect(rcX-1,rcY+10,2,5);
+      ctx.fillRect(rcX+7,rcY+10,2,5);
+      // Seat
+      ctx.fillStyle=HMPAL.log;
+      ctx.fillRect(rcX-3,rcY+9,12,3);
+      ctx.fillStyle=HMPAL.logL;
+      ctx.fillRect(rcX-3,rcY+9,12,1);
+      // Back (angled)
+      ctx.fillStyle=HMPAL.logD;
+      ctx.fillRect(rcX-2,rcY,2,10);
+      ctx.fillRect(rcX+1,rcY-1,2,11);
+      ctx.fillRect(rcX+4,rcY-2,2,12);
+      ctx.fillStyle=HMPAL.log;
+      ctx.fillRect(rcX-2,rcY,1,10);
+      ctx.fillRect(rcX+1,rcY-1,1,11);
+      ctx.fillRect(rcX+4,rcY-2,1,12);
+      // Top bar
+      ctx.fillStyle=HMPAL.logD;
+      ctx.fillRect(rcX-3,rcY-3,10,2);
+      // Folded blanket on seat
+      ctx.fillStyle='#903020';
+      ctx.fillRect(rcX,rcY+7,7,3);
+      ctx.fillStyle='#B84030';
+      ctx.fillRect(rcX,rcY+7,7,1);
+
+      // ── 10. LANTERN POST on left of door (with warm glow) ────────────
+      const lpX=doorX-14, lpY=doorY+doorH*0.3;
+      // Post
+      ctx.fillStyle=HMPAL.logD;
+      ctx.fillRect(lpX,lpY,3,doorH*0.7);
+      ctx.fillStyle=HMPAL.log;
+      ctx.fillRect(lpX,lpY,1,doorH*0.7);
+      // Crossbar
+      ctx.fillStyle=HMPAL.logD;
+      ctx.fillRect(lpX-3,lpY,9,2);
+      // Hanging lantern
+      const lnX=lpX+5, lnY=lpY+3;
+      ctx.fillStyle=HMPAL.iron;
+      ctx.fillRect(lnX-1,lnY-1,1,3); // chain
+      ctx.fillStyle=HMPAL.iron;
+      ctx.fillRect(lnX-3,lnY+2,7,2); // top cap
+      // Glass body with warm light
+      const lanPulse=0.9+Math.sin(t*3)*0.08;
+      ctx.fillStyle=`rgba(255,200,90,${lanPulse})`;
+      ctx.fillRect(lnX-2,lnY+4,5,7);
+      // Iron frame bars
+      ctx.fillStyle=HMPAL.iron;
+      ctx.fillRect(lnX-2,lnY+4,1,7);ctx.fillRect(lnX+2,lnY+4,1,7);
+      ctx.fillRect(lnX-2,lnY+7,5,1);
+      // Bottom
+      ctx.fillStyle=HMPAL.iron;
+      ctx.fillRect(lnX-3,lnY+11,7,2);
+      // Flame
+      ctx.fillStyle='#FFE088';
+      ctx.fillRect(lnX,lnY+6,1,3);
+      // Night halo
+      if(isNight){
+        const lanGrad=ctx.createRadialGradient(lnX,lnY+7,2,lnX,lnY+7,24);
+        lanGrad.addColorStop(0,'rgba(255,200,90,0.3)');
+        lanGrad.addColorStop(1,'rgba(255,200,90,0)');
+        ctx.fillStyle=lanGrad;
+        ctx.beginPath();ctx.arc(lnX,lnY+7,24,0,Math.PI*2);ctx.fill();
+      }
+
+      // ── 11. OLD MINING PICKAXE leaning by the door (Uncle Toshi lore) ─
+      const pkX=doorX+doorW+8, pkY=wallBot-4;
+      // Handle (leaning)
+      ctx.save();
+      ctx.translate(pkX,pkY);
+      ctx.rotate(-0.4);
+      ctx.fillStyle='#5A3018';
+      ctx.fillRect(-1,-20,2,20);
+      ctx.fillStyle='#8A4820';
+      ctx.fillRect(0,-20,1,20);
+      // Head
+      ctx.fillStyle=HMPAL.ironL;
+      ctx.fillRect(-5,-22,10,3);
+      ctx.fillStyle=HMPAL.iron;
+      ctx.fillRect(-5,-21,10,2);
+      ctx.fillStyle=HMPAL.ironXL;
+      ctx.fillRect(-5,-22,10,1);
+      // Point tip
+      ctx.fillStyle=HMPAL.iron;
+      ctx.fillRect(5,-21,3,1);
+      ctx.restore();
+
+      // ── 12. FIREWOOD STACK (left of cabin) ───────────────────────────
+      const fwX=rx-18, fwY=wallBot-16;
+      ctx.fillStyle=HMPAL.logXD;
+      ctx.fillRect(fwX-1,fwY-1,18,18);
+      // Stacked logs (3 rows of 3 logs each, end-on view)
+      for(let fr=0;fr<3;fr++){
+        for(let fc=0;fc<3;fc++){
+          const flX=fwX+fc*5, flY=fwY+fr*5;
+          ctx.fillStyle=HMPAL.logEnd;
+          ctx.beginPath();ctx.arc(flX+2,flY+2,2.5,0,Math.PI*2);ctx.fill();
+          ctx.fillStyle=HMPAL.logEndL;
+          ctx.beginPath();ctx.arc(flX+2,flY+2,2,0,Math.PI*2);ctx.fill();
+          // Ring in the center
+          ctx.fillStyle=HMPAL.logD;
+          ctx.beginPath();ctx.arc(flX+2,flY+2,1,0,Math.PI*2);ctx.fill();
+        }
+      }
+      // Shadow under the stack
+      ctx.fillStyle='rgba(0,0,0,0.3)';
+      ctx.beginPath();ctx.ellipse(fwX+8,fwY+18,12,3,0,0,Math.PI*2);ctx.fill();
+
+      // ── 13. MASSIVE STACKED FIELDSTONE CHIMNEY (right side, imposing) ─
+      const chW=18, chH=wallH+ST*1.2;
+      const chX=rx+rw-chW-4, chY=ry-ST*1.2;
+      // Chimney base (wider at bottom)
+      ctx.fillStyle=HMPAL.stoneXD;
+      ctx.fillRect(chX-3,chY+chH-10,chW+6,14);
+      ctx.fillStyle=HMPAL.stoneXD;
+      ctx.fillRect(chX,chY,chW,chH);
+      // Stacked fieldstones
+      for(let cr=0;cr<Math.ceil(chH/8);cr++){
+        const crY=chY+cr*8;
+        const offs=cr%2*6;
+        for(let cc=0;cc<3;cc++){
+          const ccX=chX+cc*7+offs;
+          if(ccX>=chX+chW-1)continue;
+          const rnd=_svRand(d.x,d.y,cr*11+cc+777);
+          const shade=rnd>0.66?HMPAL.stoneXL:rnd>0.33?HMPAL.stoneL:HMPAL.stone;
+          ctx.fillStyle=shade;
+          ctx.fillRect(ccX,crY,6+Math.floor(rnd*2),7);
+          // Stone edge shadow
+          ctx.fillStyle=HMPAL.stoneXD;
+          ctx.fillRect(ccX+6+Math.floor(rnd*2),crY,1,7);
+          // Highlight
+          ctx.fillStyle='rgba(255,255,255,0.12)';
+          ctx.fillRect(ccX,crY,6,1);
+        }
+        // Mortar line
+        ctx.fillStyle='rgba(0,0,0,0.35)';
+        ctx.fillRect(chX,crY+7,chW,1);
+      }
+      // Chimney cap (flared corbel)
+      ctx.fillStyle=HMPAL.stoneXD;
+      ctx.fillRect(chX-3,chY-4,chW+6,5);
+      ctx.fillStyle=HMPAL.stoneL;
+      ctx.fillRect(chX-3,chY-4,chW+6,2);
+      ctx.fillStyle=HMPAL.stoneD;
+      ctx.fillRect(chX-3,chY+1,chW+6,1);
+      // Inner flue opening (dark hole)
+      ctx.fillStyle='#0A0604';
+      ctx.fillRect(chX+chW/2-3,chY-2,6,3);
+      // Ember glow
+      ctx.fillStyle='rgba(255,100,30,0.35)';
+      ctx.fillRect(chX+chW/2-3,chY-3,6,1);
+
+      // Thick layered smoke (Uncle Toshi keeps a good fire going)
+      for(let sp=0;sp<5;sp++){
+        const sa=0.4-sp*0.06+Math.sin(t*1.8+sp)*0.08;
+        const smX=chX+chW/2+Math.sin(t*0.9+sp*1.3)*(3+sp);
+        const smY=chY-6-sp*9-((t*8+sp*3)%8);
+        ctx.fillStyle=`rgba(200,200,200,${sa})`;
+        ctx.beginPath();ctx.arc(smX,smY,4+sp*1.2,0,Math.PI*2);ctx.fill();
+        ctx.fillStyle=`rgba(240,240,245,${sa*0.5})`;
+        ctx.beginPath();ctx.arc(smX-1,smY-1,3+sp*0.7,0,Math.PI*2);ctx.fill();
+      }
+      // Occasional embers floating up with the smoke (at night)
+      if(isNight){
+        for(let em=0;em<3;em++){
+          const emPhase=(t*1.2+em*1.8)%3;
+          const emX=chX+chW/2+Math.sin(t+em)*3;
+          const emY=chY-4-emPhase*20;
+          const emA=1-emPhase/3;
+          ctx.fillStyle=`rgba(255,160,60,${emA*0.8})`;
+          ctx.fillRect(emX,emY,1,1);
+        }
+      }
+
+      // ── 14. STEEP CEDAR SHAKE ROOF w/ individual shingles ────────────
+      const roofPeakY=ry-ST*0.9;
+      const roofEaveY=wallTop;
+      const roofOver=12;
+      // Base fill (dark shadow)
+      ctx.fillStyle=HMPAL.shakeD;
+      ctx.beginPath();
+      ctx.moveTo(rx-roofOver,roofEaveY+4);
+      ctx.lineTo(rx+rw/2,roofPeakY);
+      ctx.lineTo(rx+rw+roofOver,roofEaveY+4);
+      ctx.closePath();ctx.fill();
+
+      // LEFT slope shakes
+      ctx.save();
+      ctx.beginPath();
+      ctx.moveTo(rx-roofOver-2,roofEaveY+4);
+      ctx.lineTo(rx+rw/2,roofPeakY);
+      ctx.lineTo(rx+rw/2,roofEaveY+4);
+      ctx.closePath();
+      ctx.clip();
+      const shakeH=5;
+      for(let row=0;row<12;row++){
+        const rowY=roofPeakY+row*shakeH;
+        const shadeBase=row%2===0?HMPAL.shakeL:HMPAL.shake;
+        // Draw individual shakes
+        for(let col=0;col<Math.ceil((rw/2+roofOver)/7);col++){
+          const shkR=_svRand(d.x,d.y,row*17+col+13);
+          const shkX=rx+rw/2-col*7-(row%2)*3-7;
+          ctx.fillStyle=shkR>0.5?shadeBase:(row%2===0?HMPAL.shakeXL:HMPAL.shakeL);
+          ctx.fillRect(shkX,rowY,7,shakeH+1);
+          // Bottom shadow edge
+          ctx.fillStyle='rgba(0,0,0,0.35)';
+          ctx.fillRect(shkX,rowY+shakeH,7,1);
+          // Vertical gap between shakes
+          ctx.fillStyle=HMPAL.shakeD;
+          ctx.fillRect(shkX+6,rowY,1,shakeH);
+        }
+      }
+      ctx.restore();
+
+      // RIGHT slope shakes (slightly darker — sun comes from left)
+      ctx.save();
+      ctx.beginPath();
+      ctx.moveTo(rx+rw/2,roofPeakY);
+      ctx.lineTo(rx+rw+roofOver+2,roofEaveY+4);
+      ctx.lineTo(rx+rw/2,roofEaveY+4);
+      ctx.closePath();
+      ctx.clip();
+      for(let row=0;row<12;row++){
+        const rowY=roofPeakY+row*shakeH;
+        const shadeBase=row%2===0?HMPAL.shake:HMPAL.shakeD;
+        for(let col=0;col<Math.ceil((rw/2+roofOver)/7);col++){
+          const shkR=_svRand(d.x,d.y,row*19+col+27);
+          const shkX=rx+rw/2+col*7+(row%2)*3;
+          ctx.fillStyle=shkR>0.5?shadeBase:HMPAL.shake;
+          ctx.fillRect(shkX,rowY,7,shakeH+1);
+          ctx.fillStyle='rgba(0,0,0,0.45)';
+          ctx.fillRect(shkX,rowY+shakeH,7,1);
+          ctx.fillStyle=HMPAL.shakeD;
+          ctx.fillRect(shkX+6,rowY,1,shakeH);
+        }
+      }
+      ctx.restore();
+
+      // Ridge cap (darker bundled shakes along the peak)
+      ctx.fillStyle=HMPAL.shakeD;
+      ctx.fillRect(rx-roofOver-2,roofPeakY-2,rw+roofOver*2+4,4);
+      ctx.fillStyle='#2A1208';
+      for(let i=0;i<Math.ceil((rw+roofOver*2)/4);i++){
+        ctx.fillRect(rx-roofOver+i*4,roofPeakY,1,1);
+      }
+
+      // Eave fascia board
+      ctx.fillStyle=HMPAL.logXD;
+      ctx.fillRect(rx-roofOver-2,roofEaveY+4,rw+roofOver*2+4,3);
+      ctx.fillStyle=HMPAL.log;
+      ctx.fillRect(rx-roofOver-2,roofEaveY+4,rw+roofOver*2+4,1);
+      // Eave shadow
+      ctx.fillStyle='rgba(0,0,0,0.3)';
+      ctx.fillRect(rx-roofOver-2,roofEaveY+7,rw+roofOver*2+4,3);
+
+      // ── 15. GABLE WINDOW (small loft window) ─────────────────────────
+      const gvW=12, gvH=10;
+      const gvX=rx+rw/2-gvW/2;
+      const gvY=roofPeakY+(roofEaveY-roofPeakY)*0.4;
+      ctx.fillStyle=HMPAL.logXD;
+      ctx.fillRect(gvX-2,gvY-2,gvW+4,gvH+4);
+      ctx.fillStyle=HMPAL.logD;
+      ctx.fillRect(gvX-1,gvY-1,gvW+2,gvH+2);
+      // Warm glow
+      const gvFlick=0.85+Math.sin(t*3.5)*0.1;
+      ctx.fillStyle=`rgba(255,200,100,${gvFlick})`;
+      ctx.fillRect(gvX,gvY,gvW,gvH);
+      // Cross mullion
+      ctx.fillStyle=HMPAL.logXD;
+      ctx.fillRect(gvX+gvW/2-0.5,gvY,1,gvH);
+      ctx.fillRect(gvX,gvY+gvH/2-0.5,gvW,1);
+      // Glare
+      ctx.fillStyle='rgba(255,255,255,0.18)';
+      ctx.fillRect(gvX+1,gvY+1,gvW*0.4,gvH*0.4);
+
+      // ── 16. WEATHERVANE on the peak (spinning ₿ arrow) ───────────────
+      const wvX=rx+rw/2, wvY=roofPeakY-10;
+      ctx.fillStyle=HMPAL.iron;
+      ctx.fillRect(wvX-0.5,wvY,1,10);
+      // Cardinal bar
+      ctx.fillRect(wvX-3,wvY+3,7,1);
+      // N/S letters
+      ctx.fillStyle=HMPAL.ironXL;
+      ctx.fillRect(wvX-4,wvY+2,1,1);
+      ctx.fillRect(wvX+4,wvY+2,1,1);
+      // Finial ball
+      ctx.fillStyle=HMPAL.brass;
+      ctx.beginPath();ctx.arc(wvX,wvY-1,2,0,Math.PI*2);ctx.fill();
+      // Rotating arrow (₿ shape)
+      const wvAng=Math.sin(t*0.5)*0.5;
+      ctx.save();
+      ctx.translate(wvX,wvY-5);
+      ctx.rotate(wvAng);
+      ctx.fillStyle='#C85018';
+      // Arrow body (pointer)
+      ctx.beginPath();
+      ctx.moveTo(-6,0);ctx.lineTo(4,-1);ctx.lineTo(4,-3);ctx.lineTo(8,0);ctx.lineTo(4,3);ctx.lineTo(4,1);
+      ctx.closePath();ctx.fill();
+      ctx.fillStyle=HMPAL.brassL;
+      ctx.fillRect(-6,-0.5,14,0.5);
+      ctx.restore();
+
+      // ── 17. FIREFLIES at night around the cabin ──────────────────────
+      if(isNight){
+        for(let ff=0;ff<6;ff++){
+          const ffPhase=t*0.6+ff*1.1;
+          const ffX=rx+rw*0.5+Math.sin(ffPhase*1.3+ff)*rw*0.6;
+          const ffY=wallBot-Math.abs(Math.sin(ffPhase*0.8+ff*1.7))*wallH*0.8;
+          const ffBlink=Math.sin(t*4+ff*2)>0;
+          if(ffBlink){
+            ctx.fillStyle='rgba(180,255,120,0.95)';
+            ctx.fillRect(ffX,ffY,1,1);
+            ctx.fillStyle='rgba(180,255,120,0.3)';
+            ctx.beginPath();ctx.arc(ffX,ffY,2,0,Math.PI*2);ctx.fill();
+          }
+        }
+      }
     }
 
     // ── SHOP (Ruby's Hardware) ────────────────────────────────────────────
