@@ -62,8 +62,8 @@ let hudMinimized = (() => {
     const v = localStorage.getItem('sv_hud_min');
     if (v !== null) return v === '1';
   } catch (e) {}
-  // Default: minimized on small screens, full on desktop
-  return isSmallScreen;
+  // Default: minimized on mobile/small screens to keep the game world clear of clutter
+  return isMobile || isSmallScreen;
 })();
 function setHudMinimized(v) {
   hudMinimized = !!v;
@@ -100,69 +100,119 @@ const JOYSTICK_RADIUS = 50;
 const JOYSTICK_DEAD = 10;
 
 if (isMobile) {
+  // ── Unified mobile touch router ─────────────────────────────────────
+  // Clean priority order:
+  //   1. If ANY modal/menu is open → route to click handler (unchanged)
+  //   2. Tutorial skip button → click handler
+  //   3. Top bar buttons (pause/inv/hamburger) → fire immediate action
+  //   4. Floating UI buttons (HUD toggle, context button, rotate nudge)
+  //   5. Hotbar grid → click handler (which handles slot selection)
+  //   6. Big USE button (right side, fixed circle)
+  //   7. Combat skill buttons (in mines only)
+  //   8. Left-side SAFE joystick zone → start joystick
+  //   9. Anything else → click handler (tap-to-move)
+  //
+  // The key invariant: UI buttons are ALWAYS hit-tested before zones,
+  // so the joystick can never swallow a button tap.
+  function _topBarButtonHit(x, y) {
+    if (y >= 50) return null;
+    const w = canvas.width;
+    if (x > w - 55 && x < w - 10) return 'pause';
+    if (x > w - 110 && x < w - 60) return 'inventory';
+    if (x > w - 170 && x < w - 120) return 'menu';
+    return null;
+  }
+  function _hotbarHit(x, y) {
+    const hb = _hotbarRect;
+    if (!hb || hb.w <= 0) return false;
+    const pad = 6;
+    return x >= hb.x - pad && x <= hb.x + hb.w + pad &&
+           y >= hb.y - pad && y <= hb.y + hb.h + pad;
+  }
+  function _tutorialSkipHit(x, y) {
+    if (tutorialDone || tutorialStep >= TUTORIAL_STEPS.length) return false;
+    const tw2 = Math.min(650, canvas.width - 60), th2 = 58;
+    const tx2 = (canvas.width - tw2)/2, ty2 = canvas.height * 0.14;
+    const skipX2 = tx2 + tw2 - 108, skipY2 = ty2 + th2 + 4;
+    return x >= skipX2 - 4 && x <= skipX2 + 104 && y >= skipY2 - 4 && y <= skipY2 + 28;
+  }
+  function _useButtonCenter() {
+    // Anchored relative to hotbar top so it never overlaps
+    const hb = _hotbarRect;
+    const hbTop = (hb && hb.y) ? hb.y : canvas.height - 150;
+    return { x: canvas.width - 70, y: hbTop - 60 };
+  }
+  function _dispatchClick(t) {
+    mouseX = t.clientX; mouseY = t.clientY;
+    canvas.dispatchEvent(new MouseEvent('click', { clientX: t.clientX, clientY: t.clientY }));
+  }
+
   canvas.addEventListener('touchstart', e => {
     e.preventDefault();
-    // Intro / title menu / dialog / pause / shop / inventory: route taps to the
-    // existing click handler instead of joystick/action processing. Without this
-    // the intro screen and title menu are unreachable on mobile because
-    // preventDefault() above suppresses the synthetic click event.
+    // Modal/menu states: everything goes through click handler
     if (gameState !== 'playing' || dlg || pauseOpen || shopOpen || invOpen || chestOpen || craftOpen || citadelMenuOpen || mobileMenuOpen) {
       const t0 = e.changedTouches[0];
-      if (t0) {
-        mouseX = t0.clientX; mouseY = t0.clientY;
-        canvas.dispatchEvent(new MouseEvent('click', { clientX: t0.clientX, clientY: t0.clientY }));
-      }
+      if (t0) _dispatchClick(t0);
       return;
     }
+
     for (const t of e.changedTouches) {
-      // Left half = joystick
-      // Priority: UI buttons first (regardless of side)
-      if (hudToggleHit(t.clientX, t.clientY)) {
-        toggleHud();
-        return;
-      }
-      if (rotateNudgeHit(t.clientX, t.clientY)) { dismissRotateNudge(); return; }
-      if (ctxBtnHit(t.clientX, t.clientY)) {
+      const cx = t.clientX, cy = t.clientY;
+
+      // 1. Rotate nudge (can appear anywhere mid-screen)
+      if (rotateNudgeHit(cx, cy)) { dismissRotateNudge(); return; }
+
+      // 2. Tutorial skip button — MUST be reachable before anything else
+      if (_tutorialSkipHit(cx, cy)) { _dispatchClick(t); return; }
+
+      // 3. Top bar buttons
+      const topBtn = _topBarButtonHit(cx, cy);
+      if (topBtn === 'pause')     { jp['escape'] = true; sfx.menuOpen(); return; }
+      if (topBtn === 'inventory') { jp['i'] = true; sfx.menuOpen(); return; }
+      if (topBtn === 'menu')      { mobileMenuOpen = true; sfx.menuOpen(); return; }
+
+      // 4. HUD toggle + context button
+      if (hudToggleHit(cx, cy)) { toggleHud(); return; }
+      if (ctxBtnHit(cx, cy)) {
         const ctxInfo = getInteractContext();
         if (ctxInfo) { jp[ctxInfo.key] = true; }
         return;
       }
-      if (t.clientX < canvas.width * 0.4 && !touch.joyActive) {
-        touch.joyActive = true;
-        touch.joyStartX = t.clientX; touch.joyStartY = t.clientY;
-        touch.joyX = t.clientX; touch.joyY = t.clientY;
-        touch.joyTouchId = t.identifier;
-      }
-      // Right half = action area (tap = attack/interact)
-      else if (t.clientX >= canvas.width * 0.4) {
+
+      // 5. Hotbar — delegate to click handler for slot logic
+      if (_hotbarHit(cx, cy)) { _dispatchClick(t); return; }
+
+      // 6. Big USE button (right side circle)
+      const ub = _useButtonCenter();
+      if (Math.hypot(cx - ub.x, cy - ub.y) < 42) {
+        touch.btnAttack = true;
         touch.actionTouchId = t.identifier;
-        // Check if tapped an action button
-        const bx = canvas.width - 80, by = canvas.height - 200;
-        if (Math.hypot(t.clientX - bx, t.clientY - by) < 35) {
-          touch.btnAttack = true;
-          if (mineFloor) {
-            // In a dungeon: attack / interact
-            jp['e'] = true;
-          } else {
-            // Overworld: use selected tool (axe, hoe, watering, planting) + interact
-            jp['r'] = true;
-            jp['e'] = true;
-          }
-        }
-        // Combat skill buttons — only active in dungeons
-        else if (mineFloor && Math.hypot(t.clientX - (bx - 70), t.clientY - (by + 20)) < 30) { touch.btnSkill1 = true; jp['1'] = true; }
-        else if (mineFloor && Math.hypot(t.clientX - (bx + 10), t.clientY - (by - 70)) < 30) { touch.btnSkill2 = true; jp['2'] = true; }
-        else if (mineFloor && Math.hypot(t.clientX - (bx + 70), t.clientY - (by + 20)) < 30) { touch.btnSkill3 = true; jp['3'] = true; }
-        // Top buttons — Pause, Inventory, Menu (hamburger)
-        else if (t.clientY < 60 && t.clientX > canvas.width - 60) { touch.btnPause = true; jp['escape'] = true; }
-        else if (t.clientY < 60 && t.clientX > canvas.width - 120) { touch.btnInventory = true; jp['i'] = true; }
-        else if (t.clientY < 60 && t.clientX > canvas.width - 180 && t.clientX < canvas.width - 120) { mobileMenuOpen = true; sfx.menuOpen(); }
-        else {
-          // Tap = click at that position (interact/move)
-          mouseX = t.clientX; mouseY = t.clientY;
-          canvas.dispatchEvent(new MouseEvent('click', { clientX: t.clientX, clientY: t.clientY }));
-        }
+        if (mineFloor) { jp['e'] = true; }
+        else { jp['r'] = true; jp['e'] = true; }
+        return;
       }
+
+      // 7. Combat skill buttons (mines only)
+      if (mineFloor) {
+        if (Math.hypot(cx - (ub.x - 70), cy - (ub.y + 20)) < 32) { touch.btnSkill1 = true; jp['1'] = true; return; }
+        if (Math.hypot(cx - (ub.x + 10), cy - (ub.y - 70)) < 32) { touch.btnSkill2 = true; jp['2'] = true; return; }
+        if (Math.hypot(cx - (ub.x + 70), cy - (ub.y + 20)) < 32) { touch.btnSkill3 = true; jp['3'] = true; return; }
+      }
+
+      // 8. Joystick zone — LEFT HALF, BELOW TOP BAR, ABOVE HOTBAR
+      const hb = _hotbarRect;
+      const hotbarTop = (hb && hb.y) ? hb.y - 10 : canvas.height - 160;
+      const joystickZoneOK = (cy > 55 && cy < hotbarTop && cx < canvas.width * 0.5);
+      if (joystickZoneOK && !touch.joyActive) {
+        touch.joyActive = true;
+        touch.joyStartX = cx; touch.joyStartY = cy;
+        touch.joyX = cx; touch.joyY = cy;
+        touch.joyTouchId = t.identifier;
+        return;
+      }
+
+      // 9. Fallback → tap-to-move
+      _dispatchClick(t);
     }
   }, { passive: false });
 
@@ -3698,9 +3748,23 @@ function drawContextualInteractButton() {
   if (!isMobile) { _ctxBtnRect.w = 0; return; }
   const ctx2 = getInteractContext();
   if (!ctx2) { _ctxBtnRect.w = 0; return; }
-  const w = 180, h = 44;
-  const x = (canvas.width - w) / 2;
-  const y = canvas.height - h - 90; // well above hotbar, away from thumb rest areas
+  // Context pill: prefer center-between-joystick-and-USE on wide screens,
+  // fall back to stacked-above-USE on narrow screens so it never overlaps
+  const hb = _hotbarRect;
+  const hbTop = (hb && hb.y) ? hb.y : canvas.height - 150;
+  const h = 38;
+  let w, x, y;
+  const centeredW = Math.min(170, canvas.width - 260);
+  if (centeredW >= 120) {
+    w = centeredW;
+    x = (canvas.width - w) / 2;
+    y = hbTop - 60 - h/2; // centered on USE button's Y
+  } else {
+    // Narrow screen — stack the pill above the USE button
+    w = 150;
+    x = canvas.width - w - 12;
+    y = hbTop - 60 - 36 - h - 6; // above USE button (radius 36) with 6px gap
+  }
   _ctxBtnRect = { x, y, w, h, key: ctx2.key };
   // Pulsing glow
   const pulseA = 0.4 + Math.sin(_t * 3) * 0.15;
@@ -3829,10 +3893,10 @@ function drawHUD(){
   if (isMobile) {
     hbCols = 5; hbRows = 2;
     hbGap = 4;
-    // Each slot is as big as possible within screen width, capped at 64px
+    // Each slot fits 5 across with room for margins; capped so 2 rows stay compact
     const maxHbW = Math.floor((canvas.width - 24 - (hbCols-1)*hbGap) / hbCols);
-    hbW = Math.max(44, Math.min(64, maxHbW));
-    hbBottomMargin = 14;
+    hbW = Math.max(44, Math.min(56, maxHbW));
+    hbBottomMargin = 12;
   } else if (isSmallScreen) {
     hbCols = 10; hbRows = 1;
     hbW = 38; hbGap = 3; hbBottomMargin = 8;
@@ -3903,10 +3967,11 @@ function drawHUD(){
     ctx.fillText('WASD:Move  E:Interact  R:Use/Plant  G:Eat  T:Craft  H:Harvest  I:Inventory  B:Shop  C:Citadel  Q:Sort  ?:Help  P:Save',canvas.width/2,cbY+8);
   }
   
-  // Energy bar — scales down on small screens
-  const ebW = isSmallScreen ? 100 : 140;
-  const ebX = canvas.width-ebW-p-10;
-  const ebY = hbY-22;
+  // Energy bar — on mobile it sits centered above the hotbar so it doesn't collide
+  // with the USE button. On desktop it stays in the top-right area above hotbar.
+  const ebW = isMobile ? Math.min(160, canvas.width - 240) : (isSmallScreen ? 100 : 140);
+  const ebX = isMobile ? (canvas.width - ebW)/2 : (canvas.width - ebW - p - 10);
+  const ebY = isMobile ? (hbY - 18) : (hbY - 22);
   const ePct=player.energy/player.maxEnergy;
   ctx.fillStyle='rgba(10,10,15,0.7)';rr(ebX-4,ebY-14,ebW+8,28,4);
   ctx.fillStyle='#1A1A20';ctx.fillRect(ebX,ebY,ebW,10);
@@ -3916,8 +3981,8 @@ function drawHUD(){
   ctx.fillStyle='#DDD';ctx.font=`bold ${isSmallScreen?10:12}px ${FONT}`;ctx.textAlign='center';
   ctx.fillText(`⚡ ${Math.floor(player.energy)}/${player.maxEnergy}`,ebX+ebW/2,ebY-2);
   
-  // Rig detail panel — hidden when HUD is minimized (clutter on mobile)
-  if (!hudMinimized) {
+  // Rig detail panel — desktop only. On mobile it clutters the game view; use inventory.
+  if (!hudMinimized && !isMobile) {
     let nr=null,nd=60;for(const r of rigs){const d=Math.hypot(r.x-player.x,r.y-player.y);if(d<nd){nr=r;nd=d;}}
     if(nr){const rw=220,rh=110,rx=canvas.width-rw-p;panel(rx,p,rw,rh);
       ctx.fillStyle=C.hud;ctx.font=`bold 15px ${FONT}`;ctx.textAlign='left';ctx.fillText(Rig.N[nr.tier],rx+10,p+18);
@@ -3965,7 +4030,9 @@ function drawHUD(){
       const key=tut.highlight.replace('key_','').toUpperCase();
       const pulse=0.5+Math.sin(_now/300)*0.3;
       ctx.fillStyle=`rgba(247,147,26,${pulse})`;ctx.font=`bold 28px ${FONT}`;ctx.textAlign='center';
-      ctx.fillText(`[ ${key} ]`,canvas.width/2,ty+th+30);
+      // On mobile, show the button name instead of a keyboard key
+      const mobileLabel = {E:'→ USE button', I:'→ 📦 button', B:'→ USE button', '1':'→ slot 1'}[key] || `[${key}]`;
+      ctx.fillText(isMobile ? mobileLabel : `[ ${key} ]`, canvas.width/2, ty+th+30);
     }
     else if(tut.highlight==='hotbar'){
       ctx.strokeStyle=`rgba(247,147,26,${0.5+Math.sin(_now/300)*0.3})`;ctx.lineWidth=3;
@@ -3977,11 +4044,24 @@ function drawHUD(){
       ctx.strokeRect(p-2,p-2,294,30);
     }
     else if(tut.highlight==='controls'){
-      ctx.fillStyle=`rgba(0,0,0,0.6)`;ctx.fillRect(canvas.width-200,canvas.height-220,190,200);
-      ctx.fillStyle=C.orange;ctx.font=`bold 14px ${FONT}`;ctx.textAlign='left';
-      ctx.fillText('🎮 CONTROLS',canvas.width-190,canvas.height-198);
-      ctx.fillStyle=C.white;ctx.font=`13px ${FONT}`;
-      ['WASD — Move','E — Interact','R — Use item','I — Inventory','B — Shop','O — Objectives','H — Harvest','K — Skills','? — All controls'].forEach((c,i)=>ctx.fillText(c,canvas.width-190,canvas.height-175+i*20));
+      if (isMobile) {
+        // Mobile: compact top banner, stays clear of touch controls
+        const mw = Math.min(canvas.width - 40, 320), mh = 64;
+        const mx = (canvas.width - mw)/2, my = 80;
+        ctx.fillStyle='rgba(0,0,0,0.75)';rr(mx,my,mw,mh,8);
+        ctx.strokeStyle=C.orange;ctx.lineWidth=1.5;ctx.strokeRect(mx+1,my+1,mw-2,mh-2);
+        ctx.fillStyle=C.orange;ctx.font=`bold 13px ${FONT}`;ctx.textAlign='center';
+        ctx.fillText('🎮 MOBILE CONTROLS', mx+mw/2, my+18);
+        ctx.fillStyle='#DDD';ctx.font=`11px ${FONT}`;
+        ctx.fillText('Joystick (left) — Move   •   USE button — Act', mx+mw/2, my+36);
+        ctx.fillText('☰ Menu — craft/eat/map   •   📦 — Inventory', mx+mw/2, my+52);
+      } else {
+        ctx.fillStyle=`rgba(0,0,0,0.6)`;ctx.fillRect(canvas.width-200,canvas.height-220,190,200);
+        ctx.fillStyle=C.orange;ctx.font=`bold 14px ${FONT}`;ctx.textAlign='left';
+        ctx.fillText('🎮 CONTROLS',canvas.width-190,canvas.height-198);
+        ctx.fillStyle=C.white;ctx.font=`13px ${FONT}`;
+        ['WASD — Move','E — Interact','R — Use item','I — Inventory','B — Shop','O — Objectives','H — Harvest','K — Skills','? — All controls'].forEach((c,i)=>ctx.fillText(c,canvas.width-190,canvas.height-175+i*20));
+      }
     }
   }
   
@@ -4181,11 +4261,18 @@ function drawHUD(){
     ctx.fillText('[N] Map',mmX+mmW,mmY+mmH+10);
   }
 
-  // Notifications
+  // Notifications — desktop: above hotbar, mobile: top-of-screen so they don't
+  // collide with the USE/joystick/context buttons packed above the mobile hotbar
   ctx.textAlign='center';
+  const notifY0 = isMobile ? 90 : (hbY - 30);
+  const notifDir = isMobile ? 1 : -1;
   for(let i=0;i<notifs.length;i++){const n=notifs[i],a=Math.min(1,n.t);
     ctx.fillStyle=n.big?`rgba(255,215,0,${a})`:`rgba(247,147,26,${a})`;
-    ctx.font=`bold ${n.big?18:14}px ${FONT}`;ctx.fillText(n.text,canvas.width/2,hbY-30-i*24);}
+    ctx.font=`bold ${n.big?18:14}px ${FONT}`;
+    // Shadow so it reads over any background
+    if(isMobile){ctx.fillStyle='rgba(0,0,0,0.7)';ctx.fillText(n.text,canvas.width/2+1,notifY0+notifDir*i*24+1);}
+    ctx.fillStyle=n.big?`rgba(255,215,0,${a})`:`rgba(247,147,26,${a})`;
+    ctx.fillText(n.text,canvas.width/2,notifY0+notifDir*i*24);}
   
   // Click-to-move indicator
   if(clickIndicator && !interior){
@@ -4871,54 +4958,59 @@ function drawMobileMenu(){
 
 function drawTouchControls(){
   if(!isMobile)return;
-  ctx.globalAlpha=0.5;
-  
-  // Virtual joystick (left side)
-  const jx=touch.joyActive?touch.joyStartX:90, jy=touch.joyActive?touch.joyStartY:canvas.height-120;
+  ctx.globalAlpha=0.55;
+
+  // Anchor all touch UI to the hotbar so nothing overlaps it regardless of screen size
+  const hb = _hotbarRect;
+  const hbTop = (hb && hb.y) ? hb.y : canvas.height - 150;
+
+  // Virtual joystick (left side) — rests tucked into the lower-left corner
+  const jxRest = 70;
+  const jyRest = hbTop - 60; // same Y as USE button for symmetry
+  const jx=touch.joyActive?touch.joyStartX:jxRest, jy=touch.joyActive?touch.joyStartY:jyRest;
   // Outer ring
-  ctx.strokeStyle='rgba(247,147,26,0.4)';ctx.lineWidth=2;
+  ctx.strokeStyle='rgba(247,147,26,0.45)';ctx.lineWidth=2;
   ctx.beginPath();ctx.arc(jx,jy,JOYSTICK_RADIUS,0,Math.PI*2);ctx.stroke();
   // Inner thumb
   const thumbX=jx+(touch.joyActive?touch.joyDx*JOYSTICK_RADIUS*0.6:0);
   const thumbY=jy+(touch.joyActive?touch.joyDy*JOYSTICK_RADIUS*0.6:0);
-  ctx.fillStyle='rgba(247,147,26,0.5)';
-  ctx.beginPath();ctx.arc(thumbX,thumbY,20,0,Math.PI*2);ctx.fill();
-  
-  // Action buttons (right side)
-  const bx=canvas.width-80, by=canvas.height-200;
+  ctx.fillStyle='rgba(247,147,26,0.55)';
+  ctx.beginPath();ctx.arc(thumbX,thumbY,22,0,Math.PI*2);ctx.fill();
+  ctx.strokeStyle='rgba(255,200,100,0.7)';ctx.lineWidth=2;
+  ctx.beginPath();ctx.arc(thumbX,thumbY,22,0,Math.PI*2);ctx.stroke();
+
+  // Action buttons (right side) — anchored above the hotbar
+  const bx = canvas.width - 70;
+  const by = hbTop - 60;
   const inMine = !!mineFloor;
 
   // Main action button — big, center
-  // Mine: attack | Overworld: use-selected-tool (axe, hoe, water, plant, interact)
-  ctx.fillStyle=touch.btnAttack?'rgba(247,147,26,0.6)':'rgba(247,147,26,0.25)';
-  ctx.beginPath();ctx.arc(bx,by,32,0,Math.PI*2);ctx.fill();
-  ctx.strokeStyle='rgba(247,147,26,0.6)';ctx.lineWidth=2;
-  ctx.beginPath();ctx.arc(bx,by,32,0,Math.PI*2);ctx.stroke();
+  ctx.fillStyle=touch.btnAttack?'rgba(247,147,26,0.7)':'rgba(247,147,26,0.3)';
+  ctx.beginPath();ctx.arc(bx,by,36,0,Math.PI*2);ctx.fill();
+  ctx.strokeStyle='rgba(247,147,26,0.8)';ctx.lineWidth=2.5;
+  ctx.beginPath();ctx.arc(bx,by,36,0,Math.PI*2);ctx.stroke();
   ctx.fillStyle='#FFF';ctx.font=`bold 14px ${FONT}`;ctx.textAlign='center';
   if (inMine) {
-    ctx.fillText('⚔️',bx,by+2);ctx.fillText('ATK',bx,by+16);
+    ctx.font='22px serif';ctx.fillText('⚔️',bx,by+2);
+    ctx.font=`bold 11px ${FONT}`;ctx.fillText('ATK',bx,by+20);
   } else {
-    // Show the selected tool icon so you know what the button will do
     const sel = inv[selSlot];
     const icon = (sel && ITEMS[sel.id]) ? ITEMS[sel.id].icon : '✋';
-    ctx.font='20px serif';ctx.fillText(icon,bx,by+4);
-    ctx.font=`bold 11px ${FONT}`;ctx.fillText('USE',bx,by+18);
+    ctx.font='22px serif';ctx.fillText(icon,bx,by+4);
+    ctx.font=`bold 11px ${FONT}`;ctx.fillText('USE',bx,by+22);
   }
 
   // Combat skill buttons — only shown when in a dungeon
   if (inMine) {
-    // Skill 1 — Orange Pill (left of attack)
-    ctx.fillStyle=touch.btnSkill1?'rgba(247,147,26,0.6)':'rgba(100,60,20,0.3)';
+    ctx.fillStyle=touch.btnSkill1?'rgba(247,147,26,0.6)':'rgba(100,60,20,0.35)';
     ctx.beginPath();ctx.arc(bx-70,by+20,26,0,Math.PI*2);ctx.fill();
     ctx.fillStyle='#F90';ctx.font='16px serif';ctx.fillText('💊',bx-70,by+24);
 
-    // Skill 2 — Lightning (above attack)
-    ctx.fillStyle=touch.btnSkill2?'rgba(255,221,68,0.6)':'rgba(100,100,30,0.3)';
+    ctx.fillStyle=touch.btnSkill2?'rgba(255,221,68,0.6)':'rgba(100,100,30,0.35)';
     ctx.beginPath();ctx.arc(bx+10,by-70,26,0,Math.PI*2);ctx.fill();
     ctx.fillStyle='#FF0';ctx.font='16px serif';ctx.fillText('⚡',bx+10,by-66);
 
-    // Skill 3 — 51% Attack (right of attack)
-    ctx.fillStyle=touch.btnSkill3?'rgba(255,68,68,0.6)':'rgba(100,30,30,0.3)';
+    ctx.fillStyle=touch.btnSkill3?'rgba(255,68,68,0.6)':'rgba(100,30,30,0.35)';
     ctx.beginPath();ctx.arc(bx+70,by+20,26,0,Math.PI*2);ctx.fill();
     ctx.fillStyle='#F44';ctx.font='16px serif';ctx.fillText('💥',bx+70,by+24);
   }
