@@ -500,22 +500,27 @@ canvas.addEventListener('click', e => {
     return;
   }
   // Hotbar (always visible) — use the live rect stored during drawHUD so we always
-  // hit-test the REAL drawn slots (fixes mobile where slot sizes/positions differ)
+  // hit-test the REAL drawn slots. Supports N-col × M-row grids (mobile uses 5×2).
   const hb = _hotbarRect;
-  // Extra vertical padding on mobile so fat-finger taps still register
   const hbPad = isMobile ? 6 : 0;
-  if (hb.w > 0 && e.clientY >= hb.y - hbPad && e.clientY <= hb.y + hb.h + hbPad) {
-    const rel = e.clientX - hb.x;
-    const slotStride = hb.slotW + hb.slotGap;
-    if (rel >= -hbPad && rel <= hb.w + hbPad) {
-      const slot = Math.floor((rel + hb.slotGap/2) / slotStride);
+  if (hb.w > 0 && e.clientY >= hb.y - hbPad && e.clientY <= hb.y + hb.h + hbPad &&
+      e.clientX >= hb.x - hbPad && e.clientX <= hb.x + hb.w + hbPad) {
+    const relX = e.clientX - hb.x;
+    const relY = e.clientY - hb.y;
+    const colStride = hb.slotW + hb.slotGap;
+    const rowStride = (hb.slotH || hb.slotW) + hb.slotGap;
+    const col = Math.floor((relX + hb.slotGap/2) / colStride);
+    const row = Math.floor((relY + hb.slotGap/2) / rowStride);
+    const cols = hb.cols || hb.n;
+    const rows = hb.rows || 1;
+    if (col >= 0 && col < cols && row >= 0 && row < rows) {
+      const slot = row * cols + col;
       if (slot >= 0 && slot < hb.n) {
-        // Second tap on already-selected slot = USE (tool/consumable) — mobile shortcut
         if (isMobile && slot === selSlot) {
           const selItem = inv[selSlot];
           if (selItem) {
             jp['r'] = true;
-            jp['g'] = true; // also trigger eat (bread/coffee)
+            jp['g'] = true;
           }
         }
         selSlot = slot;
@@ -3649,7 +3654,17 @@ function getInteractContext() {
       }
     }
   }
-  // Mine exit (go up stairs) is handled by the attack button's 'e' already
+  // Standing on mine stairs → Exit Mine / Go Up (X)
+  if (mineFloor) {
+    const ptx = Math.floor(player.x / TILE);
+    const pty = Math.floor(player.y / TILE);
+    if (mineFloor.stairsUp && ptx === mineFloor.stairsUp.x && pty === mineFloor.stairsUp.y) {
+      return { key: 'x', label: mineLevel === 0 ? 'Exit Mine' : 'Go Up' };
+    }
+    if (mineFloor.stairsDown && ptx === mineFloor.stairsDown.x && pty === mineFloor.stairsDown.y) {
+      return { key: 'x', label: 'Go Deeper' };
+    }
+  }
   // Near ready crop → Harvest (H)
   for (const c of crops) {
     const info = CROP_TYPES[c.type];
@@ -3807,58 +3822,66 @@ function drawHUD(){
     ctx.fillText('↓ Walk south to exit ↓',canvas.width/2,canvas.height-73);
   }
   
-  // Hotbar — bigger, finger-friendly slots on mobile
+  // Hotbar — bigger, finger-friendly slots on mobile. 2 rows × 5 cols on mobile,
+  // single row of 10 on desktop/small-screen. Lots more finger area per slot this way.
   const hbN=10;
-  // Mobile: fit 10 slots as wide as possible while leaving 16px margin
-  let hbW, hbGap, hbBottomMargin;
+  let hbW, hbGap, hbBottomMargin, hbCols, hbRows;
   if (isMobile) {
-    hbGap = 3;
-    const maxHbW = Math.floor((canvas.width - 16 - hbN*hbGap) / hbN);
-    hbW = Math.max(36, Math.min(48, maxHbW)); // 36-48px slots
-    hbBottomMargin = 12;
+    hbCols = 5; hbRows = 2;
+    hbGap = 4;
+    // Each slot is as big as possible within screen width, capped at 64px
+    const maxHbW = Math.floor((canvas.width - 24 - (hbCols-1)*hbGap) / hbCols);
+    hbW = Math.max(44, Math.min(64, maxHbW));
+    hbBottomMargin = 14;
   } else if (isSmallScreen) {
+    hbCols = 10; hbRows = 1;
     hbW = 38; hbGap = 3; hbBottomMargin = 8;
   } else {
+    hbCols = 10; hbRows = 1;
     hbW = 44; hbGap = 4; hbBottomMargin = 20;
   }
   const hbH = hbW;
-  const hbTW=hbN*(hbW+hbGap);
+  const hbTW = hbCols*hbW + (hbCols-1)*hbGap;
+  const hbTotalH = hbRows*hbH + (hbRows-1)*hbGap;
   const hbX=(canvas.width-hbTW)/2;
-  const hbY=canvas.height-hbH-hbBottomMargin;
+  const hbY=canvas.height-hbTotalH-hbBottomMargin;
   // Store globally so the click handler can hit-test the REAL rect
-  _hotbarRect = {x:hbX, y:hbY, w:hbTW, h:hbH, slotW:hbW, slotGap:hbGap, n:hbN};
-  ctx.fillStyle='rgba(8,8,12,0.78)';rr(hbX-4,hbY-4,hbTW+8,hbH+8,6);
+  _hotbarRect = {x:hbX, y:hbY, w:hbTW, h:hbTotalH, slotW:hbW, slotH:hbH, slotGap:hbGap, n:hbN, cols:hbCols, rows:hbRows};
+  // Background wraps the whole grid
+  ctx.fillStyle='rgba(8,8,12,0.82)';rr(hbX-6,hbY-6,hbTW+12,hbTotalH+12,8);
   for(let i=0;i<hbN;i++){
-    const x=hbX+i*(hbW+hbGap);
+    const col = i % hbCols;
+    const row = Math.floor(i / hbCols);
+    const x=hbX+col*(hbW+hbGap);
+    const rowY = hbY + row*(hbH+hbGap);
     // Brighter selection highlight for clarity on mobile
     if(i===selSlot){
-      ctx.fillStyle='rgba(247,147,26,0.35)';ctx.fillRect(x,hbY,hbW,hbH);
-      ctx.strokeStyle=C.hud;ctx.lineWidth=3;ctx.strokeRect(x,hbY,hbW,hbH);
+      ctx.fillStyle='rgba(247,147,26,0.35)';ctx.fillRect(x,rowY,hbW,hbH);
+      ctx.strokeStyle=C.hud;ctx.lineWidth=3;ctx.strokeRect(x,rowY,hbW,hbH);
       // Corner glow
       ctx.fillStyle='rgba(255,200,80,0.5)';
-      ctx.fillRect(x,hbY,4,4);ctx.fillRect(x+hbW-4,hbY,4,4);
-      ctx.fillRect(x,hbY+hbH-4,4,4);ctx.fillRect(x+hbW-4,hbY+hbH-4,4,4);
+      ctx.fillRect(x,rowY,4,4);ctx.fillRect(x+hbW-4,rowY,4,4);
+      ctx.fillRect(x,rowY+hbH-4,4,4);ctx.fillRect(x+hbW-4,rowY+hbH-4,4,4);
     } else {
-      ctx.fillStyle='rgba(20,20,25,0.85)';ctx.fillRect(x,hbY,hbW,hbH);
-      ctx.strokeStyle='#333';ctx.lineWidth=1;ctx.strokeRect(x,hbY,hbW,hbH);
+      ctx.fillStyle='rgba(20,20,25,0.85)';ctx.fillRect(x,rowY,hbW,hbH);
+      ctx.strokeStyle='#333';ctx.lineWidth=1;ctx.strokeRect(x,rowY,hbW,hbH);
     }
     // Slot number (smaller on mobile so it doesn't crowd the icon)
-    ctx.fillStyle='#666';ctx.font=`${isMobile?9:11}px ${FONT}`;ctx.textAlign='left';
-    ctx.fillText(`${(i+1)%10}`,x+3,hbY+10);
+    ctx.fillStyle='#666';ctx.font=`${isMobile?10:11}px ${FONT}`;ctx.textAlign='left';
+    ctx.fillText(`${(i+1)%10}`,x+4,rowY+12);
     const sl=inv[i];if(sl&&ITEMS[sl.id]){
       const sprName = ITEM_SPRITES[sl.id];
       if(sprName && SpriteCache[sprName]){
-        // Scale sprite to slot size
         const sScale=Math.max(2,Math.floor(hbW/18));
-        drawSprite(sprName,x+(hbW-16*sScale/2)/2,hbY+(hbH-16*sScale/2)/2,sScale);
+        drawSprite(sprName,x+(hbW-16*sScale/2)/2,rowY+(hbH-16*sScale/2)/2,sScale);
       } else{
         ctx.font=`${Math.floor(hbW*0.55)}px serif`;ctx.textAlign='center';
-        ctx.fillText(ITEMS[sl.id].icon,x+hbW/2,hbY+hbH/2+hbW*0.2);
+        ctx.fillText(ITEMS[sl.id].icon,x+hbW/2,rowY+hbH/2+hbW*0.2);
       }
       if(sl.qty>1){
-        ctx.fillStyle='#000';ctx.font=`bold ${isMobile?11:12}px ${FONT}`;ctx.textAlign='right';
-        ctx.fillText(sl.qty,x+hbW-3,hbY+hbH-3);
-        ctx.fillStyle=C.white;ctx.fillText(sl.qty,x+hbW-4,hbY+hbH-4);
+        ctx.fillStyle='#000';ctx.font=`bold ${isMobile?12:12}px ${FONT}`;ctx.textAlign='right';
+        ctx.fillText(sl.qty,x+hbW-3,rowY+hbH-3);
+        ctx.fillStyle=C.white;ctx.fillText(sl.qty,x+hbW-4,rowY+hbH-4);
       }
     }
   }
@@ -3946,7 +3969,8 @@ function drawHUD(){
     }
     else if(tut.highlight==='hotbar'){
       ctx.strokeStyle=`rgba(247,147,26,${0.5+Math.sin(_now/300)*0.3})`;ctx.lineWidth=3;
-      const hbX2=(canvas.width-10*48)/2;ctx.strokeRect(hbX2-6,canvas.height-68,10*48+12,56);
+      const hb2=_hotbarRect;
+      if(hb2.w>0) ctx.strokeRect(hb2.x-6,hb2.y-6,hb2.w+12,hb2.h+12);
     }
     else if(tut.highlight==='hud_sats'){
       ctx.strokeStyle=`rgba(247,147,26,${0.5+Math.sin(_now/300)*0.3})`;ctx.lineWidth=3;
