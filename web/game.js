@@ -56,6 +56,24 @@ resize();
 // were resizing the canvas mid-frame and tearing the render.
 window.addEventListener('load', () => setTimeout(resize, 50));
 
+// ---- CONSTANTS ----
+// TILE/SCALE/ST declared above the resize() function since it mutates them.
+const MAP_W = 120, MAP_H = 90; // MUCH bigger world
+const FONT = '"Courier New", monospace';
+
+// ---- MOBILE DETECTION & TOUCH CONTROLS ----
+// Declared BEFORE hudMinimized below — that init block reads isMobile, and a
+// `let` reference before declaration is a TDZ crash (black screen on desktop).
+// `let` so ?mobile=1 URL param or a runtime toggle can override for testing.
+let isMobile = /Android|iPhone|iPad|iPod|webOS/i.test(navigator.userAgent) || ('ontouchstart' in window);
+if (typeof location !== 'undefined' && location.search.indexOf('mobile=1') !== -1) isMobile = true;
+// ?reset=1 nukes all persisted state (save, HUD prefs, etc.) so we can get a
+// clean first-time load on mobile for debugging. Runs before anything reads
+// localStorage.
+if (typeof location !== 'undefined' && location.search.indexOf('reset=1') !== -1) {
+  try { localStorage.clear(); console.log('[sv] reset=1 → localStorage cleared'); } catch (e) {}
+}
+
 // ---- HUD VISIBILITY (toggleable, persisted) ----
 let hudMinimized = (() => {
   try {
@@ -70,23 +88,6 @@ function setHudMinimized(v) {
   try { localStorage.setItem('sv_hud_min', hudMinimized ? '1' : '0'); } catch (e) {}
 }
 function toggleHud() { setHudMinimized(!hudMinimized); }
-
-
-// ---- CONSTANTS ----
-// TILE/SCALE/ST declared above the resize() function since it mutates them.
-const MAP_W = 120, MAP_H = 90; // MUCH bigger world
-const FONT = '"Courier New", monospace';
-
-// ---- MOBILE DETECTION & TOUCH CONTROLS ----
-// `let` so ?mobile=1 URL param or a runtime toggle can override for testing
-let isMobile = /Android|iPhone|iPad|iPod|webOS/i.test(navigator.userAgent) || ('ontouchstart' in window);
-if (typeof location !== 'undefined' && location.search.indexOf('mobile=1') !== -1) isMobile = true;
-// ?reset=1 nukes all persisted state (save, HUD prefs, etc.) so we can get a
-// clean first-time load on mobile for debugging. Runs before anything reads
-// localStorage.
-if (typeof location !== 'undefined' && location.search.indexOf('reset=1') !== -1) {
-  try { localStorage.clear(); console.log('[sv] reset=1 → localStorage cleared'); } catch (e) {}
-}
 const touch = {
   // Virtual joystick state
   joyActive: false, joyStartX: 0, joyStartY: 0, joyX: 0, joyY: 0, joyDx: 0, joyDy: 0,
