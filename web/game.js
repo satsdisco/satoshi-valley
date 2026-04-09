@@ -106,7 +106,7 @@ if (isMobile) {
     // existing click handler instead of joystick/action processing. Without this
     // the intro screen and title menu are unreachable on mobile because
     // preventDefault() above suppresses the synthetic click event.
-    if (gameState !== 'playing' || dlg || pauseOpen || shopOpen || invOpen || chestOpen || craftOpen || citadelMenuOpen) {
+    if (gameState !== 'playing' || dlg || pauseOpen || shopOpen || invOpen || chestOpen || craftOpen || citadelMenuOpen || mobileMenuOpen) {
       const t0 = e.changedTouches[0];
       if (t0) {
         mouseX = t0.clientX; mouseY = t0.clientY;
@@ -153,9 +153,10 @@ if (isMobile) {
         else if (mineFloor && Math.hypot(t.clientX - (bx - 70), t.clientY - (by + 20)) < 30) { touch.btnSkill1 = true; jp['1'] = true; }
         else if (mineFloor && Math.hypot(t.clientX - (bx + 10), t.clientY - (by - 70)) < 30) { touch.btnSkill2 = true; jp['2'] = true; }
         else if (mineFloor && Math.hypot(t.clientX - (bx + 70), t.clientY - (by + 20)) < 30) { touch.btnSkill3 = true; jp['3'] = true; }
-        // Top buttons
+        // Top buttons — Pause, Inventory, Menu (hamburger)
         else if (t.clientY < 60 && t.clientX > canvas.width - 60) { touch.btnPause = true; jp['escape'] = true; }
         else if (t.clientY < 60 && t.clientX > canvas.width - 120) { touch.btnInventory = true; jp['i'] = true; }
+        else if (t.clientY < 60 && t.clientX > canvas.width - 180 && t.clientX < canvas.width - 120) { mobileMenuOpen = true; sfx.menuOpen(); }
         else {
           // Tap = click at that position (interact/move)
           mouseX = t.clientX; mouseY = t.clientY;
@@ -290,6 +291,22 @@ canvas.addEventListener('click', e => {
 
 canvas.addEventListener('click', e => {
   if(e.shiftKey)return; // Shift+click handled by placement handler above
+  // ── Mobile quick-menu overlay — handle before anything else ──────
+  if(mobileMenuOpen){
+    const hit = mobileMenuHitTest(e.clientX, e.clientY);
+    if(hit){
+      // Close the menu first so the action doesn't re-open it
+      mobileMenuOpen = false;
+      sfx.menuClose();
+      // Fire the appropriate action
+      if(hit.key) jp[hit.key] = true;
+      return;
+    }
+    // Tap outside tiles closes the menu
+    mobileMenuOpen = false;
+    sfx.menuClose();
+    return;
+  }
   // HUD toggle button — highest priority
   if(hudToggleHit(e.clientX, e.clientY) && !shopOpen && !invOpen && !chestOpen && !dlg && gameState==='playing'){
     toggleHud();
@@ -1668,6 +1685,8 @@ let showControls = false;
 let citadelTier = 0;
 let citadelMenuOpen = false;
 let pauseOpen = false;
+// Mobile quick-action menu (craft, harvest, eat, map, etc.)
+let mobileMenuOpen = false;
 let pauseCur = 0;
 const PAUSE_ITEMS = ['Resume','Save Game','Load Game','Music','Controls','Quit to Title'];
 
@@ -3848,6 +3867,8 @@ function drawHUD(){
   if(isMobile) drawTouchControls();
   // Contextual interact button (mobile) — appears when near something interactable
   drawContextualInteractButton();
+  // Mobile quick-action menu overlay (if open)
+  if(isMobile) drawMobileMenu();
   // Portrait rotation nudge
   drawRotateNudge();
   
@@ -4743,6 +4764,87 @@ function drawNPCHearts(npc) {
   }
 }
 
+// ── MOBILE QUICK-ACTION MENU ──────────────────────────────────────
+// Grid of big tappable tiles for every action that has a desktop hotkey.
+// Opened via the ☰ button top-right, closed by tapping outside or picking a tile.
+const MOBILE_MENU_ACTIONS = [
+  { icon:'🔨', label:'Craft',    key:'t' },
+  { icon:'🌾', label:'Harvest',  key:'h' },
+  { icon:'🍞', label:'Eat',      key:'g' },
+  { icon:'🗺️', label:'Map',      key:'n' },
+  { icon:'🏰', label:'Citadel',  key:'c' },
+  { icon:'📊', label:'Sort',     key:'q' },
+  { icon:'💾', label:'Save',     key:'p' },
+  { icon:'❓', label:'Help',     key:'?' },
+];
+
+function mobileMenuLayout(){
+  // Grid size adapts to screen width
+  const cols=4, rows=2;
+  const maxW=Math.min(canvas.width-40,440);
+  const tileW=Math.floor((maxW-20)/cols);
+  const tileH=tileW; // square tiles
+  const gridW=cols*tileW+(cols-1)*6;
+  const gridH=rows*tileH+(rows-1)*6;
+  const x=(canvas.width-gridW)/2;
+  const y=(canvas.height-gridH)/2-20;
+  return {x,y,gridW,gridH,tileW,tileH,cols,rows};
+}
+
+function mobileMenuHitTest(cx,cy){
+  const L=mobileMenuLayout();
+  for(let i=0;i<MOBILE_MENU_ACTIONS.length;i++){
+    const col=i%L.cols, row=Math.floor(i/L.cols);
+    const tx=L.x+col*(L.tileW+6);
+    const ty=L.y+row*(L.tileH+6);
+    if(cx>=tx && cx<=tx+L.tileW && cy>=ty && cy<=ty+L.tileH){
+      return MOBILE_MENU_ACTIONS[i];
+    }
+  }
+  return null;
+}
+
+function drawMobileMenu(){
+  if(!mobileMenuOpen)return;
+  // Darken the world
+  ctx.fillStyle='rgba(0,0,0,0.72)';
+  ctx.fillRect(0,0,canvas.width,canvas.height);
+  // Title
+  ctx.fillStyle=C.hud;ctx.font=`bold 22px ${FONT}`;ctx.textAlign='center';
+  const L=mobileMenuLayout();
+  ctx.fillText('Quick Actions',canvas.width/2,L.y-24);
+  ctx.fillStyle='#888';ctx.font=`12px ${FONT}`;
+  ctx.fillText('Tap a tile • Tap outside to close',canvas.width/2,L.y-6);
+  // Draw tiles
+  for(let i=0;i<MOBILE_MENU_ACTIONS.length;i++){
+    const a=MOBILE_MENU_ACTIONS[i];
+    const col=i%L.cols, row=Math.floor(i/L.cols);
+    const tx=L.x+col*(L.tileW+6);
+    const ty=L.y+row*(L.tileH+6);
+    // Tile background
+    ctx.fillStyle='rgba(20,20,28,0.9)';
+    ctx.fillRect(tx,ty,L.tileW,L.tileH);
+    // Orange border
+    ctx.strokeStyle=C.hud;ctx.lineWidth=2;
+    ctx.strokeRect(tx,ty,L.tileW,L.tileH);
+    // Corner accents
+    ctx.fillStyle='rgba(247,147,26,0.6)';
+    ctx.fillRect(tx,ty,6,6);
+    ctx.fillRect(tx+L.tileW-6,ty,6,6);
+    ctx.fillRect(tx,ty+L.tileH-6,6,6);
+    ctx.fillRect(tx+L.tileW-6,ty+L.tileH-6,6,6);
+    // Icon
+    ctx.font=`${Math.floor(L.tileW*0.45)}px serif`;ctx.textAlign='center';ctx.fillStyle='#FFF';
+    ctx.fillText(a.icon,tx+L.tileW/2,ty+L.tileH*0.55);
+    // Label
+    ctx.font=`bold 13px ${FONT}`;ctx.fillStyle=C.hud;
+    ctx.fillText(a.label,tx+L.tileW/2,ty+L.tileH-10);
+  }
+  // Close hint
+  ctx.fillStyle='#666';ctx.font=`11px ${FONT}`;
+  ctx.fillText('(inventory menu is the 📦 button top-right)',canvas.width/2,L.y+L.gridH+20);
+}
+
 function drawTouchControls(){
   if(!isMobile)return;
   ctx.globalAlpha=0.5;
@@ -4800,10 +4902,20 @@ function drawTouchControls(){
   // Top-right quick buttons
   // Pause
   ctx.fillStyle='rgba(80,80,80,0.4)';ctx.fillRect(canvas.width-55,8,45,35);
-  ctx.fillStyle='#AAA';ctx.font=`bold 11px ${FONT}`;ctx.textAlign='center';ctx.fillText('⏸',canvas.width-32,28);
+  ctx.strokeStyle='rgba(247,147,26,0.3)';ctx.lineWidth=1;ctx.strokeRect(canvas.width-55,8,45,35);
+  ctx.fillStyle='#DDD';ctx.font=`bold 11px ${FONT}`;ctx.textAlign='center';ctx.fillText('⏸',canvas.width-32,28);
   // Inventory
   ctx.fillStyle='rgba(80,80,80,0.4)';ctx.fillRect(canvas.width-110,8,50,35);
-  ctx.fillStyle='#AAA';ctx.fillText('📦',canvas.width-85,28);
+  ctx.strokeStyle='rgba(247,147,26,0.3)';ctx.strokeRect(canvas.width-110,8,50,35);
+  ctx.fillStyle='#DDD';ctx.fillText('📦',canvas.width-85,28);
+  // Menu (hamburger) — quick access to craft/harvest/eat/map/etc
+  ctx.fillStyle='rgba(247,147,26,0.5)';ctx.fillRect(canvas.width-170,8,50,35);
+  ctx.strokeStyle='rgba(247,147,26,0.7)';ctx.lineWidth=1.5;ctx.strokeRect(canvas.width-170,8,50,35);
+  // Hamburger icon
+  ctx.fillStyle='#FFF';
+  ctx.fillRect(canvas.width-160,17,30,3);
+  ctx.fillRect(canvas.width-160,24,30,3);
+  ctx.fillRect(canvas.width-160,31,30,3);
   
   // Interact hint (bottom center)
   if(!mineFloor){
