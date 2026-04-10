@@ -1227,11 +1227,238 @@ function drawDecor(d) {
         ctx.fillRect(rc-1,ry-4,2,8);ctx.fillRect(rc-4,ry-1,8,2);
       }
     }
+    else if(d.item==='mayor_desk'){
+      // ── GRAND MAYOR'S DESK — dark wood with green leather top ─
+      // Desk body
+      ctx.fillStyle='#3A2210';ctx.fillRect(fx+1,fy+10,ST-2,22);
+      ctx.fillStyle='#4A3218';ctx.fillRect(fx+2,fy+12,ST-4,18);
+      // Drawer handles
+      ctx.fillStyle='#B89838';ctx.fillRect(fx+8,fy+20,4,2);ctx.fillRect(fx+ST-12,fy+20,4,2);
+      // Desk top
+      ctx.fillStyle='#4A3218';ctx.fillRect(fx,fy+8,ST,4);
+      // Green leather inlay
+      ctx.fillStyle='#2A5A2A';ctx.fillRect(fx+3,fy+4,ST-6,6);
+      ctx.fillStyle='#3A6A3A';ctx.fillRect(fx+4,fy+5,ST-8,4);
+      // Gold trim on leather
+      ctx.fillStyle='#C8A040';
+      ctx.fillRect(fx+3,fy+4,ST-6,1);ctx.fillRect(fx+3,fy+9,ST-6,1);
+      ctx.fillRect(fx+3,fy+4,1,6);ctx.fillRect(fx+ST-4,fy+4,1,6);
+      // Items on desk: documents, ink well, ₿ nameplate
+      ctx.fillStyle='#EEE';ctx.fillRect(fx+6,fy+2,8,4); // papers
+      ctx.fillStyle='#DDD';ctx.fillRect(fx+7,fy+1,6,4);
+      ctx.fillStyle='#333';ctx.fillRect(fx+ST-10,fy+3,4,4); // ink well
+      ctx.fillStyle='#111';ctx.beginPath();ctx.arc(fx+ST-8,fy+4,2,0,Math.PI*2);ctx.fill();
+      // ₿ nameplate
+      ctx.fillStyle='#B89838';ctx.fillRect(fx+16,fy+2,10,4);
+      ctx.fillStyle='#F7931A';ctx.font=`bold 5px ${FONT}`;ctx.textAlign='center';
+      ctx.fillText('₿',fx+21,fy+5);
+    }
     else if(d.item==='desk'){
       ctx.fillStyle='#6A5030';ctx.fillRect(fx+2,fy+16,ST-4,12);
       ctx.fillStyle='#8A7050';ctx.fillRect(fx+2,fy+14,ST-4,4);
       ctx.fillStyle='#EEE';ctx.fillRect(fx+8,fy+10,10,6);
       ctx.fillStyle='#DDD';ctx.fillRect(fx+22,fy+11,8,5);
+    }
+    else if(d.item==='lectern'){
+      // ── LECTERN/PODIUM — for speeches ─────────────────────────
+      ctx.fillStyle='rgba(0,0,0,0.1)';ctx.beginPath();ctx.ellipse(fx+ST/2,fy+ST-3,10,4,0,0,Math.PI*2);ctx.fill();
+      // Base
+      ctx.fillStyle='#3A2210';ctx.fillRect(fx+ST/2-6,fy+20,12,16);
+      ctx.fillStyle='#4A3218';ctx.fillRect(fx+ST/2-5,fy+22,10,12);
+      // Top surface (angled)
+      ctx.fillStyle='#5A3A1E';ctx.fillRect(fx+ST/2-10,fy+10,20,12);
+      ctx.fillStyle='#6A4A28';ctx.fillRect(fx+ST/2-9,fy+11,18,10);
+      // Front panel
+      ctx.fillStyle='#4A3218';ctx.fillRect(fx+ST/2-8,fy+14,16,6);
+      // ₿ emblem on front
+      ctx.fillStyle='#C8A040';ctx.font=`bold 8px ${FONT}`;ctx.textAlign='center';
+      ctx.fillText('₿',fx+ST/2,fy+20);
+      // Open book on top
+      ctx.fillStyle='#EEE';ctx.fillRect(fx+ST/2-6,fy+8,12,4);
+      ctx.fillStyle='#DDD';ctx.fillRect(fx+ST/2-1,fy+8,2,4); // spine
+      ctx.fillStyle='rgba(0,0,0,0.1)';
+      for(let i=0;i<3;i++) ctx.fillRect(fx+ST/2-5+i*3,fy+9,2,1); // text lines
+    }
+    else if(d.item==='portrait_toshi'){
+      // ── UNCLE TOSHI PORTRAIT — ornate gold frame ──────────────
+      // Frame
+      ctx.fillStyle='#8A6A28';ctx.fillRect(fx+4,fy+2,ST-8,ST-4);
+      ctx.fillStyle='#C8A040';ctx.fillRect(fx+5,fy+3,ST-10,ST-6);
+      ctx.fillStyle='#AA8830';ctx.fillRect(fx+6,fy+4,ST-12,ST-8);
+      // Dark background
+      ctx.fillStyle='#2A2A30';ctx.fillRect(fx+8,fy+6,ST-16,ST-12);
+      // Silhouette figure (mysterious)
+      ctx.fillStyle='#3A3A40';
+      ctx.fillRect(fx+ST/2-5,fy+8,10,14); // body
+      ctx.fillRect(fx+ST/2-4,fy+6,8,6); // head
+      // Hat (wide brim — the legend)
+      ctx.fillStyle='#4A4A50';
+      ctx.fillRect(fx+ST/2-7,fy+5,14,3);
+      ctx.fillRect(fx+ST/2-4,fy+3,8,3);
+      // Glowing eyes (₿ orange — hint of power)
+      ctx.fillStyle='#F7931A';ctx.fillRect(fx+ST/2-2,fy+9,2,2);ctx.fillRect(fx+ST/2+2,fy+9,2,2);
+      // Nameplate below
+      ctx.fillStyle='#C8A040';ctx.fillRect(fx+ST/2-10,fy+ST-6,20,4);
+      ctx.fillStyle='#222';ctx.font=`4px ${FONT}`;ctx.textAlign='center';
+      ctx.fillText('UNCLE TOSHI',fx+ST/2,fy+ST-3);
+    }
+    else if(d.item==='whitepaper'){
+      // ── FRAMED BITCOIN WHITEPAPER — on the wall ───────────────
+      ctx.fillStyle='#5A3A18';ctx.fillRect(fx+4,fy+2,ST-8,ST-4); // frame
+      ctx.fillStyle='#6A4A28';ctx.fillRect(fx+5,fy+3,ST-10,ST-6);
+      // Paper
+      ctx.fillStyle='#F0ECE0';ctx.fillRect(fx+7,fy+5,ST-14,ST-10);
+      // Title
+      ctx.fillStyle='#222';ctx.font=`bold 4px ${FONT}`;ctx.textAlign='center';
+      ctx.fillText('Bitcoin:',fx+ST/2,fy+10);
+      ctx.font=`3px ${FONT}`;
+      ctx.fillText('A Peer-to-Peer',fx+ST/2,fy+14);
+      ctx.fillText('Electronic Cash',fx+ST/2,fy+18);
+      ctx.fillText('System',fx+ST/2,fy+22);
+      // Author
+      ctx.fillStyle='#666';ctx.font=`3px ${FONT}`;
+      ctx.fillText('Satoshi Nakamoto',fx+ST/2,fy+28);
+      // Abstract lines (tiny)
+      ctx.fillStyle='rgba(0,0,0,0.15)';
+      for(let i=0;i<4;i++) ctx.fillRect(fx+10,fy+31+i*2,ST-20,1);
+    }
+    else if(d.item==='village_map'){
+      // ── VILLAGE MAP — framed map on the wall ──────────────────
+      ctx.fillStyle='#5A3A18';ctx.fillRect(fx+2,fy+2,ST-4,ST-4); // frame
+      ctx.fillStyle='#6A4A28';ctx.fillRect(fx+3,fy+3,ST-6,ST-6);
+      // Parchment
+      ctx.fillStyle='#E8DCC0';ctx.fillRect(fx+5,fy+5,ST-10,ST-10);
+      // Map features (abstract terrain)
+      ctx.fillStyle='#4A8A3A';// forest areas
+      ctx.fillRect(fx+7,fy+7,8,6);ctx.fillRect(fx+ST-16,fy+8,6,5);
+      ctx.fillStyle='#6AB0E0'; // water
+      ctx.fillRect(fx+ST-12,fy+14,8,4);
+      ctx.fillStyle='#A08060'; // paths
+      ctx.fillRect(fx+8,fy+16,ST-18,2);ctx.fillRect(fx+14,fy+10,2,12);
+      // Buildings (tiny dots)
+      ctx.fillStyle='#8A4A20';
+      ctx.fillRect(fx+12,fy+14,3,3);ctx.fillRect(fx+18,fy+12,3,3);
+      ctx.fillRect(fx+15,fy+18,3,3);ctx.fillRect(fx+10,fy+20,3,3);
+      // "Satoshi Valley" title
+      ctx.fillStyle='#4A2A10';ctx.font=`3px ${FONT}`;ctx.textAlign='center';
+      ctx.fillText('SATOSHI VALLEY',fx+ST/2,fy+ST-7);
+      // Compass rose
+      ctx.fillStyle='#8A4A20';
+      ctx.fillRect(fx+ST-10,fy+7,1,5);ctx.fillRect(fx+ST-12,fy+9,5,1);
+      ctx.fillStyle='#CC3030';ctx.fillRect(fx+ST-10,fy+6,1,2); // N pointer
+    }
+    else if(d.item==='town_seal'){
+      // ── TOWN SEAL — circular ₿ emblem on floor (walkable) ────
+      // Check neighbours for connected rendering
+      const hasN=interior&&interior.furniture.some(f=>f.item==='town_seal'&&f.x===d.x&&f.y===d.y-1);
+      const hasS=interior&&interior.furniture.some(f=>f.item==='town_seal'&&f.x===d.x&&f.y===d.y+1);
+      const hasW=interior&&interior.furniture.some(f=>f.item==='town_seal'&&f.x===d.x-1&&f.y===d.y);
+      const hasE=interior&&interior.furniture.some(f=>f.item==='town_seal'&&f.x===d.x+1&&f.y===d.y);
+      // Dark circle base (only draw full circle from top-left tile)
+      if(!hasN&&!hasW){
+        // This is the top-left tile of the 2x2 seal
+        const cx=fx+ST, cy=fy+ST; // centre of 2x2 block
+        ctx.fillStyle='rgba(40,30,15,0.15)';
+        ctx.beginPath();ctx.arc(cx,cy,ST-2,0,Math.PI*2);ctx.fill();
+        ctx.fillStyle='rgba(200,160,64,0.12)';
+        ctx.beginPath();ctx.arc(cx,cy,ST-4,0,Math.PI*2);ctx.fill();
+        // Ring
+        ctx.strokeStyle='rgba(200,160,64,0.2)';ctx.lineWidth=2;
+        ctx.beginPath();ctx.arc(cx,cy,ST-6,0,Math.PI*2);ctx.stroke();
+        // ₿ emblem
+        ctx.fillStyle='rgba(247,147,26,0.2)';
+        ctx.font=`bold ${ST}px ${FONT}`;ctx.textAlign='center';ctx.textBaseline='middle';
+        ctx.fillText('₿',cx,cy+2);
+        ctx.textBaseline='alphabetic'; // restore
+        // Text around ring
+        ctx.fillStyle='rgba(160,130,60,0.15)';ctx.font=`bold 6px ${FONT}`;
+        ctx.fillText('SATOSHI VALLEY',cx,cy-ST+12);
+        ctx.fillText('EST. 2009',cx,cy+ST-8);
+      }
+    }
+    else if(d.item==='filing_cabinet'){
+      // ── FILING CABINET — metal grey ───────────────────────────
+      ctx.fillStyle='#606068';ctx.fillRect(fx+6,fy+4,ST-12,ST-6);
+      ctx.fillStyle='#707078';ctx.fillRect(fx+7,fy+5,ST-14,ST-8);
+      // Drawers (3)
+      ctx.fillStyle='#5A5A62';
+      ctx.fillRect(fx+8,fy+6,ST-16,8);
+      ctx.fillRect(fx+8,fy+16,ST-16,8);
+      ctx.fillRect(fx+8,fy+26,ST-16,8);
+      // Drawer seams
+      ctx.fillStyle='#4A4A52';
+      ctx.fillRect(fx+8,fy+14,ST-16,1);
+      ctx.fillRect(fx+8,fy+24,ST-16,1);
+      // Handles
+      ctx.fillStyle='#AAA';
+      ctx.fillRect(fx+ST/2-3,fy+9,6,2);
+      ctx.fillRect(fx+ST/2-3,fy+19,6,2);
+      ctx.fillRect(fx+ST/2-3,fy+29,6,2);
+      // Label slot on top drawer
+      ctx.fillStyle='#DDD';ctx.fillRect(fx+ST/2-4,fy+7,8,3);
+    }
+    else if(d.item==='council_bench'){
+      // ── COUNCIL BENCH — dark polished wood, formal ────────────
+      ctx.fillStyle='rgba(0,0,0,0.08)';ctx.beginPath();ctx.ellipse(fx+ST/2,fy+ST-2,14,3,0,0,Math.PI*2);ctx.fill();
+      // Legs
+      ctx.fillStyle='#3A1E08';
+      ctx.fillRect(fx+4,fy+26,4,12);ctx.fillRect(fx+ST-8,fy+26,4,12);
+      // Cross brace
+      ctx.fillStyle='#2A1604';ctx.fillRect(fx+6,fy+32,ST-12,2);
+      // Seat
+      ctx.fillStyle='#4A2A10';ctx.fillRect(fx+2,fy+22,ST-4,6);
+      ctx.fillStyle='#5A3A18';ctx.fillRect(fx+3,fy+23,ST-6,4);
+      // Polished top edge
+      ctx.fillStyle='rgba(180,140,80,0.25)';ctx.fillRect(fx+3,fy+22,ST-6,1);
+      // Backrest
+      ctx.fillStyle='#3A2210';ctx.fillRect(fx+4,fy+10,ST-8,14);
+      ctx.fillStyle='#4A3218';ctx.fillRect(fx+5,fy+11,ST-10,12);
+      // Backrest vertical slats
+      ctx.fillStyle='#3A2210';
+      ctx.fillRect(fx+10,fy+11,2,12);ctx.fillRect(fx+ST/2-1,fy+11,2,12);ctx.fillRect(fx+ST-12,fy+11,2,12);
+    }
+    else if(d.item==='ballot_box'){
+      // ── BALLOT BOX — wooden box on a stand ────────────────────
+      ctx.fillStyle='rgba(0,0,0,0.1)';ctx.beginPath();ctx.ellipse(fx+ST/2,fy+ST-2,10,3,0,0,Math.PI*2);ctx.fill();
+      // Stand
+      ctx.fillStyle='#4A2A10';ctx.fillRect(fx+ST/2-3,fy+24,6,14);
+      ctx.fillRect(fx+ST/2-8,fy+34,16,3);
+      // Box
+      ctx.fillStyle='#6A4A28';ctx.fillRect(fx+4,fy+8,ST-8,18);
+      ctx.fillStyle='#7A5A32';ctx.fillRect(fx+5,fy+9,ST-10,16);
+      // Slot on top
+      ctx.fillStyle='#2A1A08';ctx.fillRect(fx+ST/2-8,fy+8,16,3);
+      ctx.fillStyle='#111';ctx.fillRect(fx+ST/2-5,fy+9,10,1);
+      // Label
+      ctx.fillStyle='#DDD';ctx.fillRect(fx+ST/2-8,fy+14,16,8);
+      ctx.fillStyle='#222';ctx.font=`bold 5px ${FONT}`;ctx.textAlign='center';
+      ctx.fillText('VOTE',fx+ST/2,fy+20);
+      // Lock
+      ctx.fillStyle='#C8A040';ctx.fillRect(fx+ST/2-2,fy+24,4,3);
+    }
+    else if(d.item==='wall_clock'){
+      // ── WALL CLOCK — round with ₿ at 12 o'clock ──────────────
+      const ft=_now/1000;
+      ctx.fillStyle='#3A2210';ctx.beginPath();ctx.arc(fx+ST/2,fy+ST/2,14,0,Math.PI*2);ctx.fill();
+      ctx.fillStyle='#EEE8D8';ctx.beginPath();ctx.arc(fx+ST/2,fy+ST/2,12,0,Math.PI*2);ctx.fill();
+      // Hour marks
+      ctx.fillStyle='#333';
+      for(let i=0;i<12;i++){
+        const a=i*Math.PI/6-Math.PI/2;
+        ctx.fillRect(fx+ST/2+Math.cos(a)*10-0.5,fy+ST/2+Math.sin(a)*10-0.5,1,1);
+      }
+      // ₿ at 12
+      ctx.fillStyle='#F7931A';ctx.font=`bold 5px ${FONT}`;ctx.textAlign='center';
+      ctx.fillText('₿',fx+ST/2,fy+ST/2-5);
+      // Hands (slow tick)
+      const ha=ft*Math.PI/21600-Math.PI/2; // hour hand
+      const ma=ft*Math.PI/1800-Math.PI/2;  // minute hand
+      ctx.strokeStyle='#333';ctx.lineWidth=1.5;
+      ctx.beginPath();ctx.moveTo(fx+ST/2,fy+ST/2);ctx.lineTo(fx+ST/2+Math.cos(ha)*6,fy+ST/2+Math.sin(ha)*6);ctx.stroke();
+      ctx.strokeStyle='#555';ctx.lineWidth=1;
+      ctx.beginPath();ctx.moveTo(fx+ST/2,fy+ST/2);ctx.lineTo(fx+ST/2+Math.cos(ma)*9,fy+ST/2+Math.sin(ma)*9);ctx.stroke();
+      // Centre dot
+      ctx.fillStyle='#333';ctx.beginPath();ctx.arc(fx+ST/2,fy+ST/2,1.5,0,Math.PI*2);ctx.fill();
     }
     else if(d.item==='bookshelf'){
       ctx.fillStyle='#5A3A18';ctx.fillRect(fx+4,fy+4,ST-8,ST-8);
