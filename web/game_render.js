@@ -1082,58 +1082,92 @@ function drawDecor(d) {
       ctx.fillStyle='rgba(180,140,80,0.2)';ctx.fillRect(fx+1,fy+1,ST-2,1);
     }
     else if(d.item==='musician_guitar'){
-      // ── GUITARIST — tiny animated pixel musician ──────────────
+      // ── GUITARIST — full-size animated pixel musician ─────────
       const ft=_now/500;
-      const bob=Math.sin(ft*2)*1;
+      const bob=Math.sin(ft*2)*1.5;
+      const cx=fx+ST/2,by=fy-6;  // draw taller than the tile (extends up)
       // Shadow
-      ctx.fillStyle='rgba(0,0,0,0.1)';ctx.beginPath();ctx.ellipse(fx+ST/2,fy+ST-4,8,3,0,0,Math.PI*2);ctx.fill();
-      // Body
-      ctx.fillStyle='#4A6A8A';ctx.fillRect(fx+ST/2-5,fy+16+bob,10,14);
+      ctx.fillStyle='rgba(0,0,0,0.12)';ctx.beginPath();ctx.ellipse(cx,fy+ST-2,12,4,0,0,Math.PI*2);ctx.fill();
+      // Boots
+      ctx.fillStyle='#3A2210';ctx.fillRect(cx-8,fy+ST-8,7,6);ctx.fillRect(cx+2,fy+ST-8,7,6);
+      // Legs (jeans)
+      ctx.fillStyle='#334058';ctx.fillRect(cx-7,fy+22+bob,6,16);ctx.fillRect(cx+2,fy+22+bob,6,16);
+      // Body (blue shirt)
+      ctx.fillStyle='#3A5A8A';ctx.fillRect(cx-8,fy+6+bob,16,18);
+      ctx.fillStyle='#4A6A9A';ctx.fillRect(cx-7,fy+7+bob,14,16);
+      // Arms
+      ctx.fillStyle='#3A5A8A';ctx.fillRect(cx-10,fy+8+bob,4,12);ctx.fillRect(cx+8,fy+8+bob,4,12);
+      // Hands
+      ctx.fillStyle='#D4A574';ctx.fillRect(cx-10,fy+18+bob,4,4);
+      ctx.fillRect(cx+8,fy+16+bob+Math.sin(ft*4)*2,4,4); // strumming hand
       // Head
-      ctx.fillStyle='#D4A574';ctx.fillRect(fx+ST/2-4,fy+8+bob,8,10);
-      // Hair (bandana)
-      ctx.fillStyle='#CC3030';ctx.fillRect(fx+ST/2-5,fy+6+bob,10,4);
+      ctx.fillStyle='#D4A574';ctx.fillRect(cx-6,by+bob,12,14);
+      // Hair (red bandana)
+      ctx.fillStyle='#CC3030';ctx.fillRect(cx-7,by-2+bob,14,6);
+      ctx.fillStyle='#AA2020';ctx.fillRect(cx-7,by+2+bob,14,2);
       // Eyes
-      ctx.fillStyle='#222';ctx.fillRect(fx+ST/2-2,fy+12+bob,2,2);ctx.fillRect(fx+ST/2+2,fy+12+bob,2,2);
+      ctx.fillStyle='#222';ctx.fillRect(cx-3,by+8+bob,3,3);ctx.fillRect(cx+3,by+8+bob,3,3);
+      // Smile
+      ctx.fillStyle='#222';ctx.fillRect(cx-2,by+12+bob,5,1);
       // Guitar body
       ctx.fillStyle='#8A4A18';
-      ctx.beginPath();ctx.ellipse(fx+ST/2+8,fy+22+bob,5,4,0,0,Math.PI*2);ctx.fill();
+      ctx.beginPath();ctx.ellipse(cx+10,fy+18+bob,7,6,0.2,0,Math.PI*2);ctx.fill();
+      ctx.fillStyle='#6A3A10';
+      ctx.beginPath();ctx.ellipse(cx+10,fy+18+bob,5,4,0.2,0,Math.PI*2);ctx.fill();
+      // Sound hole
+      ctx.fillStyle='#2A1A08';ctx.beginPath();ctx.arc(cx+10,fy+18+bob,2,0,Math.PI*2);ctx.fill();
       // Guitar neck
-      ctx.fillStyle='#6A3A10';ctx.fillRect(fx+ST/2+5,fy+12+bob,2,12);
-      // Strumming hand (animated)
-      ctx.fillStyle='#D4A574';ctx.fillRect(fx+ST/2+6,fy+20+bob+Math.sin(ft*4)*2,3,3);
-      // Legs
-      ctx.fillStyle='#334';ctx.fillRect(fx+ST/2-4,fy+28+bob,4,8);ctx.fillRect(fx+ST/2+1,fy+28+bob,4,8);
-      // Boots
-      ctx.fillStyle='#3A2210';ctx.fillRect(fx+ST/2-5,fy+34+bob,5,3);ctx.fillRect(fx+ST/2+1,fy+34+bob,5,3);
+      ctx.fillStyle='#5A2A08';ctx.fillRect(cx+6,fy+4+bob,3,16);
+      // Strings hint
+      ctx.fillStyle='rgba(200,200,200,0.3)';ctx.fillRect(cx+7,fy+6+bob,1,14);
+      // Guitar headstock
+      ctx.fillStyle='#3A1A04';ctx.fillRect(cx+5,fy+2+bob,5,4);
     }
     else if(d.item==='musician_drums'){
-      // ── DRUMMER — tiny animated pixel musician with drums ──────
+      // ── DRUMMER — full-size animated pixel musician ────────────
       const ft=_now/500;
-      const hit=Math.abs(Math.sin(ft*3))<0.3?2:0;
-      // Drum kit (in front)
-      ctx.fillStyle='#6A2020';ctx.beginPath();ctx.ellipse(fx+ST/2-6,fy+28,7,5,0,0,Math.PI*2);ctx.fill(); // bass drum
-      ctx.fillStyle='#8A3030';ctx.fillRect(fx+ST/2-12,fy+24,12,3); // rim
-      ctx.fillStyle='#C8A040';ctx.beginPath();ctx.arc(fx+ST/2+6,fy+22,4,0,Math.PI*2);ctx.fill(); // cymbal
-      ctx.fillStyle='#AA8830';ctx.fillRect(fx+ST/2+5,fy+22,2,8); // cymbal stand
-      // Snare
-      ctx.fillStyle='#DDD';ctx.beginPath();ctx.ellipse(fx+ST/2+2,fy+28,5,3,0,0,Math.PI*2);ctx.fill();
+      const hit=Math.abs(Math.sin(ft*3))<0.3?3:0;
+      const cx=fx+ST/2,by=fy-4;
       // Shadow
-      ctx.fillStyle='rgba(0,0,0,0.1)';ctx.beginPath();ctx.ellipse(fx+ST/2,fy+ST-3,8,3,0,0,Math.PI*2);ctx.fill();
-      // Body (seated)
-      ctx.fillStyle='#2A5A2A';ctx.fillRect(fx+ST/2-4,fy+14,8,12);
-      // Head
-      ctx.fillStyle='#D4A574';ctx.fillRect(fx+ST/2-3,fy+6,7,10);
-      // Hair
-      ctx.fillStyle='#1A1A1A';ctx.fillRect(fx+ST/2-4,fy+4,9,4);
-      // Eyes
-      ctx.fillStyle='#222';ctx.fillRect(fx+ST/2-1,fy+10,2,2);ctx.fillRect(fx+ST/2+3,fy+10,2,2);
-      // Arms + sticks (animated hitting)
-      ctx.fillStyle='#D4A574';
-      ctx.fillRect(fx+ST/2-6,fy+16-hit,3,3);ctx.fillRect(fx+ST/2+6,fy+16-hit,3,3);
+      ctx.fillStyle='rgba(0,0,0,0.1)';ctx.beginPath();ctx.ellipse(cx,fy+ST-2,12,4,0,0,Math.PI*2);ctx.fill();
+      // Drum kit (in front of drummer)
+      // Bass drum
+      ctx.fillStyle='#6A2020';ctx.beginPath();ctx.ellipse(cx-4,fy+ST-8,10,7,0,0,Math.PI*2);ctx.fill();
+      ctx.fillStyle='#8A3030';ctx.beginPath();ctx.ellipse(cx-4,fy+ST-8,8,5,0,0,Math.PI*2);ctx.fill();
+      // ₿ on bass drum
+      ctx.fillStyle='#C8A040';ctx.font=`bold 7px ${FONT}`;ctx.textAlign='center';ctx.fillText('₿',cx-4,fy+ST-5);
+      // Cymbal + stand
+      ctx.fillStyle='#888';ctx.fillRect(cx+10,fy+10,2,ST-14);
+      ctx.fillStyle='#C8A840';ctx.beginPath();ctx.ellipse(cx+11,fy+10,6,2,0,0,Math.PI*2);ctx.fill();
+      ctx.fillStyle='#D8B850';ctx.beginPath();ctx.ellipse(cx+11,fy+10,4,1.5,0,0,Math.PI*2);ctx.fill();
+      // Snare drum
+      ctx.fillStyle='#DDD';ctx.beginPath();ctx.ellipse(cx+4,fy+ST-12,6,4,0,0,Math.PI*2);ctx.fill();
+      ctx.fillStyle='#BBB';ctx.fillRect(cx,fy+ST-15,8,3);
+      // Stool
+      ctx.fillStyle='#444';ctx.fillRect(cx-3,fy+22,6,14);
+      ctx.fillStyle='#333';ctx.fillRect(cx-5,fy+20,10,4);
+      // Legs (seated)
+      ctx.fillStyle='#334058';ctx.fillRect(cx-7,fy+22,6,12);ctx.fillRect(cx+2,fy+22,6,12);
+      // Body (green shirt)
+      ctx.fillStyle='#2A6A2A';ctx.fillRect(cx-7,fy+6,14,18);
+      ctx.fillStyle='#3A7A3A';ctx.fillRect(cx-6,fy+7,12,16);
+      // Arms (animated — raising sticks)
+      ctx.fillStyle='#2A6A2A';
+      ctx.fillRect(cx-10,fy+8-hit,4,10);ctx.fillRect(cx+8,fy+8-hit,4,10);
+      // Hands
+      ctx.fillStyle='#D4A574';ctx.fillRect(cx-10,fy+16-hit,4,4);ctx.fillRect(cx+8,fy+16-hit,4,4);
       // Drum sticks
-      ctx.fillStyle='#AA8840';
-      ctx.fillRect(fx+ST/2-8,fy+14-hit,2,8);ctx.fillRect(fx+ST/2+8,fy+14-hit,2,8);
+      ctx.fillStyle='#C8A848';
+      ctx.fillRect(cx-11,fy+12-hit,2,10);ctx.fillRect(cx+12,fy+12-hit,2,10);
+      // Head
+      ctx.fillStyle='#D4A574';ctx.fillRect(cx-5,by,10,14);
+      // Hair (dark, shaggy)
+      ctx.fillStyle='#1A1A2A';ctx.fillRect(cx-6,by-2,12,6);
+      ctx.fillStyle='#1A1A2A';ctx.fillRect(cx-5,by+2,2,4);ctx.fillRect(cx+5,by+2,2,4);
+      // Eyes
+      ctx.fillStyle='#222';ctx.fillRect(cx-3,by+6,3,3);ctx.fillRect(cx+2,by+6,3,3);
+      // Smile
+      ctx.fillStyle='#222';ctx.fillRect(cx-2,by+10,5,1);
     }
     else if(d.item==='bar_stool'){
       // ── BAR STOOL — tall with round seat ──────────────────────

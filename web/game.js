@@ -3075,7 +3075,7 @@ function update(dt) {
           interiorNPCs.push({ name:'Ruby', x:3*TILE+8, y:2*TILE+8, col:'#CC4444', hair:'#FF6644',
             dlg:['"Welcome to my shop! Take a look around."','"Everything priced in sats — no fiat accepted."','"Your uncle was my best customer."','"Need anything? I\'ve got CPUs to ASICs."'] });
         } else if (buildingType === 'tavern') {
-          interiorNPCs.push({ name:'Barkeep', x:3*TILE+8, y:2*TILE+8, col:'#8B6340', hair:'#2A1A08',
+          interiorNPCs.push({ name:'Barkeep', x:3*TILE+8, y:3*TILE+8, col:'#8B6340', hair:'#2A1A08',
             dlg:['"Welcome to the Hodl Tavern. What\'ll it be?"','"We only serve Bitcoin-branded beverages here."','"Your uncle used to sit right where you\'re standing."','"Lightning tips accepted and appreciated."'] });
         } else if (buildingType === 'hall') {
           interiorNPCs.push({ name:'Mayor Keynesian', x:4*TILE+8, y:2*TILE+8, col:'#888', hair:'#AAA',
@@ -5131,7 +5131,9 @@ function draw(){
     for(const a of animals)entities.push({y:a.y,draw:()=>drawAnimal(a)});
   } else {
     for(const f of interior.furniture) {
-      entities.push({y:f.y*TILE+TILE, draw:()=>drawDecor({type:'furniture',item:f.item,x:f.x,y:f.y})});
+      // Rugs and stage floors draw on the ground layer (y=0) so entities walk over them
+      const fy=(f.item==='rug'||f.item==='stage_floor')?0:f.y*TILE+TILE;
+      entities.push({y:fy, draw:()=>drawDecor({type:'furniture',item:f.item,x:f.x,y:f.y})});
     }
     for(const r of rigs){ if(r.interior===interior.type) entities.push({y:r.y,draw:()=>drawRig(r)}); }
     // Interior NPCs
