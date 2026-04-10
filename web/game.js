@@ -1041,16 +1041,17 @@ function generateMap() {
   decor.push({ x: 50, y: 5, type: 'sign', text: '⛏️ Abandoned Data Center' });
   
   // ---- VILLAGE DETAILS — Make the world feel lived-in ----
-  // Lamp posts along main road
+  // Lamp posts along main road (skip homeX to keep door path clear)
   for(let lx=homeX-12;lx<=homeX+20;lx+=6){
+    if(lx===homeX) continue;  // don't block homestead entrance
     decor.push({x:lx,y:homeY+2,type:'lamp'});
   }
-  // Benches near buildings
-  decor.push({x:homeX+2,y:homeY+4,type:'bench'});
-  decor.push({x:homeX+18,y:homeY+4,type:'bench'});
-  decor.push({x:homeX+13,y:homeY-5,type:'bench'}); // near town hall
-  // Well in village center
-  decor.push({x:homeX+5,y:homeY+5,type:'well'});
+  // Benches — on grass beside the path, not ON the path
+  decor.push({x:homeX+2,y:homeY+1,type:'bench'});   // beside homestead, north of road
+  decor.push({x:homeX+18,y:homeY+1,type:'bench'});   // near tavern area
+  decor.push({x:homeX+13,y:homeY-6,type:'bench'});   // near town hall
+  // Well — off the main road, in the village green
+  decor.push({x:homeX+10,y:homeY+1,type:'well'});
   // Market stalls near Farmer Pete
   decor.push({x:homeX+4,y:homeY+9,type:'market_stall',goods:'🥔🍅🌽'});
   decor.push({x:homeX+7,y:homeY+9,type:'market_stall',goods:'🥩🧀🍯'});

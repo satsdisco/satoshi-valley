@@ -499,12 +499,11 @@ function drawTile(x,y,tile){
           ctx.fillRect(sx+31,sy+13,3,1);
         }
       }
-      // Worn centre on high-traffic tiles (smoothed, slightly darker)
-      if(wear>0.5){
-        const wA=Math.min(0.2,wear*0.2);
-        ctx.fillStyle=`rgba(110,85,55,${wA})`;
+      // Subtle worn centre on high-traffic tiles
+      if(wear>0.6){
+        ctx.fillStyle=`rgba(125,100,68,${Math.min(0.1,wear*0.1)})`;
         ctx.beginPath();
-        ctx.ellipse(sx+ST/2,sy+ST/2,ST*0.3,ST*0.2,0,0,Math.PI*2);
+        ctx.ellipse(sx+ST/2,sy+ST/2,ST*0.25,ST*0.15,0,0,Math.PI*2);
         ctx.fill();
       }
       // Path edge blending — grass encroaching on the edges
@@ -698,16 +697,44 @@ function drawDecor(d) {
     ctx.fillRect(bx+ST-11,by+2,3,4);
   }
   else if(d.type==='well'){
-    // Stone well
-    ctx.fillStyle='#606068';ctx.fillRect(sx+4,sy+8,ST-8,ST-8); // base
-    ctx.fillStyle='#707078';ctx.fillRect(sx+6,sy+10,ST-12,ST-12); // inner
-    ctx.fillStyle='#2266AA';ctx.fillRect(sx+8,sy+14,ST-16,ST-18); // water
-    // Roof
-    ctx.fillStyle='#5A3A1A';ctx.fillRect(sx+2,sy+2,ST-4,8);
-    ctx.fillStyle='#6A4A2A';ctx.fillRect(sx+ST/2-2,sy-6,4,10); // post
-    ctx.fillStyle='#8A6A40';ctx.fillRect(sx,sy,ST,4); // roof top
-    // Bucket
-    ctx.fillStyle='#8A6A40';ctx.fillRect(sx+ST/2+4,sy+12,6,8);
+    // ── STONE WELL — circular with wooden roof frame ────────────
+    const wcx=sx+ST/2, wcy=sy+ST/2+4;
+    // Ground shadow
+    ctx.fillStyle='rgba(0,0,0,0.15)';
+    ctx.beginPath();ctx.ellipse(wcx,sy+ST,16,5,0,0,Math.PI*2);ctx.fill();
+    // Stone base (circular wall)
+    ctx.fillStyle='#606060';
+    ctx.beginPath();ctx.ellipse(wcx,wcy,14,12,0,0,Math.PI*2);ctx.fill();
+    ctx.fillStyle='#787878';
+    ctx.beginPath();ctx.ellipse(wcx,wcy,12,10,0,0,Math.PI*2);ctx.fill();
+    // Stone detail (a few visible blocks on the rim)
+    ctx.fillStyle='#555';
+    ctx.fillRect(wcx-12,wcy-2,4,3);ctx.fillRect(wcx+8,wcy-2,4,3);
+    ctx.fillRect(wcx-4,wcy-10,4,3);ctx.fillRect(wcx-2,wcy+7,4,3);
+    // Dark water inside
+    ctx.fillStyle='#1A3050';
+    ctx.beginPath();ctx.ellipse(wcx,wcy,9,7,0,0,Math.PI*2);ctx.fill();
+    // Water sheen
+    ctx.fillStyle='rgba(80,140,200,0.3)';
+    ctx.beginPath();ctx.ellipse(wcx-2,wcy-1,5,3,0,0,Math.PI*2);ctx.fill();
+    // Wooden uprights
+    ctx.fillStyle='#5A3A18';
+    ctx.fillRect(wcx-13,wcy-18,3,22);ctx.fillRect(wcx+10,wcy-18,3,22);
+    // Crossbeam
+    ctx.fillStyle='#6A4A28';
+    ctx.fillRect(wcx-14,wcy-19,ST-12,3);
+    // Roof (small pitched)
+    ctx.fillStyle='#7A5A30';
+    ctx.fillRect(wcx-16,wcy-22,ST-6,4);
+    ctx.fillStyle='#8A6A38';
+    ctx.fillRect(wcx-14,wcy-25,ST-10,4);
+    // Rope + bucket
+    ctx.fillStyle='#8A7A50';
+    ctx.fillRect(wcx,wcy-18,1,10);  // rope
+    ctx.fillStyle='#6A4A20';
+    ctx.fillRect(wcx-2,wcy-9,5,4);  // bucket
+    ctx.fillStyle='#5A3A10';
+    ctx.fillRect(wcx-2,wcy-9,5,1);  // bucket rim
   }
   else if(d.type==='market_stall'){
     // Market stall with displayed goods
