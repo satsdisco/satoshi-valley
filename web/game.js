@@ -1260,7 +1260,7 @@ function createInterior(type, w, h, furniture) {
   tileMap[h-1][doorX] = T.PATH;
   if (w > 6) tileMap[h-1][doorX+1] = T.PATH;
   // Mark furniture as solid (except walkable/decorative items)
-  const walkable=new Set(['chair','rug','wall_sconce','bar_stool','stage_floor','town_seal','wall_clock','hall_carpet','chandelier']);
+  const walkable=new Set(['chair','rug','wall_sconce','bar_stool','stage_floor','town_seal','wall_clock','hall_carpet','chandelier','cable_floor','rig_pad','industrial_light']);
   for (const f of furniture) {
     if (!walkable.has(f.item)) tileMap[f.y][f.x] = T.WALL;
   }
@@ -1316,12 +1316,31 @@ function generateInteriors() {
     {x:12,y:6,item:'dartboard'},
     {x:1,y:10,item:'barrel'},{x:12,y:10,item:'barrel'},
   ]);
-  INTERIOR_MAPS.shed = createInterior('shed', 10, 8, [
-    {x:1,y:1,item:'workbench'},{x:2,y:1,item:'workbench'},
-    {x:5,y:1,item:'shelf'},{x:6,y:1,item:'shelf'},
-    {x:8,y:1,item:'shelf'},
-    {x:1,y:4,item:'crate'},{x:2,y:4,item:'crate'},
-    {x:7,y:4,item:'workbench'},
+  INTERIOR_MAPS.shed = createInterior('shed', 12, 10, [
+    // ═══ BACK WALL — workbench + infrastructure ═══
+    {x:1,y:1,item:'tool_pegboard'},
+    {x:2,y:1,item:'workbench_mining'},{x:3,y:1,item:'workbench_mining'},
+    {x:5,y:1,item:'power_panel'},{x:6,y:1,item:'hashrate_screen'},
+    {x:8,y:1,item:'parts_shelf'},{x:9,y:1,item:'parts_shelf'},{x:10,y:1,item:'parts_shelf'},
+    // ═══ FLOOR — cable runs + rig pad markings (all walkable) ═══
+    {x:5,y:2,item:'cable_floor'},{x:5,y:3,item:'cable_floor'},
+    {x:5,y:4,item:'cable_floor'},{x:5,y:5,item:'cable_floor'},
+    {x:5,y:6,item:'cable_floor'},{x:5,y:7,item:'cable_floor'},
+    // Rig pad markings (shows where to place rigs)
+    {x:2,y:3,item:'rig_pad'},{x:3,y:3,item:'rig_pad'},
+    {x:7,y:3,item:'rig_pad'},{x:8,y:3,item:'rig_pad'},
+    {x:2,y:5,item:'rig_pad'},{x:3,y:5,item:'rig_pad'},
+    {x:7,y:5,item:'rig_pad'},{x:8,y:5,item:'rig_pad'},
+    {x:2,y:7,item:'rig_pad'},{x:3,y:7,item:'rig_pad'},
+    {x:7,y:7,item:'rig_pad'},{x:8,y:7,item:'rig_pad'},
+    // ═══ WALLS — ventilation, storage, details ═══
+    {x:1,y:4,item:'ventilation_fan'},{x:10,y:4,item:'ventilation_fan'},
+    {x:1,y:7,item:'crate'},{x:10,y:7,item:'crate'},
+    {x:10,y:2,item:'corkboard'},
+    // Overhead industrial light
+    {x:5,y:4,item:'industrial_light'},
+    // Safety
+    {x:1,y:8,item:'fire_extinguisher'},
   ]);
   INTERIOR_MAPS.hall = createInterior('hall', 14, 12, [
     // ═══ BACK WALL — stained glass centrepiece ═══
@@ -5160,7 +5179,7 @@ function draw(){
   } else {
     for(const f of interior.furniture) {
       // Floor-level items draw on the ground layer (y=0) so entities walk over them
-      const groundItems=new Set(['rug','stage_floor','town_seal','hall_carpet','chandelier']);
+      const groundItems=new Set(['rug','stage_floor','town_seal','hall_carpet','chandelier','cable_floor','rig_pad','industrial_light']);
       const fy=groundItems.has(f.item)?0:f.y*TILE+TILE;
       entities.push({y:fy, draw:()=>drawDecor({type:'furniture',item:f.item,x:f.x,y:f.y})});
     }

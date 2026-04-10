@@ -1582,10 +1582,216 @@ function drawDecor(d) {
       ctx.fillStyle='#6A4A28';ctx.fillRect(fx+14,fy+10,ST-28,5);
       ctx.fillRect(fx+14,fy+17,ST-28,5);
     }
+    else if(d.item==='workbench_mining'){
+      // ── MINING WORKBENCH — sturdy with tools and components ───
+      // Legs
+      ctx.fillStyle='#3A2A10';ctx.fillRect(fx+4,fy+26,4,12);ctx.fillRect(fx+ST-8,fy+26,4,12);
+      // Bench body
+      ctx.fillStyle='#5A4020';ctx.fillRect(fx+1,fy+14,ST-2,14);
+      ctx.fillStyle='#6A5030';ctx.fillRect(fx+2,fy+15,ST-4,12);
+      // Top surface (darker, used)
+      ctx.fillStyle='#4A3418';ctx.fillRect(fx,fy+12,ST,4);
+      ctx.fillStyle='rgba(180,140,80,0.15)';ctx.fillRect(fx+1,fy+12,ST-2,1);
+      // Vice grip (left)
+      ctx.fillStyle='#666';ctx.fillRect(fx+4,fy+8,6,6);
+      ctx.fillStyle='#888';ctx.fillRect(fx+5,fy+6,4,4);
+      ctx.fillStyle='#555';ctx.fillRect(fx+7,fy+4,2,4);
+      // Soldering iron (middle)
+      ctx.fillStyle='#444';ctx.fillRect(fx+16,fy+10,10,3);
+      ctx.fillStyle='#888';ctx.fillRect(fx+14,fy+10,4,3); // handle
+      ctx.fillStyle='#FF8833';ctx.fillRect(fx+26,fy+11,2,1); // hot tip
+      // Circuit board (right)
+      ctx.fillStyle='#1A5A1A';ctx.fillRect(fx+ST-12,fy+8,8,6);
+      ctx.fillStyle='#2A7A2A';ctx.fillRect(fx+ST-11,fy+9,6,4);
+      // Tiny components on board
+      ctx.fillStyle='#DDD';ctx.fillRect(fx+ST-10,fy+10,2,1);ctx.fillRect(fx+ST-7,fy+10,2,1);
+    }
     else if(d.item==='workbench'){
       ctx.fillStyle='#6A5030';ctx.fillRect(fx+2,fy+16,ST-4,12);
       ctx.fillStyle='#888';ctx.fillRect(fx+6,fy+12,10,6);
       ctx.fillStyle='#AAA';ctx.fillRect(fx+22,fy+13,8,4);
+    }
+    else if(d.item==='tool_pegboard'){
+      // ── TOOL PEGBOARD — wall-mounted tools ────────────────────
+      ctx.fillStyle='#7A6A50';ctx.fillRect(fx+2,fy+2,ST-4,ST-4);
+      ctx.fillStyle='#8A7A60';ctx.fillRect(fx+3,fy+3,ST-6,ST-6);
+      // Peg holes
+      ctx.fillStyle='rgba(0,0,0,0.15)';
+      for(let py=0;py<4;py++) for(let px=0;px<4;px++) ctx.fillRect(fx+7+px*8,fy+7+py*8,2,2);
+      // Wrench
+      ctx.fillStyle='#888';ctx.fillRect(fx+6,fy+6,3,14);
+      ctx.fillStyle='#AAA';ctx.fillRect(fx+5,fy+5,5,4);
+      // Hammer
+      ctx.fillStyle='#6A4A20';ctx.fillRect(fx+16,fy+8,2,12); // handle
+      ctx.fillStyle='#666';ctx.fillRect(fx+14,fy+6,6,4); // head
+      // Screwdriver
+      ctx.fillStyle='#CC4444';ctx.fillRect(fx+26,fy+6,3,6); // handle
+      ctx.fillStyle='#888';ctx.fillRect(fx+27,fy+12,1,8); // shaft
+      // Pliers
+      ctx.fillStyle='#555';ctx.fillRect(fx+ST-10,fy+22,3,8);ctx.fillRect(fx+ST-8,fy+22,3,8);
+      ctx.fillStyle='#C83030';ctx.fillRect(fx+ST-10,fy+16,6,6); // handles
+    }
+    else if(d.item==='power_panel'){
+      // ── POWER PANEL — electrical breaker box ──────────────────
+      const ft=_now/500;
+      ctx.fillStyle='#404048';ctx.fillRect(fx+4,fy+2,ST-8,ST-4);
+      ctx.fillStyle='#505058';ctx.fillRect(fx+5,fy+3,ST-10,ST-6);
+      // Main switch (top)
+      ctx.fillStyle='#CC3030';ctx.fillRect(fx+ST/2-4,fy+5,8,5);
+      ctx.fillStyle='#EEE';ctx.font=`bold 4px ${FONT}`;ctx.textAlign='center';
+      ctx.fillText('MAIN',fx+ST/2,fy+9);
+      // Breaker rows
+      for(let i=0;i<3;i++){
+        const by=fy+14+i*7;
+        ctx.fillStyle='#333';ctx.fillRect(fx+8,by,ST-16,5);
+        // Toggle switches
+        ctx.fillStyle=i<2?'#2A8A2A':'#888';
+        ctx.fillRect(fx+10+i*8,by+1,4,3);
+      }
+      // Power indicator LED
+      ctx.fillStyle=`rgb(${40+Math.sin(ft)*20},${200+Math.sin(ft)*30},${40+Math.sin(ft)*20})`;
+      ctx.fillRect(fx+ST-10,fy+5,3,3);
+      // Caution stripe
+      ctx.fillStyle='#E8C020';ctx.fillRect(fx+4,fy+ST-6,ST-8,3);
+      ctx.fillStyle='#222';ctx.fillRect(fx+8,fy+ST-6,3,3);ctx.fillRect(fx+16,fy+ST-6,3,3);ctx.fillRect(fx+24,fy+ST-6,3,3);
+    }
+    else if(d.item==='hashrate_screen'){
+      // ── HASHRATE MONITOR — screen showing mining stats ────────
+      const ft=_now/300;
+      // Monitor frame
+      ctx.fillStyle='#222';ctx.fillRect(fx+4,fy+4,ST-8,ST-10);
+      ctx.fillStyle='#333';ctx.fillRect(fx+5,fy+5,ST-10,ST-12);
+      // Screen
+      ctx.fillStyle='#0A1A0A';ctx.fillRect(fx+6,fy+6,ST-12,ST-14);
+      // Green terminal text
+      ctx.fillStyle='#0C0';ctx.font=`4px ${FONT}`;ctx.textAlign='left';
+      ctx.fillText('HASHRATE',fx+8,fy+12);
+      ctx.fillStyle='#0F0';ctx.font=`bold 6px ${FONT}`;
+      ctx.fillText('13 s/s',fx+8,fy+20);
+      // Blinking cursor
+      if(Math.sin(ft)>0) ctx.fillRect(fx+ST-14,fy+20,3,1);
+      // Activity bar (animated)
+      ctx.fillStyle='#0A0';
+      const bw=Math.floor(8+Math.sin(ft*0.7)*6);
+      ctx.fillRect(fx+8,fy+24,bw,3);
+      ctx.fillStyle='#080';ctx.fillRect(fx+8,fy+25,bw,1);
+      // Stand
+      ctx.fillStyle='#333';ctx.fillRect(fx+ST/2-4,fy+ST-6,8,4);
+      ctx.fillStyle='#444';ctx.fillRect(fx+ST/2-6,fy+ST-3,12,2);
+    }
+    else if(d.item==='parts_shelf'){
+      // ── PARTS SHELF — metal shelving with mining components ───
+      ctx.fillStyle='#505058';ctx.fillRect(fx+3,fy+2,ST-6,ST-4);
+      // Shelf brackets
+      ctx.fillStyle='#606068';
+      ctx.fillRect(fx+4,fy+10,ST-8,2);ctx.fillRect(fx+4,fy+20,ST-8,2);ctx.fillRect(fx+4,fy+30,ST-8,2);
+      // Side posts
+      ctx.fillStyle='#555';ctx.fillRect(fx+4,fy+4,2,ST-8);ctx.fillRect(fx+ST-6,fy+4,2,ST-8);
+      // Items on shelves
+      // Row 1: fan + heatsink
+      ctx.fillStyle='#888';ctx.fillRect(fx+7,fy+5,6,5); // fan
+      ctx.fillStyle='#AAA';ctx.fillRect(fx+8,fy+6,4,3);
+      ctx.fillStyle='#AA6620';ctx.fillRect(fx+18,fy+5,8,5); // heatsink
+      ctx.fillStyle='#CC8830';for(let i=0;i<3;i++) ctx.fillRect(fx+19+i*3,fy+5,1,5);
+      // Row 2: cables + PSU
+      ctx.fillStyle='#222';ctx.fillRect(fx+7,fy+14,5,5); // cable coil
+      ctx.fillStyle='#333';ctx.beginPath();ctx.arc(fx+10,fy+16,3,0,Math.PI*2);ctx.fill();
+      ctx.fillStyle='#444';ctx.fillRect(fx+18,fy+13,10,6); // PSU box
+      ctx.fillStyle='#555';ctx.fillRect(fx+19,fy+14,8,4);
+      ctx.fillStyle='#0A0';ctx.fillRect(fx+25,fy+15,2,2); // LED
+      // Row 3: spare boards
+      ctx.fillStyle='#1A5A1A';ctx.fillRect(fx+7,fy+24,8,4);ctx.fillRect(fx+18,fy+24,8,4);
+      ctx.fillStyle='#DDD';ctx.fillRect(fx+9,fy+25,2,1);ctx.fillRect(fx+20,fy+25,2,1);
+    }
+    else if(d.item==='cable_floor'){
+      // ── CABLE TRUNKING — power cables on the floor ────────────
+      ctx.fillStyle='rgba(40,40,40,0.2)';ctx.fillRect(fx+ST/2-4,fy,8,ST); // cable tray
+      // Cables (orange power + blue data)
+      ctx.fillStyle='rgba(200,120,20,0.3)';ctx.fillRect(fx+ST/2-2,fy,2,ST);
+      ctx.fillStyle='rgba(40,80,180,0.25)';ctx.fillRect(fx+ST/2+1,fy,2,ST);
+      // Tray edge marks
+      ctx.fillStyle='rgba(60,60,60,0.15)';
+      ctx.fillRect(fx+ST/2-4,fy,1,ST);ctx.fillRect(fx+ST/2+3,fy,1,ST);
+    }
+    else if(d.item==='rig_pad'){
+      // ── RIG PAD — floor marking for equipment placement ───────
+      // Subtle dotted outline marking where rigs should go
+      ctx.fillStyle='rgba(200,160,40,0.08)';ctx.fillRect(fx+2,fy+2,ST-4,ST-4);
+      // Corner brackets (like alignment marks)
+      ctx.fillStyle='rgba(200,160,40,0.2)';
+      // Top-left
+      ctx.fillRect(fx+3,fy+3,8,2);ctx.fillRect(fx+3,fy+3,2,8);
+      // Top-right
+      ctx.fillRect(fx+ST-11,fy+3,8,2);ctx.fillRect(fx+ST-5,fy+3,2,8);
+      // Bottom-left
+      ctx.fillRect(fx+3,fy+ST-5,8,2);ctx.fillRect(fx+3,fy+ST-11,2,8);
+      // Bottom-right
+      ctx.fillRect(fx+ST-11,fy+ST-5,8,2);ctx.fillRect(fx+ST-5,fy+ST-11,2,8);
+    }
+    else if(d.item==='ventilation_fan'){
+      // ── VENTILATION FAN — wall-mounted, animated ──────────────
+      const ft=_now/100;
+      // Housing
+      ctx.fillStyle='#505058';ctx.fillRect(fx+4,fy+4,ST-8,ST-8);
+      ctx.fillStyle='#404048';ctx.fillRect(fx+6,fy+6,ST-12,ST-12);
+      // Grill
+      ctx.fillStyle='#606068';
+      for(let i=0;i<5;i++) ctx.fillRect(fx+8,fy+8+i*5,ST-16,1);
+      // Fan blade (spinning)
+      const cx=fx+ST/2,cy=fy+ST/2;
+      ctx.fillStyle='rgba(100,100,110,0.5)';
+      for(let i=0;i<3;i++){
+        const a=ft*0.3+i*Math.PI*2/3;
+        ctx.fillRect(cx+Math.cos(a)*4-3,cy+Math.sin(a)*4-1,6,2);
+      }
+      // Centre hub
+      ctx.fillStyle='#888';ctx.beginPath();ctx.arc(cx,cy,3,0,Math.PI*2);ctx.fill();
+      // Air flow lines (subtle)
+      ctx.fillStyle='rgba(150,200,255,0.05)';
+      ctx.fillRect(fx-6,fy+10,6,ST-20);
+    }
+    else if(d.item==='corkboard'){
+      // ── CORKBOARD — pinned notes and mining pool info ─────────
+      ctx.fillStyle='#5A3A18';ctx.fillRect(fx+2,fy+2,ST-4,ST-4); // frame
+      ctx.fillStyle='#B89050';ctx.fillRect(fx+4,fy+4,ST-8,ST-8); // cork
+      ctx.fillStyle='#C8A060';ctx.fillRect(fx+5,fy+5,ST-10,ST-10);
+      // Pinned notes
+      ctx.fillStyle='#EEEECC';ctx.fillRect(fx+7,fy+7,12,10); // note 1
+      ctx.fillStyle='#FF4444';ctx.fillRect(fx+11,fy+6,3,3); // pin
+      ctx.fillStyle='#EEE';ctx.fillRect(fx+22,fy+8,10,8); // note 2
+      ctx.fillStyle='#4444FF';ctx.fillRect(fx+25,fy+7,3,3); // pin
+      // "HODL" sticky note
+      ctx.fillStyle='#FFE060';ctx.fillRect(fx+8,fy+20,12,8);
+      ctx.fillStyle='#222';ctx.font=`bold 5px ${FONT}`;ctx.textAlign='center';
+      ctx.fillText('HODL',fx+14,fy+26);
+      // Mining pool logo
+      ctx.fillStyle='#F7931A';ctx.beginPath();ctx.arc(fx+ST-10,fy+24,4,0,Math.PI*2);ctx.fill();
+      ctx.fillStyle='#FFF';ctx.font=`bold 4px ${FONT}`;ctx.fillText('₿',fx+ST-10,fy+26);
+    }
+    else if(d.item==='industrial_light'){
+      // ── INDUSTRIAL LIGHT — ceiling pendant with warm pool ─────
+      const ft=_now/500;
+      // Warm light pool on floor
+      ctx.fillStyle=`rgba(255,240,200,${0.05+Math.sin(ft*0.5)*0.015})`;
+      ctx.beginPath();ctx.arc(fx+ST/2,fy+ST/2,ST*1.8,0,Math.PI*2);ctx.fill();
+      ctx.fillStyle=`rgba(255,230,180,${0.03+Math.sin(ft*0.7)*0.01})`;
+      ctx.beginPath();ctx.arc(fx+ST/2,fy+ST/2,ST,0,Math.PI*2);ctx.fill();
+    }
+    else if(d.item==='fire_extinguisher'){
+      // ── FIRE EXTINGUISHER — red cylinder on wall ──────────────
+      ctx.fillStyle='#AA2020';ctx.fillRect(fx+ST/2-4,fy+8,8,22);
+      ctx.fillStyle='#CC3030';ctx.fillRect(fx+ST/2-3,fy+9,6,20);
+      // Handle
+      ctx.fillStyle='#222';ctx.fillRect(fx+ST/2-3,fy+6,6,4);
+      ctx.fillStyle='#444';ctx.fillRect(fx+ST/2+2,fy+4,2,4);
+      // Nozzle
+      ctx.fillStyle='#333';ctx.fillRect(fx+ST/2+3,fy+6,4,2);
+      // Label
+      ctx.fillStyle='#EEE';ctx.fillRect(fx+ST/2-2,fy+16,4,6);
+      ctx.fillStyle='#CC2020';ctx.font=`bold 4px ${FONT}`;ctx.textAlign='center';
+      ctx.fillText('🔥',fx+ST/2,fy+21);
+      // Wall bracket
+      ctx.fillStyle='#555';ctx.fillRect(fx+ST/2-6,fy+12,2,8);ctx.fillRect(fx+ST/2+4,fy+12,2,8);
     }
     else if(d.item==='crate'){
       ctx.fillStyle='#8A6A30';ctx.fillRect(fx+8,fy+10,ST-16,ST-14);
