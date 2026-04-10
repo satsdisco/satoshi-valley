@@ -149,6 +149,37 @@ function getTile(tx,ty){if(ty<0||ty>=MAP_H||tx<0||tx>=MAP_W)return T.CLIFF;retur
 const TERRAIN_GRASS=new Set([T.GRASS,T.TALLGRASS,T.FLOWER,T.MUSHROOM]);
 const TERRAIN_WATER_SET=new Set([T.WATER,T.DEEP]);
 
+// ── PATH WEAR MAP ─────────────────────────────────────────────
+// Per-tile "wear" value 0..1 for PATH tiles. Higher near junctions,
+// plazas, and doorsteps where many PATH tiles cluster — those spots
+// have been walked smooth, so we lighten the cobbles and suppress
+// weeds. Lazy-built on first PATH draw and cached for the session.
+let pathWearMap=null;
+function buildPathWearMap(){
+  pathWearMap=new Float32Array(MAP_W*MAP_H);
+  for(let y=0;y<MAP_H;y++){
+    for(let x=0;x<MAP_W;x++){
+      if(getTile(x,y)!==T.PATH) continue;
+      // Count PATH neighbors in a 5x5 window (24 max). Junctions and
+      // plazas have many neighbors; lonely spurs have few.
+      let n=0;
+      for(let dy=-2;dy<=2;dy++){
+        const yy=y+dy; if(yy<0||yy>=MAP_H) continue;
+        for(let dx=-2;dx<=2;dx++){
+          const xx=x+dx; if(xx<0||xx>=MAP_W) continue;
+          if(dx===0&&dy===0) continue;
+          if(getTile(xx,yy)===T.PATH) n++;
+        }
+      }
+      pathWearMap[y*MAP_W+x]=Math.min(1,n/14);
+    }
+  }
+}
+function getPathWear(x,y){
+  if(!pathWearMap) buildPathWearMap();
+  return pathWearMap[y*MAP_W+x]||0;
+}
+
 function drawTile(x,y,tile){
   const sx=x*ST-cam.x,sy=y*ST-cam.y;
   if(sx>canvas.width+ST||sy>canvas.height+ST||sx<-ST||sy<-ST)return;
@@ -425,8 +456,16 @@ function drawTile(x,y,tile){
       break;}
     case T.PATH:{
       // ── COBBLESTONE PATH — individual hand-laid stones w/ moss ──────
-      // Dark mortar base (what shows between stones)
-      ctx.fillStyle='#3A3228';
+      // Wear value: 0 = lonely spur, 1 = busy plaza/junction. Worn tiles
+      // get lighter mortar, polished stones, and a scuffed dirt center.
+      const wear=getPathWear(x,y);
+      // Dark mortar base (lighter where worn — boots have ground it down)
+      if(wear>0.4){
+        const mt=Math.floor(58+wear*22);
+        ctx.fillStyle=`rgb(${mt},${mt-8},${mt-18})`;
+      } else {
+        ctx.fillStyle='#3A3228';
+      }
       ctx.fillRect(sx,sy,ST,ST);
       // Cobblestones — 4x4 grid of irregular rounded stones
       const cobblesPerSide=4;
@@ -466,31 +505,51 @@ function drawTile(x,y,tile){
           // Tiny top glint
           ctx.fillStyle='rgba(255,255,255,0.25)';
           ctx.fillRect(jx+1,jy+1,1,1);
-          // Occasional moss growing in cracks between stones
-          if(h1%13===0){
-            ctx.fillStyle='rgba(70,130,40,0.65)';
-            ctx.fillRect(jx+cSz-1,jy+cSz/2,1,1);
-          }
-          if(h2%17===0){
-            ctx.fillStyle='rgba(55,115,35,0.55)';
-            ctx.fillRect(jx+cSz/2,jy+cSz-1,1,1);
+          // Occasional moss growing in cracks (suppressed on worn tiles)
+          if(wear<0.5){
+            if(h1%13===0){
+              ctx.fillStyle='rgba(70,130,40,0.65)';
+              ctx.fillRect(jx+cSz-1,jy+cSz/2,1,1);
+            }
+            if(h2%17===0){
+              ctx.fillStyle='rgba(55,115,35,0.55)';
+              ctx.fillRect(jx+cSz/2,jy+cSz-1,1,1);
+            }
           }
         }
       }
-      // Occasional small weed or dandelion growing between stones
-      const pSeed=(x*23+y*11)%29;
-      if(pSeed===3){
-        ctx.fillStyle='rgba(55,115,35,0.8)';
-        ctx.fillRect(sx+18,sy+22,1,3);
-        ctx.fillStyle='rgba(90,150,50,0.7)';
-        ctx.fillRect(sx+17,sy+21,3,1);
+      // Occasional small weed or dandelion (only on low-traffic tiles)
+      if(wear<0.35){
+        const pSeed=(x*23+y*11)%29;
+        if(pSeed===3){
+          ctx.fillStyle='rgba(55,115,35,0.8)';
+          ctx.fillRect(sx+18,sy+22,1,3);
+          ctx.fillStyle='rgba(90,150,50,0.7)';
+          ctx.fillRect(sx+17,sy+21,3,1);
+        }
+        if(pSeed===17){
+          // Dandelion
+          ctx.fillStyle='rgba(60,120,35,0.7)';
+          ctx.fillRect(sx+32,sy+14,1,3);
+          ctx.fillStyle='#F0C030';
+          ctx.fillRect(sx+31,sy+13,3,1);
+        }
       }
-      if(pSeed===17){
-        // Dandelion
-        ctx.fillStyle='rgba(60,120,35,0.7)';
-        ctx.fillRect(sx+32,sy+14,1,3);
-        ctx.fillStyle='#F0C030';
-        ctx.fillRect(sx+31,sy+13,3,1);
+      // ── WORN BOOT SCUFFS — dirt depression on high-traffic tiles ──
+      if(wear>0.45){
+        // Soft worn streak running through the center (the "desire path")
+        const wA=Math.min(0.35,wear*0.35);
+        ctx.fillStyle=`rgba(90,72,48,${wA})`;
+        ctx.beginPath();
+        ctx.ellipse(sx+ST/2,sy+ST/2,ST*0.32,ST*0.22,0,0,Math.PI*2);
+        ctx.fill();
+        // Subtle boot-print scuffs (2-3 darker marks on very worn tiles)
+        if(wear>0.65){
+          const sc=((x*31+y*17)%5);
+          ctx.fillStyle=`rgba(60,48,30,${wA*0.7})`;
+          ctx.fillRect(sx+10+sc*3,sy+14+sc*2,4,6);
+          if(sc>1) ctx.fillRect(sx+24-sc*2,sy+20+sc,4,6);
+        }
       }
       // Path edge blending — grass encroaching on the edges
       const ptN=getTile(x,y-1),ptS=getTile(x,y+1),ptW=getTile(x-1,y),ptE=getTile(x+1,y);
@@ -758,10 +817,65 @@ function drawDecor(d) {
     }
   }
   else if(d.type==='sign'){
-    ctx.fillStyle='#6A4A2A';ctx.fillRect(sx+ST/2-2,sy+ST/2,4,ST/2);
-    ctx.fillStyle='#8A6A40';ctx.fillRect(sx+ST/2-16,sy+ST/2-8,32,16);
-    ctx.fillStyle=C.white;ctx.font=`bold 10px ${FONT}`;ctx.textAlign='center';
-    ctx.fillText(d.text,sx+ST/2,sy+ST/2+2);
+    // ── HAND-PAINTED WOODEN SIGNPOST ───────────────────────────────
+    const scx=sx+ST/2, scy=sy+ST/2;
+    // Shadow blob on ground
+    ctx.fillStyle='rgba(0,0,0,0.18)';
+    ctx.beginPath();ctx.ellipse(scx,sy+ST-2,12,4,0,0,Math.PI*2);ctx.fill();
+    // Center post — tapered with bark grain
+    ctx.fillStyle='#3A2210';
+    ctx.fillRect(scx-3,scy-4,7,ST/2+5);   // post shadow
+    ctx.fillStyle='#5C3A1A';
+    ctx.fillRect(scx-2,scy-5,5,ST/2+4);   // post body
+    ctx.fillStyle='#7A5228';
+    ctx.fillRect(scx-2,scy-5,1,ST/2+4);   // bark highlight
+    // Post cap — carved finial
+    ctx.fillStyle='#5C3A1A';
+    ctx.fillRect(scx-4,scy-7,9,3);
+    ctx.fillStyle='#7A5228';
+    ctx.fillRect(scx-2,scy-10,5,4);
+    ctx.fillStyle='#8A6A38';
+    ctx.fillRect(scx-1,scy-11,3,2);       // cap tip
+    // Plank shadow (depth)
+    ctx.fillStyle='rgba(0,0,0,0.4)';
+    ctx.fillRect(scx-24,scy-2,48,18);
+    // Plank — two weathered boards
+    ctx.fillStyle='#9A7A48';
+    ctx.fillRect(scx-23,scy-3,46,17);
+    ctx.fillStyle='#A88A50';
+    ctx.fillRect(scx-23,scy-3,46,8);      // top board (lighter)
+    ctx.fillStyle='#8C6E3E';
+    ctx.fillRect(scx-23,scy+5,46,9);      // bottom board (darker)
+    // Board seam
+    ctx.fillStyle='#5A3A18';
+    ctx.fillRect(scx-23,scy+4,46,1);
+    // Wood grain streaks
+    ctx.fillStyle='rgba(70,40,15,0.3)';
+    ctx.fillRect(scx-18,scy-1,30,1);
+    ctx.fillRect(scx-14,scy+7,28,1);
+    ctx.fillRect(scx-20,scy+10,36,1);
+    // Beveled edge (light top / dark bottom)
+    ctx.fillStyle='rgba(255,230,170,0.3)';
+    ctx.fillRect(scx-23,scy-3,46,1);
+    ctx.fillStyle='rgba(0,0,0,0.45)';
+    ctx.fillRect(scx-23,scy+13,46,1);
+    // Iron nail tacks (four corners)
+    ctx.fillStyle='#333';
+    ctx.fillRect(scx-21,scy-1,2,2);
+    ctx.fillRect(scx+19,scy-1,2,2);
+    ctx.fillRect(scx-21,scy+10,2,2);
+    ctx.fillRect(scx+19,scy+10,2,2);
+    // Nail glint
+    ctx.fillStyle='#999';
+    ctx.fillRect(scx-21,scy-1,1,1);
+    ctx.fillRect(scx+19,scy-1,1,1);
+    // Hand-painted text: dark shadow + cream paint
+    ctx.font=`bold 9px ${FONT}`;
+    ctx.textAlign='center';
+    ctx.fillStyle='rgba(20,10,0,0.8)';
+    ctx.fillText(d.text,scx+1,scy+8);
+    ctx.fillStyle='#F0E0A8';
+    ctx.fillText(d.text,scx,scy+7);
   }
   else if(d.type==='furniture'){
     const fx=sx,fy=sy;
