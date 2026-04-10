@@ -1260,7 +1260,7 @@ function createInterior(type, w, h, furniture) {
   tileMap[h-1][doorX] = T.PATH;
   if (w > 6) tileMap[h-1][doorX+1] = T.PATH;
   // Mark furniture as solid (except walkable/decorative items)
-  const walkable=new Set(['chair','rug','wall_sconce','bar_stool','stage_floor','town_seal','wall_clock','hall_carpet','chandelier','cable_floor','rig_pad','industrial_light','shop_mat']);
+  const walkable=new Set(['chair','rug','wall_sconce','bar_stool','stage_floor','town_seal','wall_clock','hall_carpet','chandelier','cable_floor','rig_pad','industrial_light','shop_mat','cozy_rug','cat_bed']);
   for (const f of furniture) {
     if (!walkable.has(f.item)) tileMap[f.y][f.x] = T.WALL;
   }
@@ -1268,13 +1268,34 @@ function createInterior(type, w, h, furniture) {
 }
 
 function generateInteriors() {
-  INTERIOR_MAPS.home = createInterior('home', 12, 10, [
-    {x:2,y:1,item:'bed'},{x:3,y:1,item:'bed'},
-    {x:8,y:1,item:'bookshelf'},{x:9,y:1,item:'bookshelf'},
-    {x:2,y:4,item:'table'},{x:3,y:4,item:'chair'},
-    {x:8,y:4,item:'desk'},{x:9,y:3,item:'chair'},
-    {x:5,y:1,item:'fireplace'},
-    {x:1,y:7,item:'crate'},{x:10,y:7,item:'crate'},
+  INTERIOR_MAPS.home = createInterior('home', 14, 12, [
+    // ═══ BEDROOM CORNER (top-left) ═══
+    {x:1,y:1,item:'window_view'},{x:2,y:1,item:'bed'},{x:3,y:1,item:'bed'},
+    {x:4,y:1,item:'nightstand'},
+    // ═══ FIREPLACE (centre back wall) ═══
+    {x:6,y:1,item:'fireplace'},{x:7,y:1,item:'fireplace'},
+    // Cozy rug in front of fireplace
+    {x:5,y:2,item:'cozy_rug'},{x:6,y:2,item:'cozy_rug'},
+    {x:7,y:2,item:'cozy_rug'},{x:8,y:2,item:'cozy_rug'},
+    {x:5,y:3,item:'cozy_rug'},{x:6,y:3,item:'cozy_rug'},
+    {x:7,y:3,item:'cozy_rug'},{x:8,y:3,item:'cozy_rug'},
+    // ═══ UNCLE TOSHI'S STUDY (top-right) ═══
+    {x:9,y:1,item:'genesis_frame'},{x:10,y:1,item:'chancellor_frame'},
+    {x:11,y:1,item:'btc_bookshelf'},{x:12,y:1,item:'btc_bookshelf'},
+    {x:10,y:2,item:'toshi_desk'},{x:11,y:2,item:'toshi_desk'},
+    {x:10,y:3,item:'chair'},
+    // ═══ KITCHEN (left wall) ═══
+    {x:1,y:3,item:'kitchen_counter'},{x:2,y:3,item:'kitchen_stove'},
+    {x:1,y:4,item:'kitchen_counter'},
+    // ═══ DINING AREA (centre) ═══
+    {x:4,y:5,item:'tavern_table'},{x:3,y:5,item:'chair'},{x:5,y:5,item:'chair'},
+    // ═══ LIVING DETAILS ═══
+    {x:1,y:6,item:'wall_sconce'},{x:12,y:6,item:'wall_sconce'},
+    {x:12,y:4,item:'bitcoin_node'},
+    {x:1,y:8,item:'potted_plant'},
+    {x:12,y:8,item:'cat_bed'},
+    // Crates near door (storage)
+    {x:1,y:10,item:'crate'},{x:12,y:10,item:'crate'},
   ]);
   INTERIOR_MAPS.shop = createInterior('shop', 14, 10, [
     // ═══ BACK WALL — product displays ═══
@@ -5193,7 +5214,7 @@ function draw(){
   } else {
     for(const f of interior.furniture) {
       // Floor-level items draw on the ground layer (y=0) so entities walk over them
-      const groundItems=new Set(['rug','stage_floor','town_seal','hall_carpet','chandelier','cable_floor','rig_pad','industrial_light','shop_mat']);
+      const groundItems=new Set(['rug','stage_floor','town_seal','hall_carpet','chandelier','cable_floor','rig_pad','industrial_light','shop_mat','cozy_rug']);
       const fy=groundItems.has(f.item)?0:f.y*TILE+TILE;
       entities.push({y:fy, draw:()=>drawDecor({type:'furniture',item:f.item,x:f.x,y:f.y})});
     }

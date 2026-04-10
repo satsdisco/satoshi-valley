@@ -1983,6 +1983,276 @@ function drawDecor(d) {
       ctx.fillText('ACCEPTED',fx+ST/2,fy+26);
       ctx.fillText('HERE',fx+ST/2,fy+32);
     }
+    else if(d.item==='window_view'){
+      // ── WINDOW — night sky / valley view ──────────────────────
+      ctx.fillStyle='#4A3218';ctx.fillRect(fx+2,fy+2,ST-4,ST-4); // frame
+      ctx.fillStyle='#5A4228';ctx.fillRect(fx+3,fy+3,ST-6,ST-6);
+      // Sky (dark blue gradient)
+      ctx.fillStyle='#1A2040';ctx.fillRect(fx+5,fy+5,ST-10,ST-10);
+      ctx.fillStyle='#2A3060';ctx.fillRect(fx+5,fy+5,ST-10,(ST-10)/2);
+      // Stars
+      ctx.fillStyle='#EEE';
+      ctx.fillRect(fx+10,fy+8,1,1);ctx.fillRect(fx+22,fy+10,1,1);
+      ctx.fillRect(fx+16,fy+6,1,1);ctx.fillRect(fx+28,fy+8,2,1);
+      ctx.fillRect(fx+8,fy+14,1,1);ctx.fillRect(fx+30,fy+12,1,1);
+      // Mountain silhouette
+      ctx.fillStyle='#1A2A1A';
+      ctx.beginPath();ctx.moveTo(fx+5,fy+ST-8);
+      ctx.lineTo(fx+12,fy+16);ctx.lineTo(fx+18,fy+20);ctx.lineTo(fx+24,fy+14);
+      ctx.lineTo(fx+ST-5,fy+18);ctx.lineTo(fx+ST-5,fy+ST-8);ctx.closePath();ctx.fill();
+      // Moon
+      ctx.fillStyle='#EEE8CC';ctx.beginPath();ctx.arc(fx+ST-12,fy+10,4,0,Math.PI*2);ctx.fill();
+      // Window cross
+      ctx.fillStyle='#4A3218';ctx.fillRect(fx+ST/2-1,fy+5,2,ST-10);ctx.fillRect(fx+5,fy+ST/2-1,ST-10,2);
+      // Curtain edges
+      ctx.fillStyle='#6A3030';ctx.fillRect(fx+4,fy+4,4,ST-8);ctx.fillRect(fx+ST-8,fy+4,4,ST-8);
+    }
+    else if(d.item==='nightstand'){
+      // ── NIGHTSTAND — with lamp and book ───────────────────────
+      const ft=_now/400;
+      ctx.fillStyle='rgba(0,0,0,0.08)';ctx.beginPath();ctx.ellipse(fx+ST/2,fy+ST-3,10,3,0,0,Math.PI*2);ctx.fill();
+      // Cabinet
+      ctx.fillStyle='#5A3A18';ctx.fillRect(fx+6,fy+16,ST-12,18);
+      ctx.fillStyle='#6A4A28';ctx.fillRect(fx+7,fy+17,ST-14,16);
+      // Drawer handle
+      ctx.fillStyle='#B89838';ctx.fillRect(fx+ST/2-3,fy+24,6,2);
+      // Top surface
+      ctx.fillStyle='#5A3A18';ctx.fillRect(fx+4,fy+14,ST-8,4);
+      ctx.fillStyle='rgba(180,140,80,0.15)';ctx.fillRect(fx+5,fy+14,ST-10,1);
+      // Lamp
+      ctx.fillStyle='#888';ctx.fillRect(fx+ST/2-1,fy+6,3,9); // stem
+      ctx.fillStyle='#C8A848';ctx.fillRect(fx+ST/2-5,fy+2,11,6); // shade
+      ctx.fillStyle='#DAB858';ctx.fillRect(fx+ST/2-4,fy+3,9,4);
+      // Warm glow
+      ctx.fillStyle=`rgba(255,220,140,${0.04+Math.sin(ft*0.5)*0.015})`;
+      ctx.beginPath();ctx.arc(fx+ST/2,fy+8,25,0,Math.PI*2);ctx.fill();
+      // Book on top
+      ctx.fillStyle='#8A2020';ctx.fillRect(fx+ST-14,fy+12,8,4);
+      ctx.fillStyle='#6A1818';ctx.fillRect(fx+ST-13,fy+13,6,2);
+    }
+    else if(d.item==='genesis_frame'){
+      // ── GENESIS BLOCK — framed printout ───────────────────────
+      ctx.fillStyle='#3A2210';ctx.fillRect(fx+4,fy+2,ST-8,ST-4);
+      ctx.fillStyle='#C8A040';ctx.fillRect(fx+5,fy+3,ST-10,ST-6); // gold frame
+      ctx.fillStyle='#AA8830';ctx.fillRect(fx+6,fy+4,ST-12,ST-8);
+      // Paper
+      ctx.fillStyle='#F0ECE0';ctx.fillRect(fx+8,fy+6,ST-16,ST-12);
+      // Text
+      ctx.fillStyle='#222';ctx.font=`bold 4px ${FONT}`;ctx.textAlign='center';
+      ctx.fillText('BLOCK #0',fx+ST/2,fy+12);
+      ctx.font=`3px ${FONT}`;ctx.fillStyle='#555';
+      ctx.fillText('2009-01-03',fx+ST/2,fy+17);
+      ctx.fillText('The Times',fx+ST/2,fy+22);
+      ctx.fillStyle='#F7931A';ctx.font=`bold 6px ${FONT}`;
+      ctx.fillText('₿',fx+ST/2,fy+30);
+    }
+    else if(d.item==='chancellor_frame'){
+      // ── CHANCELLOR NEWSPAPER — framed "The Times" ─────────────
+      ctx.fillStyle='#3A2210';ctx.fillRect(fx+4,fy+2,ST-8,ST-4);
+      ctx.fillStyle='#5A4228';ctx.fillRect(fx+5,fy+3,ST-10,ST-6);
+      // Newspaper
+      ctx.fillStyle='#F0E8D0';ctx.fillRect(fx+7,fy+5,ST-14,ST-10);
+      // Masthead
+      ctx.fillStyle='#222';ctx.font=`bold 4px ${FONT}`;ctx.textAlign='center';
+      ctx.fillText('The Times',fx+ST/2,fy+11);
+      // Headline
+      ctx.fillStyle='#111';ctx.font=`bold 3px ${FONT}`;
+      ctx.fillText('Chancellor on',fx+ST/2,fy+17);
+      ctx.fillText('brink of second',fx+ST/2,fy+21);
+      ctx.fillText('bailout for',fx+ST/2,fy+25);
+      ctx.fillText('banks',fx+ST/2,fy+29);
+      // Date line
+      ctx.fillStyle='#888';ctx.font=`2px ${FONT}`;
+      ctx.fillText('03/Jan/2009',fx+ST/2,fy+34);
+    }
+    else if(d.item==='btc_bookshelf'){
+      // ── BITCOIN BOOKSHELF — Bitcoin books + memorabilia ────────
+      ctx.fillStyle='#3A2210';ctx.fillRect(fx+4,fy+4,ST-8,ST-8);
+      ctx.fillStyle='#4A3218';ctx.fillRect(fx+5,fy+5,ST-10,ST-10);
+      // Shelves
+      ctx.fillStyle='#5A3A1E';
+      ctx.fillRect(fx+6,fy+10,ST-12,2);ctx.fillRect(fx+6,fy+20,ST-12,2);ctx.fillRect(fx+6,fy+30,ST-12,2);
+      // Books — different colors/sizes (Bitcoin books!)
+      // Top shelf
+      ctx.fillStyle='#E88020';ctx.fillRect(fx+8,fy+5,5,5); // The Bitcoin Standard (orange)
+      ctx.fillStyle='#2244AA';ctx.fillRect(fx+14,fy+5,4,5); // Mastering Bitcoin (blue)
+      ctx.fillStyle='#333';ctx.fillRect(fx+19,fy+6,5,4); // The Blocksize War
+      ctx.fillStyle='#CC2020';ctx.fillRect(fx+25,fy+5,4,5); // The Price of Tomorrow
+      // Middle shelf
+      ctx.fillStyle='#2A8A2A';ctx.fillRect(fx+8,fy+14,5,5);
+      ctx.fillStyle='#8844CC';ctx.fillRect(fx+14,fy+15,6,4);
+      ctx.fillStyle='#D4A040';ctx.fillRect(fx+22,fy+14,4,5);
+      // Bottom shelf — small ₿ trophy
+      ctx.fillStyle='#C8A040';ctx.fillRect(fx+10,fy+24,4,5);
+      ctx.fillStyle='#F7931A';ctx.fillRect(fx+11,fy+23,2,2);
+      // Tiny Nakamoto Dice
+      ctx.fillStyle='#EEE';ctx.fillRect(fx+20,fy+25,4,4);
+      ctx.fillStyle='#222';ctx.fillRect(fx+21,fy+26,1,1);ctx.fillRect(fx+23,fy+28,1,1);
+    }
+    else if(d.item==='toshi_desk'){
+      // ── UNCLE TOSHI'S DESK — old terminal showing blockchain ──
+      const ft=_now/300;
+      // Desk body
+      ctx.fillStyle='#3A2210';ctx.fillRect(fx+1,fy+10,ST-2,22);
+      ctx.fillStyle='#4A3218';ctx.fillRect(fx+2,fy+12,ST-4,18);
+      ctx.fillStyle='#5A3A1E';ctx.fillRect(fx,fy+8,ST,4);
+      ctx.fillStyle='rgba(180,140,80,0.15)';ctx.fillRect(fx+1,fy+8,ST-2,1);
+      // Drawer
+      ctx.fillStyle='#3A2210';ctx.fillRect(fx+8,fy+22,ST-16,6);
+      ctx.fillStyle='#B89838';ctx.fillRect(fx+ST/2-3,fy+24,6,2);
+      // Old CRT monitor
+      ctx.fillStyle='#555';ctx.fillRect(fx+4,fy-4,ST-8,14);
+      ctx.fillStyle='#666';ctx.fillRect(fx+5,fy-3,ST-10,12);
+      ctx.fillStyle='#0A1A0A';ctx.fillRect(fx+7,fy-1,ST-14,8);
+      // Terminal text (animated)
+      ctx.fillStyle='#0C0';ctx.font=`3px ${FONT}`;ctx.textAlign='left';
+      ctx.fillText('block 891402',fx+9,fy+3);
+      ctx.fillStyle='#0A0';
+      ctx.fillText('hash: 00000...',fx+9,fy+6);
+      if(Math.sin(ft)>0) ctx.fillRect(fx+ST-12,fy+6,3,1); // cursor blink
+      // Monitor stand
+      ctx.fillStyle='#444';ctx.fillRect(fx+ST/2-4,fy+10,8,2);
+      // Coffee mug
+      ctx.fillStyle='#DDD';ctx.fillRect(fx+ST-10,fy+4,6,6);
+      ctx.fillStyle='#CCC';ctx.fillRect(fx+ST-9,fy+5,4,4);
+      ctx.fillStyle='#6A3A18';ctx.fillRect(fx+ST-8,fy+6,2,2); // coffee
+      ctx.fillStyle='#DDD';ctx.fillRect(fx+ST-4,fy+5,2,4); // handle
+    }
+    else if(d.item==='kitchen_counter'){
+      // ── KITCHEN COUNTER — with cutting board and jar ──────────
+      ctx.fillStyle='#3A2A14';ctx.fillRect(fx+1,fy+10,ST-2,22);
+      ctx.fillStyle='#4A3A20';ctx.fillRect(fx+2,fy+12,ST-4,18);
+      // Counter top (stone)
+      ctx.fillStyle='#707078';ctx.fillRect(fx,fy+8,ST,4);
+      ctx.fillStyle='#808088';ctx.fillRect(fx+1,fy+8,ST-2,3);
+      // Cutting board
+      ctx.fillStyle='#B89050';ctx.fillRect(fx+6,fy+4,10,5);
+      ctx.fillStyle='#C8A060';ctx.fillRect(fx+7,fy+5,8,3);
+      // Honey jar
+      ctx.fillStyle='#C8A030';ctx.fillRect(fx+ST-12,fy+3,6,7);
+      ctx.fillStyle='#E8C040';ctx.fillRect(fx+ST-11,fy+4,4,5);
+      ctx.fillStyle='#8A6A20';ctx.fillRect(fx+ST-11,fy+3,4,2); // lid
+    }
+    else if(d.item==='kitchen_stove'){
+      // ── KITCHEN STOVE — old wood-burning cookstove ────────────
+      ctx.fillStyle='#333';ctx.fillRect(fx+2,fy+4,ST-4,ST-6);
+      ctx.fillStyle='#444';ctx.fillRect(fx+3,fy+5,ST-6,ST-8);
+      // Stove top
+      ctx.fillStyle='#2A2A2A';ctx.fillRect(fx+1,fy+3,ST-2,4);
+      // Burner rings
+      ctx.fillStyle='#555';
+      ctx.beginPath();ctx.arc(fx+ST/2-6,fy+5,4,0,Math.PI*2);ctx.stroke();
+      ctx.beginPath();ctx.arc(fx+ST/2+6,fy+5,4,0,Math.PI*2);ctx.stroke();
+      // Oven door
+      ctx.fillStyle='#3A3A3A';ctx.fillRect(fx+6,fy+12,ST-12,14);
+      ctx.fillStyle='#4A4A4A';ctx.fillRect(fx+7,fy+13,ST-14,12);
+      // Glass window
+      ctx.fillStyle='#1A1A2A';ctx.fillRect(fx+10,fy+14,ST-20,8);
+      // Faint glow inside
+      ctx.fillStyle='rgba(255,120,30,0.1)';ctx.fillRect(fx+11,fy+15,ST-22,6);
+      // Handle
+      ctx.fillStyle='#888';ctx.fillRect(fx+ST/2-4,fy+26,8,2);
+      // Chimney pipe
+      ctx.fillStyle='#333';ctx.fillRect(fx+ST-8,fy-2,4,8);
+    }
+    else if(d.item==='bitcoin_node'){
+      // ── BITCOIN NODE — Uncle Toshi's node, still syncing ──────
+      const ft=_now/400;
+      // Table
+      ctx.fillStyle='#4A3218';ctx.fillRect(fx+4,fy+18,ST-8,4);
+      ctx.fillRect(fx+8,fy+22,4,14);ctx.fillRect(fx+ST-12,fy+22,4,14);
+      // Node box (Raspberry Pi-like)
+      ctx.fillStyle='#2A4A2A';ctx.fillRect(fx+6,fy+6,ST-12,14);
+      ctx.fillStyle='#3A5A3A';ctx.fillRect(fx+7,fy+7,ST-14,12);
+      // Status LEDs
+      ctx.fillStyle=`rgb(${30+Math.sin(ft)*20},${200+Math.sin(ft)*30},${30})`;
+      ctx.fillRect(fx+ST-12,fy+8,2,2); // sync LED
+      ctx.fillStyle=Math.sin(ft*2)>0?'#F80':'#840';
+      ctx.fillRect(fx+ST-12,fy+12,2,2); // activity LED
+      // Screen/display
+      ctx.fillStyle='#0A0A0A';ctx.fillRect(fx+9,fy+8,14,8);
+      ctx.fillStyle='#0A0';ctx.font=`3px ${FONT}`;ctx.textAlign='left';
+      ctx.fillText('NODE OK',fx+10,fy+12);
+      ctx.fillStyle='#080';ctx.fillText('891402',fx+10,fy+15);
+      // Ethernet cable
+      ctx.fillStyle='#2266CC';ctx.fillRect(fx+ST-8,fy+14,8,2);
+      // Label
+      ctx.fillStyle='#888';ctx.font=`3px ${FONT}`;ctx.textAlign='center';
+      ctx.fillText("TOSHI'S NODE",fx+ST/2,fy+ST-4);
+    }
+    else if(d.item==='potted_plant'){
+      // ── POTTED PLANT — green life in the cabin ────────────────
+      ctx.fillStyle='rgba(0,0,0,0.08)';ctx.beginPath();ctx.ellipse(fx+ST/2,fy+ST-3,10,3,0,0,Math.PI*2);ctx.fill();
+      // Pot
+      ctx.fillStyle='#8A4A20';ctx.fillRect(fx+ST/2-8,fy+ST/2+6,16,ST/2-8);
+      ctx.fillStyle='#9A5A30';ctx.fillRect(fx+ST/2-7,fy+ST/2+7,14,ST/2-10);
+      ctx.fillStyle='#7A3A18';ctx.fillRect(fx+ST/2-9,fy+ST/2+5,18,3); // rim
+      // Soil
+      ctx.fillStyle='#3A2A10';ctx.fillRect(fx+ST/2-6,fy+ST/2+5,12,3);
+      // Plant (lush green leaves)
+      ctx.fillStyle='#2A7A2A';
+      ctx.beginPath();ctx.ellipse(fx+ST/2,fy+ST/2-2,10,8,0,0,Math.PI*2);ctx.fill();
+      ctx.fillStyle='#3A8A3A';
+      ctx.beginPath();ctx.ellipse(fx+ST/2-3,fy+ST/2-4,6,6,0,0,Math.PI*2);ctx.fill();
+      ctx.beginPath();ctx.ellipse(fx+ST/2+4,fy+ST/2-6,5,5,0,0,Math.PI*2);ctx.fill();
+      ctx.fillStyle='#4A9A4A';
+      ctx.beginPath();ctx.ellipse(fx+ST/2,fy+ST/2-8,4,4,0,0,Math.PI*2);ctx.fill();
+      // Stem
+      ctx.fillStyle='#2A6A1A';ctx.fillRect(fx+ST/2-1,fy+ST/2-2,2,8);
+    }
+    else if(d.item==='cat_bed'){
+      // ── CAT BED — sleeping kitty (warm touch) ─────────────────
+      const ft=_now/1000;
+      // Bed cushion
+      ctx.fillStyle='#6A3A3A';
+      ctx.beginPath();ctx.ellipse(fx+ST/2,fy+ST/2+4,14,10,0,0,Math.PI*2);ctx.fill();
+      ctx.fillStyle='#7A4A4A';
+      ctx.beginPath();ctx.ellipse(fx+ST/2,fy+ST/2+4,12,8,0,0,Math.PI*2);ctx.fill();
+      // Sleeping cat (curled up)
+      ctx.fillStyle='#E8A040';
+      ctx.beginPath();ctx.ellipse(fx+ST/2,fy+ST/2+2,8,6,0,0,Math.PI*2);ctx.fill();
+      // Head
+      ctx.fillStyle='#E8A040';
+      ctx.beginPath();ctx.ellipse(fx+ST/2+6,fy+ST/2-2,5,4,0,0,Math.PI*2);ctx.fill();
+      // Ears
+      ctx.fillStyle='#D09030';
+      ctx.fillRect(fx+ST/2+4,fy+ST/2-6,3,3);ctx.fillRect(fx+ST/2+8,fy+ST/2-6,3,3);
+      // Tail (curled)
+      ctx.fillStyle='#D09030';
+      ctx.beginPath();ctx.ellipse(fx+ST/2-6,fy+ST/2+2,4,2,0.5,0,Math.PI*2);ctx.fill();
+      // Breathing animation (subtle body scale)
+      const br=Math.sin(ft)*0.5;
+      ctx.fillStyle='rgba(232,160,64,0.3)';
+      ctx.beginPath();ctx.ellipse(fx+ST/2,fy+ST/2+2+br,7,5,0,0,Math.PI*2);ctx.fill();
+      // Closed eyes (z's)
+      ctx.fillStyle='rgba(100,100,100,0.4)';ctx.font=`5px ${FONT}`;ctx.textAlign='center';
+      ctx.fillText('z',fx+ST/2+12,fy+ST/2-6+Math.sin(ft)*2);
+    }
+    else if(d.item==='cozy_rug'){
+      // ── COZY RUG — warm patterned rug in front of fireplace ───
+      const hasN=interior&&interior.furniture.some(f=>f.item==='cozy_rug'&&f.x===d.x&&f.y===d.y-1);
+      const hasS=interior&&interior.furniture.some(f=>f.item==='cozy_rug'&&f.x===d.x&&f.y===d.y+1);
+      const hasW=interior&&interior.furniture.some(f=>f.item==='cozy_rug'&&f.x===d.x-1&&f.y===d.y);
+      const hasE=interior&&interior.furniture.some(f=>f.item==='cozy_rug'&&f.x===d.x+1&&f.y===d.y);
+      // Warm cream/brown base
+      ctx.fillStyle='#B89868';ctx.fillRect(fx,fy,ST,ST);
+      ctx.fillStyle='#C8A878';ctx.fillRect(fx+1,fy+1,ST-2,ST-2);
+      // Border only on outer edges
+      ctx.fillStyle='#8A6838';
+      if(!hasN) ctx.fillRect(fx,fy,ST,2);
+      if(!hasS) ctx.fillRect(fx,fy+ST-2,ST,2);
+      if(!hasW) ctx.fillRect(fx,fy,2,ST);
+      if(!hasE) ctx.fillRect(fx+ST-2,fy,2,ST);
+      // Woven pattern (warm tones)
+      ctx.fillStyle='rgba(160,110,50,0.12)';
+      for(let i=0;i<ST;i+=6) ctx.fillRect(fx+i,fy,1,ST);
+      for(let i=0;i<ST;i+=6) ctx.fillRect(fx,fy+i,ST,1);
+      // Subtle diamond on alternating tiles
+      if((d.x+d.y)%2===0){
+        ctx.fillStyle='rgba(140,90,40,0.1)';
+        ctx.fillRect(fx+ST/2-3,fy+ST/2-3,6,6);
+      }
+    }
     else if(d.item==='crate'){
       ctx.fillStyle='#8A6A30';ctx.fillRect(fx+8,fy+10,ST-16,ST-14);
       ctx.fillStyle='#6A4A20';ctx.fillRect(fx+10,fy+16,ST-20,2);ctx.fillRect(fx+ST/2-1,fy+10,2,ST-14);
