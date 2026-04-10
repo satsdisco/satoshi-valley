@@ -455,101 +455,71 @@ function drawTile(x,y,tile){
       if((x*13+y*7)%11<3){ctx.fillStyle='rgba(210,190,140,0.15)';ctx.fillRect(sx+4,sy+12,ST-8,2);ctx.fillRect(sx+8,sy+28,ST-16,2);}
       break;}
     case T.PATH:{
-      // ── COBBLESTONE PATH — individual hand-laid stones w/ moss ──────
-      // Wear value: 0 = lonely spur, 1 = busy plaza/junction. Worn tiles
-      // get lighter mortar, polished stones, and a scuffed dirt center.
+      // ── PACKED DIRT PATH — warm earth with scattered flat pebbles ───
       const wear=getPathWear(x,y);
-      // Dark mortar base (lighter where worn — boots have ground it down)
-      if(wear>0.4){
-        const mt=Math.floor(58+wear*22);
-        ctx.fillStyle=`rgb(${mt},${mt-8},${mt-18})`;
-      } else {
-        ctx.fillStyle='#3A3228';
-      }
+      const pn=tileNoise1[y*MAP_W+x];  // Perlin noise for this tile
+      // Base earth colour — warm brown with subtle per-tile variation
+      const eR=Math.floor(148+pn*18+wear*8);
+      const eG=Math.floor(118+pn*14+wear*6);
+      const eB=Math.floor(78+pn*10+wear*4);
+      ctx.fillStyle=`rgb(${eR},${eG},${eB})`;
       ctx.fillRect(sx,sy,ST,ST);
-      // Cobblestones — 4x4 grid of irregular rounded stones
-      const cobblesPerSide=4;
-      const cSize=ST/cobblesPerSide;
-      for(let cy=0;cy<cobblesPerSide;cy++){
-        for(let cx=0;cx<cobblesPerSide;cx++){
-          // Seeded pseudo-random per stone (stable across frames)
-          const h1=((x*cobblesPerSide+cx)*91+(y*cobblesPerSide+cy)*137)%100;
-          const h2=((x*cobblesPerSide+cx)*53+(y*cobblesPerSide+cy)*211)%100;
-          // Jittered position so stones aren't a perfect grid
-          const jx=sx+cx*cSize+(h1%3)-1;
-          const jy=sy+cy*cSize+(h2%3)-1;
-          const cSz=cSize-1+(h1%2);
-          // Stone color variant (3 shades of warm grey)
-          const stoneShade=h2%5;
-          let stoneCol, stoneLight, stoneDark;
-          if(stoneShade===0){stoneCol='#8A8078';stoneLight='#A89E94';stoneDark='#5A524A';}
-          else if(stoneShade===1){stoneCol='#948A80';stoneLight='#B4AA9E';stoneDark='#625A52';}
-          else if(stoneShade===2){stoneCol='#9C927E';stoneLight='#BAB094';stoneDark='#665E4E';}
-          else if(stoneShade===3){stoneCol='#807868';stoneLight='#9E9484';stoneDark='#4E4838';}
-          else{stoneCol='#8E8470';stoneLight='#AAA088';stoneDark='#5E5644';}
-          // Rounded stone body
-          ctx.fillStyle=stoneDark;
-          ctx.beginPath();
-          ctx.ellipse(jx+cSz/2,jy+cSz/2,cSz/2,cSz/2-0.5,0,0,Math.PI*2);
-          ctx.fill();
-          // Main stone fill (smaller, inset)
-          ctx.fillStyle=stoneCol;
-          ctx.beginPath();
-          ctx.ellipse(jx+cSz/2,jy+cSz/2,cSz/2-0.5,cSz/2-1,0,0,Math.PI*2);
-          ctx.fill();
-          // Light highlight on upper-left of each stone (directional lighting)
-          ctx.fillStyle=stoneLight;
-          ctx.beginPath();
-          ctx.ellipse(jx+cSz/2-0.5,jy+cSz/2-0.5,cSz/2-1.5,cSz/2-2,0,0,Math.PI*2);
-          ctx.fill();
-          // Tiny top glint
-          ctx.fillStyle='rgba(255,255,255,0.25)';
-          ctx.fillRect(jx+1,jy+1,1,1);
-          // Occasional moss growing in cracks (suppressed on worn tiles)
-          if(wear<0.5){
-            if(h1%13===0){
-              ctx.fillStyle='rgba(70,130,40,0.65)';
-              ctx.fillRect(jx+cSz-1,jy+cSz/2,1,1);
-            }
-            if(h2%17===0){
-              ctx.fillStyle='rgba(55,115,35,0.55)';
-              ctx.fillRect(jx+cSz/2,jy+cSz-1,1,1);
-            }
-          }
+      // Subtle lighter patch (terrain irregularity)
+      const pn2=tileNoise2[y*MAP_W+x];
+      ctx.fillStyle=`rgba(190,165,120,${0.08+pn2*0.12})`;
+      ctx.fillRect(sx+4+((x*7)%8),sy+4+((y*5)%8),ST*0.5,ST*0.4);
+      // Darker speckles — tiny dirt clumps
+      const h0=(x*73+y*137)%100;
+      ctx.fillStyle=`rgba(90,68,42,${0.25+pn*0.1})`;
+      ctx.fillRect(sx+6+(h0%20),sy+4+((h0*3)%24),2,2);
+      ctx.fillRect(sx+24-((h0*2)%14),sy+18+((h0*5)%12),2,1);
+      ctx.fillRect(sx+12+((h0*7)%18),sy+30-((h0*4)%16),1,2);
+      // Scattered flat pebbles (2-4 per tile, sparse and subtle)
+      const pSeed=(x*31+y*17)%37;
+      if(pSeed<12){
+        // Pebble positions seeded from tile coords (stable across frames)
+        const px1=sx+8+(pSeed*3)%22, py1=sy+6+(pSeed*7)%24;
+        const px2=sx+20+(pSeed*5)%16, py2=sy+18+(pSeed*11)%16;
+        // Small flat stones — muted warm grey, barely raised
+        ctx.fillStyle=`rgba(130,118,98,${0.4+pn*0.15})`;
+        ctx.fillRect(px1,py1,4+(pSeed%3),3);
+        ctx.fillStyle=`rgba(145,130,108,${0.35+pn*0.1})`;
+        ctx.fillRect(px2,py2,3+(pSeed%2),3+(pSeed%2));
+        // Tiny highlight on upper edge
+        ctx.fillStyle='rgba(200,185,155,0.2)';
+        ctx.fillRect(px1,py1,4+(pSeed%3),1);
+        ctx.fillRect(px2,py2,3+(pSeed%2),1);
+        // Third pebble on some tiles
+        if(pSeed<6){
+          const px3=sx+14+(pSeed*9)%18, py3=sy+28-(pSeed*3)%12;
+          ctx.fillStyle=`rgba(125,112,92,${0.35+pn*0.12})`;
+          ctx.fillRect(px3,py3,3,2+(pSeed%2));
         }
       }
-      // Occasional small weed or dandelion (only on low-traffic tiles)
+      // Grass tufts on low-traffic paths (weeds reclaiming the edges)
       if(wear<0.35){
-        const pSeed=(x*23+y*11)%29;
-        if(pSeed===3){
-          ctx.fillStyle='rgba(55,115,35,0.8)';
-          ctx.fillRect(sx+18,sy+22,1,3);
-          ctx.fillStyle='rgba(90,150,50,0.7)';
-          ctx.fillRect(sx+17,sy+21,3,1);
+        const wSeed=(x*23+y*11)%29;
+        if(wSeed<4){
+          ctx.fillStyle='rgba(65,125,38,0.6)';
+          ctx.fillRect(sx+16+(wSeed*5),sy+20+(wSeed*3),1,3);
+          ctx.fillStyle='rgba(85,145,50,0.5)';
+          ctx.fillRect(sx+15+(wSeed*5),sy+19+(wSeed*3),3,1);
         }
-        if(pSeed===17){
-          // Dandelion
-          ctx.fillStyle='rgba(60,120,35,0.7)';
+        if(wSeed===17){
+          // Tiny dandelion
+          ctx.fillStyle='rgba(60,120,35,0.6)';
           ctx.fillRect(sx+32,sy+14,1,3);
-          ctx.fillStyle='#F0C030';
+          ctx.fillStyle='#E8B828';
           ctx.fillRect(sx+31,sy+13,3,1);
         }
       }
-      // ── WORN BOOT SCUFFS — dirt depression on high-traffic tiles ──
-      if(wear>0.45){
-        // Soft worn streak running through the center (the "desire path")
-        const wA=Math.min(0.35,wear*0.35);
-        ctx.fillStyle=`rgba(90,72,48,${wA})`;
+      // Worn centre on high-traffic tiles (smoothed, slightly darker)
+      if(wear>0.5){
+        const wA=Math.min(0.2,wear*0.2);
+        ctx.fillStyle=`rgba(110,85,55,${wA})`;
         ctx.beginPath();
-        ctx.ellipse(sx+ST/2,sy+ST/2,ST*0.32,ST*0.22,0,0,Math.PI*2);
+        ctx.ellipse(sx+ST/2,sy+ST/2,ST*0.3,ST*0.2,0,0,Math.PI*2);
         ctx.fill();
-        // Subtle boot-print scuffs (2-3 darker marks on very worn tiles)
-        if(wear>0.65){
-          const sc=((x*31+y*17)%5);
-          ctx.fillStyle=`rgba(60,48,30,${wA*0.7})`;
-          ctx.fillRect(sx+10+sc*3,sy+14+sc*2,4,6);
-          if(sc>1) ctx.fillRect(sx+24-sc*2,sy+20+sc,4,6);
-        }
       }
       // Path edge blending — grass encroaching on the edges
       const ptN=getTile(x,y-1),ptS=getTile(x,y+1),ptW=getTile(x-1,y),ptE=getTile(x+1,y);
