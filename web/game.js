@@ -3070,6 +3070,8 @@ function update(dt) {
         startTransition('fadeIn', 0.4, null);
         particles.length=0; // Clear sat particles on room transition
           notify('Entered ' + buildingType.charAt(0).toUpperCase() + buildingType.slice(1), 2);
+        // Tavern gets its own music
+        if(music && buildingType==='tavern') music.setLocation('tavern');
         interiorNPCs = [];
         if (buildingType === 'shop') {
           interiorNPCs.push({ name:'Ruby', x:3*TILE+8, y:2*TILE+8, col:'#CC4444', hair:'#FF6644',
@@ -3093,6 +3095,7 @@ function update(dt) {
     if (atDoor) {
       const rx = interior.returnX, ry = interior.returnY;
       startTransition('fadeOut', 0.3, () => {
+        if(music) music.setLocation('overworld');
         interior = null;
         interiorNPCs = [];
         doorCooldown = 2.0;

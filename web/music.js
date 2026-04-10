@@ -36,6 +36,23 @@ class MusicEngine {
     this.barCount = 0;
     this.melodyNotes = [];
     this.lastMelodyNote = 0;
+
+    // Location-based music (tavern has its own tune)
+    this.location = 'overworld';
+
+    // ── TAVERN PUB JAM ────────────────────────────────────────
+    // D mixolydian scale: D E F# G A B C D'
+    this.tavernScale = [293.66, 329.63, 369.99, 392.00, 440.00, 493.88, 523.25, 587.33];
+    // Catchy 32-note melody (pub jig feel, loops every 4 bars)
+    this.tavernMelody = [
+      0,2,3,4, 5,4,3,2,   // bouncy ascending, then back down
+      4,5,6,7, 5,4,3,1,   // climb high, cascade back
+      0,2,3,4, 3,4,5,3,   // repeat with variation
+      4,3,2,1, 0,2,0,-1,  // resolve home (-1 = rest)
+    ];
+    // Bass: root(D), 4th(G), 5th(A), root — walking pattern
+    this.tavernBass = [0,0,3,3, 4,4,0,0, 3,3,4,4, 0,0,4,0];
+    this.tavernBpm = 138;
   }
   
   init() {
@@ -116,6 +133,9 @@ class MusicEngine {
   }
   
   playBeat(time) {
+    // Route to tavern jam when inside the pub
+    if (this.location === 'tavern') { this.playTavernBeat(time); return; }
+
     const scale = this.scales[this.currentPhase];
     const chords = this.chords[this.currentPhase];
     
@@ -200,6 +220,75 @@ class MusicEngine {
     osc.stop(time + dur + 0.05);
   }
   
+  setLocation(loc) {
+    if (this.location === loc) return;
+    this.location = loc;
+    if (loc === 'tavern') {
+      this.bpm = this.tavernBpm;
+      // Bump volume slightly for the pub vibe
+      if (this.masterGain) this.masterGain.gain.setTargetAtTime(this.volume * 1.3, this.ctx.currentTime, 0.3);
+    } else {
+      // Restore normal phase BPM and volume
+      this.bpm = { accumulation: 68, hype: 80, euphoria: 92, capitulation: 60 }[this.currentPhase] || 72;
+      if (this.masterGain) this.masterGain.gain.setTargetAtTime(this.volume, this.ctx.currentTime, 0.3);
+    }
+    this.beat = 0; // reset beat counter for clean loop start
+  }
+
+  playTavernBeat(time) {
+    const sc = this.tavernScale;
+    const mel = this.tavernMelody;
+    const bas = this.tavernBass;
+    const beatInLoop = this.beat % 64; // 32 melody notes = 64 8th-note beats (each melody note is 2 8th notes)
+    const noteIdx = Math.floor(beatInLoop / 2);
+
+    // ── BASS (every 4 beats = quarter note) ──
+    if (beatInLoop % 4 === 0) {
+      const bi = Math.floor(beatInLoop / 4);
+      const bassNote = bas[bi % bas.length];
+      this.playNote(sc[bassNote] / 2, 60/this.bpm * 1.8, 'triangle', 0.07, time);
+    }
+
+    // ── RHYTHM CHORDS (on beats 0,4,8,12 — like an acoustic strum) ──
+    if (beatInLoop % 8 === 0) {
+      // D major strum: D F# A
+      this.playNote(sc[0], 60/this.bpm * 3, 'square', 0.015, time);
+      this.playNote(sc[2], 60/this.bpm * 3, 'square', 0.015, time);
+      this.playNote(sc[4], 60/this.bpm * 3, 'square', 0.015, time + 0.02);
+    }
+    // Off-beat chord stab (swing feel)
+    if (beatInLoop % 8 === 5) {
+      this.playNote(sc[3], 60/this.bpm * 1, 'square', 0.01, time);
+      this.playNote(sc[5], 60/this.bpm * 1, 'square', 0.01, time);
+    }
+
+    // ── MELODY (every 2 beats = 8th note melody) ──
+    if (beatInLoop % 2 === 0) {
+      const mi = mel[noteIdx % mel.length];
+      if (mi >= 0) {
+        const freq = sc[mi];
+        // Alternate between octaves for liveliness
+        const oct = (noteIdx % 8 < 4) ? 1 : (Math.random() < 0.2 ? 2 : 1);
+        this.playNote(freq * oct, 60/this.bpm * 0.9, 'square', 0.04, time);
+      }
+    }
+
+    // ── PERCUSSION (kick + hi-hat feel using noise-like tones) ──
+    // Kick on 1 and 3
+    if (beatInLoop % 8 === 0) {
+      this.playNote(80, 0.08, 'triangle', 0.06, time);
+    }
+    // Snare on 2 and 4
+    if (beatInLoop % 8 === 4) {
+      this.playNote(200, 0.04, 'square', 0.03, time);
+      this.playNote(800, 0.02, 'sawtooth', 0.015, time);
+    }
+    // Hi-hat on every 8th
+    if (beatInLoop % 2 === 0) {
+      this.playNote(6000 + Math.random() * 2000, 0.02, 'square', 0.008, time);
+    }
+  }
+
   setVolume(v) {
     this.volume = v;
     if (this.masterGain) this.masterGain.gain.setTargetAtTime(v, this.ctx.currentTime, 0.1);
