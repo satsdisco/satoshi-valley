@@ -474,27 +474,13 @@ function drawTile(x,y,tile){
       ctx.fillRect(sx+6+(h0%20),sy+4+((h0*3)%24),2,2);
       ctx.fillRect(sx+24-((h0*2)%14),sy+18+((h0*5)%12),2,1);
       ctx.fillRect(sx+12+((h0*7)%18),sy+30-((h0*4)%16),1,2);
-      // Scattered flat pebbles (2-4 per tile, sparse and subtle)
+      // Tiny scattered pebbles (1-2px, very subtle)
       const pSeed=(x*31+y*17)%37;
-      if(pSeed<12){
-        // Pebble positions seeded from tile coords (stable across frames)
-        const px1=sx+8+(pSeed*3)%22, py1=sy+6+(pSeed*7)%24;
-        const px2=sx+20+(pSeed*5)%16, py2=sy+18+(pSeed*11)%16;
-        // Small flat stones — muted warm grey, barely raised
-        ctx.fillStyle=`rgba(130,118,98,${0.4+pn*0.15})`;
-        ctx.fillRect(px1,py1,4+(pSeed%3),3);
-        ctx.fillStyle=`rgba(145,130,108,${0.35+pn*0.1})`;
-        ctx.fillRect(px2,py2,3+(pSeed%2),3+(pSeed%2));
-        // Tiny highlight on upper edge
-        ctx.fillStyle='rgba(200,185,155,0.2)';
-        ctx.fillRect(px1,py1,4+(pSeed%3),1);
-        ctx.fillRect(px2,py2,3+(pSeed%2),1);
-        // Third pebble on some tiles
-        if(pSeed<6){
-          const px3=sx+14+(pSeed*9)%18, py3=sy+28-(pSeed*3)%12;
-          ctx.fillStyle=`rgba(125,112,92,${0.35+pn*0.12})`;
-          ctx.fillRect(px3,py3,3,2+(pSeed%2));
-        }
+      if(pSeed<10){
+        ctx.fillStyle=`rgba(120,108,85,${0.2+pn*0.08})`;
+        ctx.fillRect(sx+8+(pSeed*3)%26,sy+6+(pSeed*7)%28,2,1);
+        ctx.fillRect(sx+22+(pSeed*5)%14,sy+20+(pSeed*11)%14,1,2);
+        if(pSeed<5) ctx.fillRect(sx+14+(pSeed*9)%18,sy+30-(pSeed*3)%14,2,1);
       }
       // Grass tufts on low-traffic paths (weeds reclaiming the edges)
       if(wear<0.35){
@@ -674,14 +660,42 @@ function drawDecor(d) {
     }
   }
   else if(d.type==='bench'){
-    // Wooden park bench
-    ctx.fillStyle='#5A3A1A';
-    ctx.fillRect(sx+4,sy+ST/2+4,ST-8,4); // seat
-    ctx.fillRect(sx+4,sy+ST/2+2,ST-8,3); // back
-    ctx.fillRect(sx+6,sy+ST/2+6,4,10); // left leg
-    ctx.fillRect(sx+ST-10,sy+ST/2+6,4,10); // right leg
+    // ── WOODEN PARK BENCH — side view with slat detail ─────────
+    const bx=sx+4,by=sy+ST/2;
+    // Ground shadow
+    ctx.fillStyle='rgba(0,0,0,0.12)';
+    ctx.beginPath();ctx.ellipse(sx+ST/2,sy+ST-2,14,3,0,0,Math.PI*2);ctx.fill();
+    // Legs (dark wood)
+    ctx.fillStyle='#4A2A10';
+    ctx.fillRect(bx+2,by+10,3,ST/2-12);       // left front leg
+    ctx.fillRect(bx+ST-12,by+10,3,ST/2-12);   // right front leg
+    ctx.fillRect(bx+4,by+6,3,ST/2-8);         // left back leg (taller)
+    ctx.fillRect(bx+ST-14,by+6,3,ST/2-8);     // right back leg
+    // Cross brace
+    ctx.fillStyle='#3A1E08';
+    ctx.fillRect(bx+5,by+14,ST-18,2);
+    // Seat — 3 planks
     ctx.fillStyle='#7A5A30';
-    ctx.fillRect(sx+6,sy+ST/2+4,ST-12,2); // seat highlight
+    ctx.fillRect(bx,by+8,ST-8,3);
+    ctx.fillStyle='#8A6A3A';
+    ctx.fillRect(bx,by+5,ST-8,3);
+    ctx.fillStyle='#6A4A22';
+    ctx.fillRect(bx,by+11,ST-8,2);
+    // Seat plank highlight
+    ctx.fillStyle='rgba(180,150,100,0.3)';
+    ctx.fillRect(bx+2,by+5,ST-12,1);
+    // Backrest — 2 planks
+    ctx.fillStyle='#7A5A30';
+    ctx.fillRect(bx+2,by-2,ST-12,3);
+    ctx.fillStyle='#6A4A22';
+    ctx.fillRect(bx+2,by+1,ST-12,2);
+    // Backrest highlight
+    ctx.fillStyle='rgba(180,150,100,0.25)';
+    ctx.fillRect(bx+4,by-2,ST-16,1);
+    // Armrest nubs
+    ctx.fillStyle='#5A3A18';
+    ctx.fillRect(bx,by+2,3,4);
+    ctx.fillRect(bx+ST-11,by+2,3,4);
   }
   else if(d.type==='well'){
     // Stone well
@@ -789,63 +803,57 @@ function drawDecor(d) {
   else if(d.type==='sign'){
     // ── HAND-PAINTED WOODEN SIGNPOST ───────────────────────────────
     const scx=sx+ST/2, scy=sy+ST/2;
+    // Measure text to size the plank
+    ctx.font=`bold 8px ${FONT}`;
+    const tw=ctx.measureText(d.text).width;
+    const pw=Math.max(36,tw+14);     // plank width (padding around text)
+    const ph=14;                      // plank height
+    const hw=pw/2;                    // half-width
     // Shadow blob on ground
-    ctx.fillStyle='rgba(0,0,0,0.18)';
-    ctx.beginPath();ctx.ellipse(scx,sy+ST-2,12,4,0,0,Math.PI*2);ctx.fill();
-    // Center post — tapered with bark grain
+    ctx.fillStyle='rgba(0,0,0,0.15)';
+    ctx.beginPath();ctx.ellipse(scx,sy+ST-2,10,3,0,0,Math.PI*2);ctx.fill();
+    // Center post
     ctx.fillStyle='#3A2210';
-    ctx.fillRect(scx-3,scy-4,7,ST/2+5);   // post shadow
+    ctx.fillRect(scx-2,scy-2,5,ST/2+3);
     ctx.fillStyle='#5C3A1A';
-    ctx.fillRect(scx-2,scy-5,5,ST/2+4);   // post body
+    ctx.fillRect(scx-1,scy-3,4,ST/2+2);
     ctx.fillStyle='#7A5228';
-    ctx.fillRect(scx-2,scy-5,1,ST/2+4);   // bark highlight
-    // Post cap — carved finial
+    ctx.fillRect(scx-1,scy-3,1,ST/2+2);
+    // Post cap
     ctx.fillStyle='#5C3A1A';
-    ctx.fillRect(scx-4,scy-7,9,3);
+    ctx.fillRect(scx-3,scy-5,7,3);
     ctx.fillStyle='#7A5228';
-    ctx.fillRect(scx-2,scy-10,5,4);
-    ctx.fillStyle='#8A6A38';
-    ctx.fillRect(scx-1,scy-11,3,2);       // cap tip
-    // Plank shadow (depth)
-    ctx.fillStyle='rgba(0,0,0,0.4)';
-    ctx.fillRect(scx-24,scy-2,48,18);
-    // Plank — two weathered boards
+    ctx.fillRect(scx-1,scy-7,3,3);
+    // Plank shadow
+    ctx.fillStyle='rgba(0,0,0,0.35)';
+    ctx.fillRect(scx-hw,scy-1,pw,ph+2);
+    // Plank body — weathered wood
     ctx.fillStyle='#9A7A48';
-    ctx.fillRect(scx-23,scy-3,46,17);
+    ctx.fillRect(scx-hw,scy-2,pw,ph);
     ctx.fillStyle='#A88A50';
-    ctx.fillRect(scx-23,scy-3,46,8);      // top board (lighter)
+    ctx.fillRect(scx-hw,scy-2,pw,ph/2);       // top half lighter
     ctx.fillStyle='#8C6E3E';
-    ctx.fillRect(scx-23,scy+5,46,9);      // bottom board (darker)
+    ctx.fillRect(scx-hw,scy-2+ph/2,pw,ph/2);  // bottom half darker
     // Board seam
     ctx.fillStyle='#5A3A18';
-    ctx.fillRect(scx-23,scy+4,46,1);
-    // Wood grain streaks
-    ctx.fillStyle='rgba(70,40,15,0.3)';
-    ctx.fillRect(scx-18,scy-1,30,1);
-    ctx.fillRect(scx-14,scy+7,28,1);
-    ctx.fillRect(scx-20,scy+10,36,1);
-    // Beveled edge (light top / dark bottom)
-    ctx.fillStyle='rgba(255,230,170,0.3)';
-    ctx.fillRect(scx-23,scy-3,46,1);
-    ctx.fillStyle='rgba(0,0,0,0.45)';
-    ctx.fillRect(scx-23,scy+13,46,1);
-    // Iron nail tacks (four corners)
-    ctx.fillStyle='#333';
-    ctx.fillRect(scx-21,scy-1,2,2);
-    ctx.fillRect(scx+19,scy-1,2,2);
-    ctx.fillRect(scx-21,scy+10,2,2);
-    ctx.fillRect(scx+19,scy+10,2,2);
-    // Nail glint
-    ctx.fillStyle='#999';
-    ctx.fillRect(scx-21,scy-1,1,1);
-    ctx.fillRect(scx+19,scy-1,1,1);
-    // Hand-painted text: dark shadow + cream paint
-    ctx.font=`bold 9px ${FONT}`;
+    ctx.fillRect(scx-hw,scy-2+ph/2-1,pw,1);
+    // Bevel (light top, dark bottom)
+    ctx.fillStyle='rgba(255,230,170,0.25)';
+    ctx.fillRect(scx-hw,scy-2,pw,1);
+    ctx.fillStyle='rgba(0,0,0,0.35)';
+    ctx.fillRect(scx-hw,scy-2+ph-1,pw,1);
+    // Nails (four corners)
+    ctx.fillStyle='#444';
+    ctx.fillRect(scx-hw+2,scy,2,2);
+    ctx.fillRect(scx+hw-4,scy,2,2);
+    ctx.fillRect(scx-hw+2,scy+ph-6,2,2);
+    ctx.fillRect(scx+hw-4,scy+ph-6,2,2);
+    // Hand-painted text: shadow + cream
     ctx.textAlign='center';
-    ctx.fillStyle='rgba(20,10,0,0.8)';
-    ctx.fillText(d.text,scx+1,scy+8);
+    ctx.fillStyle='rgba(20,10,0,0.7)';
+    ctx.fillText(d.text,scx+1,scy+6);
     ctx.fillStyle='#F0E0A8';
-    ctx.fillText(d.text,scx,scy+7);
+    ctx.fillText(d.text,scx,scy+5);
   }
   else if(d.type==='furniture'){
     const fx=sx,fy=sy;
