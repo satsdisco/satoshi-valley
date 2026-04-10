@@ -1259,8 +1259,8 @@ function createInterior(type, w, h, furniture) {
   const doorX = Math.floor(w/2);
   tileMap[h-1][doorX] = T.PATH;
   if (w > 6) tileMap[h-1][doorX+1] = T.PATH;
-  // Mark furniture as solid (except walkable items)
-  const walkable=new Set(['chair','rug','wall_sconce']);
+  // Mark furniture as solid (except walkable/decorative items)
+  const walkable=new Set(['chair','rug','wall_sconce','bar_stool','stage_floor']);
   for (const f of furniture) {
     if (!walkable.has(f.item)) tileMap[f.y][f.x] = T.WALL;
   }
@@ -1285,22 +1285,36 @@ function generateInteriors() {
     {x:1,y:7,item:'barrel'},{x:12,y:7,item:'barrel'},
     {x:3,y:7,item:'crate'},{x:10,y:7,item:'crate'},
   ]);
-  INTERIOR_MAPS.tavern = createInterior('tavern', 12, 10, [
-    // Back wall: fireplace centre, bottle shelves flanking
-    {x:5,y:1,item:'bottle_shelf'},{x:6,y:1,item:'fireplace'},{x:7,y:1,item:'bottle_shelf'},
-    // Bar counter runs left side with beer taps
+  INTERIOR_MAPS.tavern = createInterior('tavern', 14, 12, [
+    // ═══ BACK WALL — bar shelves, fireplace, Bitcoin art ═══
     {x:1,y:1,item:'barrel'},{x:2,y:1,item:'barrel'},
-    {x:1,y:2,item:'counter'},{x:2,y:2,item:'counter'},{x:3,y:2,item:'beer_taps'},
-    // Dining area — tables with chairs tucked in
-    {x:3,y:4,item:'tavern_table'},{x:5,y:4,item:'tavern_table'},{x:7,y:4,item:'tavern_table'},
-    {x:3,y:6,item:'tavern_table'},{x:5,y:6,item:'tavern_table'},{x:7,y:6,item:'tavern_table'},
-    {x:2,y:4,item:'chair'},{x:2,y:6,item:'chair'},
-    {x:9,y:4,item:'chair'},{x:9,y:6,item:'chair'},
-    // Atmosphere — wall sconces, corner barrels
-    {x:10,y:1,item:'barrel'},{x:10,y:2,item:'barrel'},
-    {x:1,y:5,item:'wall_sconce'},{x:10,y:5,item:'wall_sconce'},
-    // Rug in centre
-    {x:5,y:5,item:'rug'},{x:6,y:5,item:'rug'},{x:7,y:5,item:'rug'},
+    {x:3,y:1,item:'bottle_shelf'},{x:4,y:1,item:'bottle_shelf'},
+    {x:5,y:1,item:'chalkboard'},
+    {x:7,y:1,item:'fireplace'},
+    {x:9,y:1,item:'btc_banner'},
+    {x:11,y:1,item:'bottle_shelf'},{x:12,y:1,item:'barrel'},
+    // ═══ BAR — L-shaped counter with taps, stools in front ═══
+    {x:1,y:2,item:'counter'},{x:2,y:2,item:'counter'},
+    {x:3,y:2,item:'counter'},{x:4,y:2,item:'beer_taps'},
+    {x:2,y:3,item:'bar_stool'},{x:4,y:3,item:'bar_stool'},
+    // ═══ STAGE — raised corner with band ═══
+    {x:11,y:2,item:'stage_floor'},{x:12,y:2,item:'stage_floor'},
+    {x:11,y:3,item:'musician_guitar'},{x:12,y:3,item:'musician_drums'},
+    // ═══ DINING — spaced tables with chairs, big rug ═══
+    {x:3,y:5,item:'tavern_table'},{x:2,y:5,item:'chair'},{x:4,y:5,item:'chair'},
+    {x:8,y:5,item:'tavern_table'},{x:7,y:5,item:'chair'},{x:9,y:5,item:'chair'},
+    {x:3,y:8,item:'tavern_table'},{x:2,y:8,item:'chair'},{x:4,y:8,item:'chair'},
+    {x:8,y:8,item:'tavern_table'},{x:7,y:8,item:'chair'},{x:9,y:8,item:'chair'},
+    // Central rug (2×4 block)
+    {x:5,y:5,item:'rug'},{x:6,y:5,item:'rug'},
+    {x:5,y:6,item:'rug'},{x:6,y:6,item:'rug'},
+    {x:5,y:7,item:'rug'},{x:6,y:7,item:'rug'},
+    {x:5,y:8,item:'rug'},{x:6,y:8,item:'rug'},
+    // ═══ ATMOSPHERE — sconces, dartboard, corner details ═══
+    {x:1,y:5,item:'wall_sconce'},{x:12,y:5,item:'wall_sconce'},
+    {x:1,y:8,item:'wall_sconce'},{x:12,y:8,item:'wall_sconce'},
+    {x:12,y:6,item:'dartboard'},
+    {x:1,y:10,item:'barrel'},{x:12,y:10,item:'barrel'},
   ]);
   INTERIOR_MAPS.shed = createInterior('shed', 10, 8, [
     {x:1,y:1,item:'workbench'},{x:2,y:1,item:'workbench'},
@@ -3061,7 +3075,7 @@ function update(dt) {
           interiorNPCs.push({ name:'Ruby', x:3*TILE+8, y:2*TILE+8, col:'#CC4444', hair:'#FF6644',
             dlg:['"Welcome to my shop! Take a look around."','"Everything priced in sats — no fiat accepted."','"Your uncle was my best customer."','"Need anything? I\'ve got CPUs to ASICs."'] });
         } else if (buildingType === 'tavern') {
-          interiorNPCs.push({ name:'Barkeep', x:4*TILE+8, y:2*TILE+8, col:'#8B6340', hair:'#2A1A08',
+          interiorNPCs.push({ name:'Barkeep', x:3*TILE+8, y:2*TILE+8, col:'#8B6340', hair:'#2A1A08',
             dlg:['"Welcome to the Hodl Tavern. What\'ll it be?"','"We only serve Bitcoin-branded beverages here."','"Your uncle used to sit right where you\'re standing."','"Lightning tips accepted and appreciated."'] });
         } else if (buildingType === 'hall') {
           interiorNPCs.push({ name:'Mayor Keynesian', x:4*TILE+8, y:2*TILE+8, col:'#888', hair:'#AAA',

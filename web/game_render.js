@@ -955,94 +955,243 @@ function drawDecor(d) {
       ctx.fillStyle='#B08040';ctx.fillRect(fx+12,fy+10,8,6);ctx.fillStyle='#DDD';ctx.fillRect(fx+28,fy+11,6,5);
     }
     else if(d.item==='tavern_table'){
-      // ── TAVERN TABLE — round-ish with mugs and candle ─────────
+      // ── TAVERN TABLE — sturdy dark wood with items ────────────
+      const ft=_now/400;
       // Shadow
-      ctx.fillStyle='rgba(0,0,0,0.1)';
-      ctx.beginPath();ctx.ellipse(fx+ST/2,fy+ST/2+8,16,8,0,0,Math.PI*2);ctx.fill();
-      // Legs
-      ctx.fillStyle='#5A3A18';
-      ctx.fillRect(fx+8,fy+24,4,14);ctx.fillRect(fx+ST-12,fy+24,4,14);
-      // Table top (rounded)
-      ctx.fillStyle='#7A5A30';
-      ctx.beginPath();ctx.ellipse(fx+ST/2,fy+ST/2+2,18,12,0,0,Math.PI*2);ctx.fill();
-      ctx.fillStyle='#8A6A3A';
-      ctx.beginPath();ctx.ellipse(fx+ST/2,fy+ST/2+1,16,10,0,0,Math.PI*2);ctx.fill();
-      // Wood grain ring
-      ctx.strokeStyle='rgba(100,70,30,0.25)';ctx.lineWidth=1;
-      ctx.beginPath();ctx.ellipse(fx+ST/2,fy+ST/2+1,10,6,0,0,Math.PI*2);ctx.stroke();
-      // Candle in centre
-      ctx.fillStyle='#EEE';ctx.fillRect(fx+ST/2-1,fy+ST/2-6,3,6);
-      ctx.fillStyle='#F8C830';ctx.fillRect(fx+ST/2-1,fy+ST/2-8,3,3); // flame
-      ctx.fillStyle='rgba(255,200,80,0.06)';
-      ctx.beginPath();ctx.arc(fx+ST/2,fy+ST/2-4,18,0,Math.PI*2);ctx.fill(); // glow
-      // Beer mug (left)
-      ctx.fillStyle='#C8A040';ctx.fillRect(fx+6,fy+ST/2-2,5,5);
-      ctx.fillStyle='#FFF';ctx.fillRect(fx+7,fy+ST/2-3,3,2); // foam
-      // Plate (right)
-      ctx.fillStyle='#CCC';
-      ctx.beginPath();ctx.ellipse(fx+ST-10,fy+ST/2,4,3,0,0,Math.PI*2);ctx.fill();
+      ctx.fillStyle='rgba(0,0,0,0.12)';
+      ctx.fillRect(fx+4,fy+ST-8,ST-8,6);
+      // Legs (four sturdy posts)
+      ctx.fillStyle='#3A1E08';
+      ctx.fillRect(fx+6,fy+26,4,12);ctx.fillRect(fx+ST-10,fy+26,4,12);
+      ctx.fillRect(fx+8,fy+28,4,10);ctx.fillRect(fx+ST-12,fy+28,4,10);
+      // Cross brace
+      ctx.fillStyle='#2A1604';ctx.fillRect(fx+8,fy+32,ST-16,2);
+      // Table top — solid dark wood plank
+      ctx.fillStyle='#5A3A18';ctx.fillRect(fx+2,fy+14,ST-4,14);
+      ctx.fillStyle='#6A4A28';ctx.fillRect(fx+3,fy+15,ST-6,12);
+      // Plank seams
+      ctx.fillStyle='#4A2A10';
+      ctx.fillRect(fx+3,fy+20,ST-6,1);
+      ctx.fillRect(fx+3,fy+25,ST-6,1);
+      // Edge highlight
+      ctx.fillStyle='rgba(180,140,80,0.2)';ctx.fillRect(fx+3,fy+15,ST-6,1);
+      // Candle (centre) — animated flame
+      ctx.fillStyle='#887744';ctx.fillRect(fx+ST/2-2,fy+12,5,4); // holder
+      ctx.fillStyle='#EEE8CC';ctx.fillRect(fx+ST/2-1,fy+8,3,5); // candle
+      ctx.fillStyle='#F8C020';
+      ctx.fillRect(fx+ST/2-1,fy+5+Math.sin(ft)*1,3,4);
+      ctx.fillStyle='rgba(255,200,80,0.05)';
+      ctx.beginPath();ctx.arc(fx+ST/2,fy+10,20,0,Math.PI*2);ctx.fill();
+      // Beer mug (left side)
+      ctx.fillStyle='#B89030';ctx.fillRect(fx+6,fy+15,6,6);
+      ctx.fillStyle='#C8A040';ctx.fillRect(fx+7,fy+16,4,4);
+      ctx.fillStyle='#FFF';ctx.fillRect(fx+7,fy+14,4,2); // foam
+      ctx.fillStyle='#A07828';ctx.fillRect(fx+12,fy+16,2,4); // handle
+      // Plate + food (right side)
+      ctx.fillStyle='#BBB';ctx.fillRect(fx+ST-14,fy+16,8,6);
+      ctx.fillStyle='#CCC';ctx.fillRect(fx+ST-13,fy+17,6,4);
+      ctx.fillStyle='#8B4513';ctx.fillRect(fx+ST-12,fy+17,4,3); // food
     }
     else if(d.item==='bottle_shelf'){
       // ── BOTTLE SHELF — wall-mounted with coloured bottles ─────
-      ctx.fillStyle='#4A2A10';ctx.fillRect(fx+2,fy+2,ST-4,ST-4);
+      ctx.fillStyle='#3A1E0A';ctx.fillRect(fx+2,fy+2,ST-4,ST-4);
+      ctx.fillStyle='#4A2A12';ctx.fillRect(fx+3,fy+3,ST-6,ST-6);
       // Shelves (3 rows)
-      ctx.fillStyle='#6A4A28';
-      ctx.fillRect(fx+4,fy+8,ST-8,3);
-      ctx.fillRect(fx+4,fy+18,ST-8,3);
-      ctx.fillRect(fx+4,fy+28,ST-8,3);
+      ctx.fillStyle='#5A3A1E';
+      ctx.fillRect(fx+4,fy+8,ST-8,2);
+      ctx.fillRect(fx+4,fy+18,ST-8,2);
+      ctx.fillRect(fx+4,fy+28,ST-8,2);
       // Side supports
-      ctx.fillStyle='#5A3A18';
-      ctx.fillRect(fx+4,fy+4,3,ST-8);ctx.fillRect(fx+ST-7,fy+4,3,ST-8);
-      // Bottles (colourful)
-      const bc=['#226622','#882222','#AA8822','#224488','#886622','#228844'];
-      for(let i=0;i<3;i++){
-        ctx.fillStyle=bc[i];ctx.fillRect(fx+8+i*8,fy+3,4,5);
-        ctx.fillStyle=bc[i+1];ctx.fillRect(fx+10+i*7,fy+13,4,5);
-        ctx.fillStyle=bc[i+2];ctx.fillRect(fx+9+i*8,fy+23,4,5);
+      ctx.fillStyle='#4A2A10';
+      ctx.fillRect(fx+4,fy+4,2,ST-8);ctx.fillRect(fx+ST-6,fy+4,2,ST-8);
+      // Bottles row 1 (tall)
+      const bc=['#1A5A1A','#7A1818','#B89030','#1A3A6A','#6A4A18','#1A6A3A','#8A2040','#3A6A2A'];
+      for(let i=0;i<4;i++){
+        ctx.fillStyle=bc[i];ctx.fillRect(fx+7+i*7,fy+3,3,5);
+        ctx.fillStyle='rgba(255,255,255,0.15)';ctx.fillRect(fx+7+i*7,fy+4,1,3);
       }
-      // Bottle necks
-      ctx.fillStyle='rgba(0,0,0,0.2)';
-      for(let i=0;i<3;i++){
-        ctx.fillRect(fx+9+i*8,fy+2,2,2);
-        ctx.fillRect(fx+11+i*7,fy+12,2,2);
-        ctx.fillRect(fx+10+i*8,fy+22,2,2);
+      // Bottles row 2
+      for(let i=0;i<4;i++){
+        ctx.fillStyle=bc[i+2];ctx.fillRect(fx+8+i*6,fy+13,3,5);
+        ctx.fillStyle='rgba(255,255,255,0.15)';ctx.fillRect(fx+8+i*6,fy+14,1,3);
       }
+      // Bottles row 3
+      for(let i=0;i<4;i++){
+        ctx.fillStyle=bc[i+4];ctx.fillRect(fx+7+i*7,fy+23,3,5);
+        ctx.fillStyle='rgba(255,255,255,0.15)';ctx.fillRect(fx+7+i*7,fy+24,1,3);
+      }
+    }
+    else if(d.item==='chalkboard'){
+      // ── CHALKBOARD MENU — daily specials ──────────────────────
+      ctx.fillStyle='#3A2210';ctx.fillRect(fx+2,fy+2,ST-4,ST-4); // frame
+      ctx.fillStyle='#2A3A2A';ctx.fillRect(fx+4,fy+4,ST-8,ST-8); // board
+      ctx.fillStyle='#3A4A3A';ctx.fillRect(fx+5,fy+5,ST-10,ST-10);
+      // Title
+      ctx.fillStyle='#DDD';ctx.font=`bold 6px ${FONT}`;ctx.textAlign='center';
+      ctx.fillText('SPECIALS',fx+ST/2,fy+12);
+      // Menu items (chalk-white)
+      ctx.fillStyle='#BBB';ctx.font=`5px ${FONT}`;
+      ctx.fillText('Beer  80₿',fx+ST/2,fy+20);
+      ctx.fillText('Stew 200₿',fx+ST/2,fy+26);
+      ctx.fillText('Wine 300₿',fx+ST/2,fy+32);
+    }
+    else if(d.item==='btc_banner'){
+      // ── BITCOIN BANNER — orange ₿ tapestry ────────────────────
+      ctx.fillStyle='#3A2210';ctx.fillRect(fx+ST/2-10,fy+2,20,3); // rod
+      // Banner fabric
+      ctx.fillStyle='#E88A18';ctx.fillRect(fx+ST/2-8,fy+4,16,28);
+      ctx.fillStyle='#F09A28';ctx.fillRect(fx+ST/2-7,fy+5,14,26);
+      // Banner bottom fringe
+      ctx.fillStyle='#E88A18';
+      for(let i=0;i<4;i++) ctx.fillRect(fx+ST/2-7+i*4,fy+30,2,4);
+      // ₿ symbol
+      ctx.fillStyle='#FFF';ctx.font=`bold 14px ${FONT}`;ctx.textAlign='center';
+      ctx.fillText('₿',fx+ST/2,fy+22);
+      // Glow
+      ctx.fillStyle='rgba(248,160,20,0.04)';
+      ctx.beginPath();ctx.arc(fx+ST/2,fy+18,20,0,Math.PI*2);ctx.fill();
+    }
+    else if(d.item==='dartboard'){
+      // ── DARTBOARD — on wall ───────────────────────────────────
+      ctx.fillStyle='#3A2210';ctx.fillRect(fx+ST/2-12,fy+6,24,24); // backboard
+      // Rings (outside in)
+      const dcx=fx+ST/2,dcy=fy+18;
+      ctx.fillStyle='#1A1A1A';ctx.beginPath();ctx.arc(dcx,dcy,11,0,Math.PI*2);ctx.fill();
+      ctx.fillStyle='#CC3030';ctx.beginPath();ctx.arc(dcx,dcy,9,0,Math.PI*2);ctx.fill();
+      ctx.fillStyle='#228822';ctx.beginPath();ctx.arc(dcx,dcy,7,0,Math.PI*2);ctx.fill();
+      ctx.fillStyle='#CC3030';ctx.beginPath();ctx.arc(dcx,dcy,5,0,Math.PI*2);ctx.fill();
+      ctx.fillStyle='#228822';ctx.beginPath();ctx.arc(dcx,dcy,3,0,Math.PI*2);ctx.fill();
+      ctx.fillStyle='#CC3030';ctx.beginPath();ctx.arc(dcx,dcy,1.5,0,Math.PI*2);ctx.fill();
+      // Wire frame lines
+      ctx.strokeStyle='rgba(200,200,200,0.3)';ctx.lineWidth=0.5;
+      ctx.beginPath();ctx.moveTo(dcx-11,dcy);ctx.lineTo(dcx+11,dcy);ctx.stroke();
+      ctx.beginPath();ctx.moveTo(dcx,dcy-11);ctx.lineTo(dcx,dcy+11);ctx.stroke();
+      // Dart stuck in board
+      ctx.fillStyle='#DDD';ctx.fillRect(dcx+2,dcy-4,1,4);
+      ctx.fillStyle='#FF4444';ctx.fillRect(dcx+1,dcy-5,3,2);
+    }
+    else if(d.item==='stage_floor'){
+      // ── RAISED STAGE — slightly lighter wood platform ─────────
+      ctx.fillStyle='#7A5A30';ctx.fillRect(fx,fy,ST,ST);
+      ctx.fillStyle='#8A6A38';ctx.fillRect(fx+1,fy+1,ST-2,ST-2);
+      // Plank lines
+      ctx.fillStyle='#6A4A28';
+      ctx.fillRect(fx,fy+12,ST,1);ctx.fillRect(fx,fy+25,ST,1);
+      // Raised edge (front)
+      ctx.fillStyle='#5A3A18';ctx.fillRect(fx,fy+ST-3,ST,3);
+      ctx.fillStyle='rgba(180,140,80,0.2)';ctx.fillRect(fx+1,fy+1,ST-2,1);
+    }
+    else if(d.item==='musician_guitar'){
+      // ── GUITARIST — tiny animated pixel musician ──────────────
+      const ft=_now/500;
+      const bob=Math.sin(ft*2)*1;
+      // Shadow
+      ctx.fillStyle='rgba(0,0,0,0.1)';ctx.beginPath();ctx.ellipse(fx+ST/2,fy+ST-4,8,3,0,0,Math.PI*2);ctx.fill();
+      // Body
+      ctx.fillStyle='#4A6A8A';ctx.fillRect(fx+ST/2-5,fy+16+bob,10,14);
+      // Head
+      ctx.fillStyle='#D4A574';ctx.fillRect(fx+ST/2-4,fy+8+bob,8,10);
+      // Hair (bandana)
+      ctx.fillStyle='#CC3030';ctx.fillRect(fx+ST/2-5,fy+6+bob,10,4);
+      // Eyes
+      ctx.fillStyle='#222';ctx.fillRect(fx+ST/2-2,fy+12+bob,2,2);ctx.fillRect(fx+ST/2+2,fy+12+bob,2,2);
+      // Guitar body
+      ctx.fillStyle='#8A4A18';
+      ctx.beginPath();ctx.ellipse(fx+ST/2+8,fy+22+bob,5,4,0,0,Math.PI*2);ctx.fill();
+      // Guitar neck
+      ctx.fillStyle='#6A3A10';ctx.fillRect(fx+ST/2+5,fy+12+bob,2,12);
+      // Strumming hand (animated)
+      ctx.fillStyle='#D4A574';ctx.fillRect(fx+ST/2+6,fy+20+bob+Math.sin(ft*4)*2,3,3);
+      // Legs
+      ctx.fillStyle='#334';ctx.fillRect(fx+ST/2-4,fy+28+bob,4,8);ctx.fillRect(fx+ST/2+1,fy+28+bob,4,8);
+      // Boots
+      ctx.fillStyle='#3A2210';ctx.fillRect(fx+ST/2-5,fy+34+bob,5,3);ctx.fillRect(fx+ST/2+1,fy+34+bob,5,3);
+    }
+    else if(d.item==='musician_drums'){
+      // ── DRUMMER — tiny animated pixel musician with drums ──────
+      const ft=_now/500;
+      const hit=Math.abs(Math.sin(ft*3))<0.3?2:0;
+      // Drum kit (in front)
+      ctx.fillStyle='#6A2020';ctx.beginPath();ctx.ellipse(fx+ST/2-6,fy+28,7,5,0,0,Math.PI*2);ctx.fill(); // bass drum
+      ctx.fillStyle='#8A3030';ctx.fillRect(fx+ST/2-12,fy+24,12,3); // rim
+      ctx.fillStyle='#C8A040';ctx.beginPath();ctx.arc(fx+ST/2+6,fy+22,4,0,Math.PI*2);ctx.fill(); // cymbal
+      ctx.fillStyle='#AA8830';ctx.fillRect(fx+ST/2+5,fy+22,2,8); // cymbal stand
+      // Snare
+      ctx.fillStyle='#DDD';ctx.beginPath();ctx.ellipse(fx+ST/2+2,fy+28,5,3,0,0,Math.PI*2);ctx.fill();
+      // Shadow
+      ctx.fillStyle='rgba(0,0,0,0.1)';ctx.beginPath();ctx.ellipse(fx+ST/2,fy+ST-3,8,3,0,0,Math.PI*2);ctx.fill();
+      // Body (seated)
+      ctx.fillStyle='#2A5A2A';ctx.fillRect(fx+ST/2-4,fy+14,8,12);
+      // Head
+      ctx.fillStyle='#D4A574';ctx.fillRect(fx+ST/2-3,fy+6,7,10);
+      // Hair
+      ctx.fillStyle='#1A1A1A';ctx.fillRect(fx+ST/2-4,fy+4,9,4);
+      // Eyes
+      ctx.fillStyle='#222';ctx.fillRect(fx+ST/2-1,fy+10,2,2);ctx.fillRect(fx+ST/2+3,fy+10,2,2);
+      // Arms + sticks (animated hitting)
+      ctx.fillStyle='#D4A574';
+      ctx.fillRect(fx+ST/2-6,fy+16-hit,3,3);ctx.fillRect(fx+ST/2+6,fy+16-hit,3,3);
+      // Drum sticks
+      ctx.fillStyle='#AA8840';
+      ctx.fillRect(fx+ST/2-8,fy+14-hit,2,8);ctx.fillRect(fx+ST/2+8,fy+14-hit,2,8);
+    }
+    else if(d.item==='bar_stool'){
+      // ── BAR STOOL — tall with round seat ──────────────────────
+      ctx.fillStyle='rgba(0,0,0,0.08)';ctx.beginPath();ctx.ellipse(fx+ST/2,fy+ST-3,7,3,0,0,Math.PI*2);ctx.fill();
+      // Legs
+      ctx.fillStyle='#3A2210';
+      ctx.fillRect(fx+ST/2-6,fy+18,2,18);ctx.fillRect(fx+ST/2+4,fy+18,2,18);
+      // Foot rest
+      ctx.fillStyle='#555';ctx.fillRect(fx+ST/2-5,fy+30,10,2);
+      // Seat
+      ctx.fillStyle='#5A3A18';ctx.fillRect(fx+ST/2-7,fy+16,14,4);
+      ctx.fillStyle='#6A4A28';ctx.fillRect(fx+ST/2-6,fy+15,12,3);
+      // Cushion
+      ctx.fillStyle='#6A2020';ctx.fillRect(fx+ST/2-5,fy+14,10,3);
     }
     else if(d.item==='wall_sconce'){
       // ── WALL SCONCE — iron bracket with candle ────────────────
       const ft=_now/300;
-      ctx.fillStyle='#555';ctx.fillRect(fx+ST/2-3,fy+8,6,4); // bracket plate
-      ctx.fillStyle='#444';ctx.fillRect(fx+ST/2-1,fy+10,3,8); // arm
-      ctx.fillStyle='#555';ctx.fillRect(fx+ST/2-3,fy+16,7,3); // cup
-      // Candle
+      ctx.fillStyle='#555';ctx.fillRect(fx+ST/2-3,fy+8,6,4);
+      ctx.fillStyle='#444';ctx.fillRect(fx+ST/2-1,fy+10,3,8);
+      ctx.fillStyle='#555';ctx.fillRect(fx+ST/2-3,fy+16,7,3);
       ctx.fillStyle='#EEE8CC';ctx.fillRect(fx+ST/2-1,fy+10,3,7);
-      // Flame (animated)
       ctx.fillStyle='#F8C020';
       ctx.fillRect(fx+ST/2-1,fy+7+Math.sin(ft)*1,3,4);
       ctx.fillStyle='#FFE060';
       ctx.fillRect(fx+ST/2,fy+6+Math.sin(ft+1)*1,1,3);
-      // Warm glow
       ctx.fillStyle=`rgba(255,180,60,${0.04+Math.sin(ft)*0.015})`;
       ctx.beginPath();ctx.arc(fx+ST/2,fy+12,30,0,Math.PI*2);ctx.fill();
     }
     else if(d.item==='rug'){
-      // ── WOVEN RUG — warm red/gold pattern ─────────────────────
-      ctx.fillStyle='#8A2828';ctx.fillRect(fx+2,fy+2,ST-4,ST-4);
-      ctx.fillStyle='#9A3030';ctx.fillRect(fx+4,fy+4,ST-8,ST-8);
-      // Border pattern (gold)
+      // ── WOVEN RUG — seamless tile, checks neighbours ──────────
+      // Check which edges border another rug tile
+      const hasN=interior&&interior.furniture.some(f=>f.item==='rug'&&f.x===d.x&&f.y===d.y-1);
+      const hasS=interior&&interior.furniture.some(f=>f.item==='rug'&&f.x===d.x&&f.y===d.y+1);
+      const hasW=interior&&interior.furniture.some(f=>f.item==='rug'&&f.x===d.x-1&&f.y===d.y);
+      const hasE=interior&&interior.furniture.some(f=>f.item==='rug'&&f.x===d.x+1&&f.y===d.y);
+      // Fill base
+      ctx.fillStyle='#7A2020';ctx.fillRect(fx,fy,ST,ST);
+      ctx.fillStyle='#8A2828';ctx.fillRect(fx+1,fy+1,ST-2,ST-2);
+      // Gold border only on outer edges (where no neighbour)
       ctx.fillStyle='#C8A040';
-      ctx.fillRect(fx+4,fy+4,ST-8,2);ctx.fillRect(fx+4,fy+ST-6,ST-8,2);
-      ctx.fillRect(fx+4,fy+4,2,ST-8);ctx.fillRect(fx+ST-6,fy+4,2,ST-8);
-      // Inner pattern
-      ctx.fillStyle='#B83030';ctx.fillRect(fx+8,fy+8,ST-16,ST-16);
-      // Diamond motif
-      ctx.fillStyle='#C8A040';
-      const rc=fx+ST/2, ry=fy+ST/2;
-      ctx.fillRect(rc-1,ry-6,2,12);ctx.fillRect(rc-6,ry-1,12,2);
-      // Corner dots
-      ctx.fillStyle='#D8B850';
-      ctx.fillRect(fx+8,fy+8,2,2);ctx.fillRect(fx+ST-10,fy+8,2,2);
-      ctx.fillRect(fx+8,fy+ST-10,2,2);ctx.fillRect(fx+ST-10,fy+ST-10,2,2);
+      if(!hasN) ctx.fillRect(fx+2,fy+2,ST-4,2);
+      if(!hasS) ctx.fillRect(fx+2,fy+ST-4,ST-4,2);
+      if(!hasW) ctx.fillRect(fx+2,fy+2,2,ST-4);
+      if(!hasE) ctx.fillRect(fx+ST-4,fy+2,2,ST-4);
+      // Inner pattern — repeating diamond weave
+      ctx.fillStyle='#9A3030';
+      ctx.fillRect(fx+4,fy+4,ST-8,ST-8);
+      // Subtle woven texture
+      ctx.fillStyle='rgba(200,160,60,0.12)';
+      for(let i=0;i<ST-8;i+=4) ctx.fillRect(fx+4+i,fy+4,1,ST-8);
+      for(let i=0;i<ST-8;i+=4) ctx.fillRect(fx+4,fy+4+i,ST-8,1);
+      // Centre diamond on some tiles
+      if((d.x+d.y)%2===0){
+        ctx.fillStyle='#C8A040';
+        const rc=fx+ST/2,ry=fy+ST/2;
+        ctx.fillRect(rc-1,ry-4,2,8);ctx.fillRect(rc-4,ry-1,8,2);
+      }
     }
     else if(d.item==='desk'){
       ctx.fillStyle='#6A5030';ctx.fillRect(fx+2,fy+16,ST-4,12);
