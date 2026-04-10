@@ -1260,7 +1260,7 @@ function createInterior(type, w, h, furniture) {
   tileMap[h-1][doorX] = T.PATH;
   if (w > 6) tileMap[h-1][doorX+1] = T.PATH;
   // Mark furniture as solid (except walkable/decorative items)
-  const walkable=new Set(['chair','rug','wall_sconce','bar_stool','stage_floor','town_seal','wall_clock']);
+  const walkable=new Set(['chair','rug','wall_sconce','bar_stool','stage_floor','town_seal','wall_clock','hall_carpet','chandelier']);
   for (const f of furniture) {
     if (!walkable.has(f.item)) tileMap[f.y][f.x] = T.WALL;
   }
@@ -1324,32 +1324,37 @@ function generateInteriors() {
     {x:7,y:4,item:'workbench'},
   ]);
   INTERIOR_MAPS.hall = createInterior('hall', 14, 12, [
-    // ═══ BACK WALL — Mayor's desk, bookshelves, art ═══
-    {x:1,y:1,item:'bookshelf'},{x:2,y:1,item:'bookshelf'},
-    {x:3,y:1,item:'portrait_toshi'},
-    {x:5,y:1,item:'mayor_desk'},{x:6,y:1,item:'mayor_desk'},{x:7,y:1,item:'mayor_desk'},{x:8,y:1,item:'mayor_desk'},
-    {x:10,y:1,item:'whitepaper'},
-    {x:11,y:1,item:'bookshelf'},{x:12,y:1,item:'bookshelf'},
-    // Mayor's chair + lectern
-    {x:6,y:2,item:'chair'},{x:7,y:2,item:'lectern'},
-    // Filing cabinets along sides
-    {x:1,y:3,item:'filing_cabinet'},{x:12,y:3,item:'filing_cabinet'},
-    // Village map on left wall
-    {x:1,y:5,item:'village_map'},
-    // ═══ TOWN SEAL on floor (walkable) ═══
-    {x:6,y:4,item:'town_seal'},{x:7,y:4,item:'town_seal'},
-    {x:6,y:5,item:'town_seal'},{x:7,y:5,item:'town_seal'},
-    // ═══ COUNCIL SEATING — rows of benches facing the desk ═══
-    {x:3,y:6,item:'council_bench'},{x:5,y:6,item:'council_bench'},
-    {x:8,y:6,item:'council_bench'},{x:10,y:6,item:'council_bench'},
-    {x:3,y:8,item:'council_bench'},{x:5,y:8,item:'council_bench'},
-    {x:8,y:8,item:'council_bench'},{x:10,y:8,item:'council_bench'},
-    // Wall sconces for atmosphere
-    {x:1,y:7,item:'wall_sconce'},{x:12,y:7,item:'wall_sconce'},
-    // Notice board + ballot box near entrance
-    {x:1,y:10,item:'notice_board'},{x:12,y:10,item:'ballot_box'},
-    // Clock above door
-    {x:6,y:10,item:'wall_clock'},
+    // ═══ BACK WALL — stained glass centrepiece ═══
+    {x:1,y:1,item:'bookshelf'},{x:2,y:1,item:'portrait_toshi'},
+    {x:5,y:1,item:'stained_glass'},{x:6,y:1,item:'stained_glass'},
+    {x:7,y:1,item:'stained_glass'},{x:8,y:1,item:'stained_glass'},
+    {x:11,y:1,item:'whitepaper'},{x:12,y:1,item:'bookshelf'},
+    // ═══ MAYOR'S DAIS — raised desk area ═══
+    {x:5,y:2,item:'mayor_desk'},{x:6,y:2,item:'mayor_desk'},
+    {x:7,y:2,item:'mayor_desk'},{x:8,y:2,item:'mayor_desk'},
+    {x:7,y:3,item:'lectern'},
+    // ═══ STONE COLUMNS — civic grandeur ═══
+    {x:1,y:3,item:'column'},{x:12,y:3,item:'column'},
+    {x:1,y:8,item:'column'},{x:12,y:8,item:'column'},
+    // ═══ RED CARPET RUNNER — down the centre aisle ═══
+    {x:6,y:4,item:'hall_carpet'},{x:7,y:4,item:'hall_carpet'},
+    {x:6,y:5,item:'hall_carpet'},{x:7,y:5,item:'hall_carpet'},
+    {x:6,y:6,item:'hall_carpet'},{x:7,y:6,item:'hall_carpet'},
+    {x:6,y:7,item:'hall_carpet'},{x:7,y:7,item:'hall_carpet'},
+    {x:6,y:8,item:'hall_carpet'},{x:7,y:8,item:'hall_carpet'},
+    {x:6,y:9,item:'hall_carpet'},{x:7,y:9,item:'hall_carpet'},
+    // ═══ COUNCIL PEWS — facing the desk ═══
+    {x:3,y:5,item:'council_bench'},{x:4,y:5,item:'council_bench'},
+    {x:9,y:5,item:'council_bench'},{x:10,y:5,item:'council_bench'},
+    {x:3,y:7,item:'council_bench'},{x:4,y:7,item:'council_bench'},
+    {x:9,y:7,item:'council_bench'},{x:10,y:7,item:'council_bench'},
+    // ═══ ATMOSPHERE ═══
+    {x:1,y:5,item:'wall_sconce'},{x:12,y:5,item:'wall_sconce'},
+    {x:1,y:9,item:'wall_sconce'},{x:12,y:9,item:'wall_sconce'},
+    // Chandelier glow in centre (walkable ceiling decoration)
+    {x:6,y:6,item:'chandelier'},{x:7,y:6,item:'chandelier'},
+    // Entrance area
+    {x:1,y:10,item:'village_map'},{x:12,y:10,item:'ballot_box'},
   ]);
 }
 
@@ -3100,7 +3105,7 @@ function update(dt) {
           interiorNPCs.push({ name:'Barkeep', x:3*TILE+8, y:3*TILE+8, col:'#8B6340', hair:'#2A1A08',
             dlg:['"Welcome to the Hodl Tavern. What\'ll it be?"','"We only serve Bitcoin-branded beverages here."','"Your uncle used to sit right where you\'re standing."','"Lightning tips accepted and appreciated."'] });
         } else if (buildingType === 'hall') {
-          interiorNPCs.push({ name:'Mayor Keynesian', x:6*TILE+8, y:3*TILE+8, col:'#888', hair:'#AAA',
+          interiorNPCs.push({ name:'Mayor Keynesian', x:6*TILE+8, y:4*TILE+8, col:'#555580', hair:'#AAA',
             dlg:['"Ah, you\'ve come to discuss village policy?"','"I\'ve been thinking about a new stimulus package..."','"The village budget is... flexible. Very flexible."','"Don\'t listen to the hermit. The system works fine."'] });
         }
       });
@@ -5155,7 +5160,7 @@ function draw(){
   } else {
     for(const f of interior.furniture) {
       // Floor-level items draw on the ground layer (y=0) so entities walk over them
-      const groundItems=new Set(['rug','stage_floor','town_seal']);
+      const groundItems=new Set(['rug','stage_floor','town_seal','hall_carpet','chandelier']);
       const fy=groundItems.has(f.item)?0:f.y*TILE+TILE;
       entities.push({y:fy, draw:()=>drawDecor({type:'furniture',item:f.item,x:f.x,y:f.y})});
     }

@@ -1347,6 +1347,105 @@ function drawDecor(d) {
       ctx.fillRect(fx+ST-10,fy+7,1,5);ctx.fillRect(fx+ST-12,fy+9,5,1);
       ctx.fillStyle='#CC3030';ctx.fillRect(fx+ST-10,fy+6,1,2); // N pointer
     }
+    else if(d.item==='stained_glass'){
+      // ── STAINED GLASS WINDOW — glowing ₿ design ──────────────
+      const ft=_now/2000;
+      // Stone frame
+      ctx.fillStyle='#505058';ctx.fillRect(fx,fy,ST,ST);
+      ctx.fillStyle='#606068';ctx.fillRect(fx+2,fy+2,ST-4,ST-4);
+      // Glass panes — deep saturated colours with glow
+      ctx.fillStyle='#1A1A6A';ctx.fillRect(fx+4,fy+4,ST-8,ST-8); // deep blue base
+      // Coloured segments
+      ctx.fillStyle='rgba(180,40,40,0.6)';ctx.fillRect(fx+4,fy+4,(ST-8)/2,ST-8); // red left
+      ctx.fillStyle='rgba(40,40,180,0.6)';ctx.fillRect(fx+ST/2,fy+4,(ST-8)/2,ST-8); // blue right
+      ctx.fillStyle='rgba(40,140,40,0.5)';ctx.fillRect(fx+8,fy+ST/2-4,ST-16,8); // green band
+      ctx.fillStyle='rgba(220,180,40,0.5)';ctx.fillRect(fx+ST/2-4,fy+6,8,ST-12); // gold cross
+      // Lead lines
+      ctx.fillStyle='#404048';
+      ctx.fillRect(fx+ST/2-1,fy+4,2,ST-8); // vertical
+      ctx.fillRect(fx+4,fy+ST/2-1,ST-8,2); // horizontal
+      ctx.fillRect(fx+4,fy+12,ST-8,1);ctx.fillRect(fx+4,fy+ST-14,ST-8,1);
+      // ₿ in the centre (golden, glowing)
+      ctx.fillStyle='rgba(247,147,26,0.8)';
+      ctx.font=`bold 14px ${FONT}`;ctx.textAlign='center';
+      ctx.fillText('₿',fx+ST/2,fy+ST/2+5);
+      // Light pouring through (animated)
+      const glow=0.04+Math.sin(ft)*0.02;
+      ctx.fillStyle=`rgba(255,220,140,${glow})`;
+      ctx.fillRect(fx-4,fy+ST,ST+8,ST*2); // light beam below window
+      ctx.fillStyle=`rgba(200,100,100,${glow*0.5})`;
+      ctx.fillRect(fx,fy+ST,ST/2,ST*1.5);
+      ctx.fillStyle=`rgba(100,100,200,${glow*0.5})`;
+      ctx.fillRect(fx+ST/2,fy+ST,ST/2,ST*1.5);
+    }
+    else if(d.item==='column'){
+      // ── STONE COLUMN — classical pillar ───────────────────────
+      ctx.fillStyle='rgba(0,0,0,0.1)';ctx.beginPath();ctx.ellipse(fx+ST/2,fy+ST-2,10,4,0,0,Math.PI*2);ctx.fill();
+      // Base (wider)
+      ctx.fillStyle='#707078';ctx.fillRect(fx+ST/2-10,fy+ST-8,20,8);
+      ctx.fillStyle='#808088';ctx.fillRect(fx+ST/2-9,fy+ST-7,18,6);
+      // Shaft
+      ctx.fillStyle='#8A8A92';ctx.fillRect(fx+ST/2-7,fy+6,14,ST-14);
+      ctx.fillStyle='#9A9AA2';ctx.fillRect(fx+ST/2-6,fy+7,12,ST-16);
+      // Fluting (vertical grooves)
+      ctx.fillStyle='rgba(0,0,0,0.08)';
+      ctx.fillRect(fx+ST/2-4,fy+8,2,ST-18);
+      ctx.fillRect(fx+ST/2+2,fy+8,2,ST-18);
+      // Highlight
+      ctx.fillStyle='rgba(255,255,255,0.12)';
+      ctx.fillRect(fx+ST/2-5,fy+8,2,ST-18);
+      // Capital (wider top)
+      ctx.fillStyle='#808088';ctx.fillRect(fx+ST/2-10,fy+2,20,6);
+      ctx.fillStyle='#9090A0';ctx.fillRect(fx+ST/2-9,fy+3,18,4);
+      // Scroll detail on capital
+      ctx.fillStyle='#A0A0B0';
+      ctx.beginPath();ctx.arc(fx+ST/2-7,fy+5,3,0,Math.PI*2);ctx.fill();
+      ctx.beginPath();ctx.arc(fx+ST/2+7,fy+5,3,0,Math.PI*2);ctx.fill();
+    }
+    else if(d.item==='hall_carpet'){
+      // ── RED HALL CARPET — rich crimson with gold edges ─────────
+      const hasN=interior&&interior.furniture.some(f=>f.item==='hall_carpet'&&f.x===d.x&&f.y===d.y-1);
+      const hasS=interior&&interior.furniture.some(f=>f.item==='hall_carpet'&&f.x===d.x&&f.y===d.y+1);
+      const hasW=interior&&interior.furniture.some(f=>f.item==='hall_carpet'&&f.x===d.x-1&&f.y===d.y);
+      const hasE=interior&&interior.furniture.some(f=>f.item==='hall_carpet'&&f.x===d.x+1&&f.y===d.y);
+      // Rich crimson base
+      ctx.fillStyle='#7A1818';ctx.fillRect(fx,fy,ST,ST);
+      ctx.fillStyle='#8A2020';ctx.fillRect(fx+1,fy+1,ST-2,ST-2);
+      // Gold border trim on outer edges
+      ctx.fillStyle='#C8A040';
+      if(!hasN){ ctx.fillRect(fx,fy,ST,3); ctx.fillStyle='#AA8830';ctx.fillRect(fx+1,fy+1,ST-2,1); }
+      if(!hasS){ ctx.fillStyle='#C8A040';ctx.fillRect(fx,fy+ST-3,ST,3); ctx.fillStyle='#AA8830';ctx.fillRect(fx+1,fy+ST-2,ST-2,1); }
+      if(!hasW){ ctx.fillStyle='#C8A040';ctx.fillRect(fx,fy,3,ST); ctx.fillStyle='#AA8830';ctx.fillRect(fx+1,fy+1,1,ST-2); }
+      if(!hasE){ ctx.fillStyle='#C8A040';ctx.fillRect(fx+ST-3,fy,3,ST); ctx.fillStyle='#AA8830';ctx.fillRect(fx+ST-2,fy+1,1,ST-2); }
+      // Subtle damask pattern
+      ctx.fillStyle='rgba(160,30,30,0.25)';
+      if((d.x+d.y)%2===0){
+        ctx.fillRect(fx+ST/2-4,fy+ST/2-4,8,8);
+        ctx.fillStyle='rgba(200,160,64,0.08)';
+        ctx.fillRect(fx+ST/2-2,fy+ST/2-6,4,12);
+        ctx.fillRect(fx+ST/2-6,fy+ST/2-2,12,4);
+      }
+    }
+    else if(d.item==='chandelier'){
+      // ── CHANDELIER — ceiling-mounted with warm glow ───────────
+      const ft=_now/400;
+      // This is a floor-level decorative; draws "above" as if hanging from ceiling
+      // Warm light pool on the floor
+      ctx.fillStyle=`rgba(255,220,140,${0.06+Math.sin(ft*0.7)*0.02})`;
+      ctx.beginPath();ctx.arc(fx+ST/2,fy+ST/2,ST*1.5,0,Math.PI*2);ctx.fill();
+      ctx.fillStyle=`rgba(255,200,100,${0.04+Math.sin(ft*0.9)*0.015})`;
+      ctx.beginPath();ctx.arc(fx+ST/2,fy+ST/2,ST,0,Math.PI*2);ctx.fill();
+      // Chain shadow on floor
+      ctx.fillStyle='rgba(0,0,0,0.06)';
+      ctx.fillRect(fx+ST/2-1,fy+ST/2-8,2,16);
+      // Chandelier shadow silhouette on floor
+      ctx.fillStyle='rgba(0,0,0,0.04)';
+      ctx.fillRect(fx+ST/2-12,fy+ST/2-1,24,2);
+      // Candle glow spots
+      ctx.fillStyle='rgba(255,200,80,0.08)';
+      ctx.beginPath();ctx.arc(fx+ST/2-8,fy+ST/2,6,0,Math.PI*2);ctx.fill();
+      ctx.beginPath();ctx.arc(fx+ST/2+8,fy+ST/2,6,0,Math.PI*2);ctx.fill();
+    }
     else if(d.item==='town_seal'){
       // ── TOWN SEAL — circular ₿ emblem on floor (walkable) ────
       // Check neighbours for connected rendering
