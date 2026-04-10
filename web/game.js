@@ -1260,7 +1260,7 @@ function createInterior(type, w, h, furniture) {
   tileMap[h-1][doorX] = T.PATH;
   if (w > 6) tileMap[h-1][doorX+1] = T.PATH;
   // Mark furniture as solid (except walkable/decorative items)
-  const walkable=new Set(['chair','rug','wall_sconce','bar_stool','stage_floor','town_seal','wall_clock','hall_carpet','chandelier','cable_floor','rig_pad','industrial_light']);
+  const walkable=new Set(['chair','rug','wall_sconce','bar_stool','stage_floor','town_seal','wall_clock','hall_carpet','chandelier','cable_floor','rig_pad','industrial_light','shop_mat']);
   for (const f of furniture) {
     if (!walkable.has(f.item)) tileMap[f.y][f.x] = T.WALL;
   }
@@ -1277,13 +1277,27 @@ function generateInteriors() {
     {x:1,y:7,item:'crate'},{x:10,y:7,item:'crate'},
   ]);
   INTERIOR_MAPS.shop = createInterior('shop', 14, 10, [
-    {x:1,y:1,item:'shelf'},{x:2,y:1,item:'shelf'},{x:3,y:1,item:'shelf'},
-    {x:5,y:1,item:'shelf'},{x:6,y:1,item:'shelf'},{x:7,y:1,item:'shelf'},
-    {x:9,y:1,item:'shelf'},{x:10,y:1,item:'shelf'},{x:11,y:1,item:'shelf'},
-    {x:4,y:4,item:'counter'},{x:5,y:4,item:'counter'},{x:6,y:4,item:'counter'},
-    {x:7,y:4,item:'counter'},{x:8,y:4,item:'counter'},
-    {x:1,y:7,item:'barrel'},{x:12,y:7,item:'barrel'},
-    {x:3,y:7,item:'crate'},{x:10,y:7,item:'crate'},
+    // ═══ BACK WALL — product displays ═══
+    {x:1,y:1,item:'tool_wall'},{x:2,y:1,item:'tool_wall'},
+    {x:4,y:1,item:'glass_case'},{x:5,y:1,item:'glass_case'},{x:6,y:1,item:'glass_case'},
+    {x:8,y:1,item:'rig_showcase'},{x:9,y:1,item:'rig_showcase'},
+    {x:11,y:1,item:'parts_shelf'},{x:12,y:1,item:'parts_shelf'},
+    // ═══ COUNTER — L-shaped with register ═══
+    {x:1,y:3,item:'shop_counter'},{x:2,y:3,item:'shop_counter'},
+    {x:3,y:3,item:'shop_register'},
+    {x:3,y:2,item:'price_board'},
+    // ═══ FLOOR DISPLAYS — browsing area ═══
+    {x:5,y:4,item:'display_table'},{x:6,y:4,item:'display_table'},
+    {x:9,y:4,item:'display_table'},{x:10,y:4,item:'display_table'},
+    {x:5,y:7,item:'display_table'},{x:6,y:7,item:'display_table'},
+    {x:9,y:7,item:'display_table'},{x:10,y:7,item:'display_table'},
+    // ═══ ATMOSPHERE ═══
+    {x:1,y:5,item:'wall_sconce'},{x:12,y:5,item:'wall_sconce'},
+    {x:1,y:8,item:'barrel'},{x:12,y:8,item:'crate'},
+    // Welcome mat + overhead light
+    {x:6,y:8,item:'shop_mat'},{x:7,y:8,item:'shop_mat'},
+    // Shop sign on back wall
+    {x:7,y:1,item:'shop_sign'},
   ]);
   INTERIOR_MAPS.tavern = createInterior('tavern', 14, 12, [
     // ═══ BACK WALL — bar shelves, fireplace, Bitcoin art ═══
@@ -3118,7 +3132,7 @@ function update(dt) {
         if(music && buildingType==='tavern') music.setLocation('tavern');
         interiorNPCs = [];
         if (buildingType === 'shop') {
-          interiorNPCs.push({ name:'Ruby', x:3*TILE+8, y:2*TILE+8, col:'#CC4444', hair:'#FF6644',
+          interiorNPCs.push({ name:'Ruby', x:2*TILE+8, y:4*TILE+8, col:'#CC4444', hair:'#FF6644',
             dlg:['"Welcome to my shop! Take a look around."','"Everything priced in sats — no fiat accepted."','"Your uncle was my best customer."','"Need anything? I\'ve got CPUs to ASICs."'] });
         } else if (buildingType === 'tavern') {
           interiorNPCs.push({ name:'Barkeep', x:3*TILE+8, y:3*TILE+8, col:'#8B6340', hair:'#2A1A08',
@@ -5179,7 +5193,7 @@ function draw(){
   } else {
     for(const f of interior.furniture) {
       // Floor-level items draw on the ground layer (y=0) so entities walk over them
-      const groundItems=new Set(['rug','stage_floor','town_seal','hall_carpet','chandelier','cable_floor','rig_pad','industrial_light']);
+      const groundItems=new Set(['rug','stage_floor','town_seal','hall_carpet','chandelier','cable_floor','rig_pad','industrial_light','shop_mat']);
       const fy=groundItems.has(f.item)?0:f.y*TILE+TILE;
       entities.push({y:fy, draw:()=>drawDecor({type:'furniture',item:f.item,x:f.x,y:f.y})});
     }

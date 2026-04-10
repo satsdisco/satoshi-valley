@@ -1793,6 +1793,196 @@ function drawDecor(d) {
       // Wall bracket
       ctx.fillStyle='#555';ctx.fillRect(fx+ST/2-6,fy+12,2,8);ctx.fillRect(fx+ST/2+4,fy+12,2,8);
     }
+    else if(d.item==='tool_wall'){
+      // ── TOOL WALL DISPLAY — hanging tools for sale ────────────
+      ctx.fillStyle='#5A4030';ctx.fillRect(fx+2,fy+2,ST-4,ST-4);
+      ctx.fillStyle='#6A5040';ctx.fillRect(fx+3,fy+3,ST-6,ST-6);
+      // Pegboard dots
+      ctx.fillStyle='rgba(0,0,0,0.1)';
+      for(let py=0;py<4;py++) for(let px=0;px<5;px++) ctx.fillRect(fx+5+px*7,fy+5+py*8,1,1);
+      // Pickaxe
+      ctx.fillStyle='#6A4A20';ctx.fillRect(fx+6,fy+8,2,16); // handle
+      ctx.fillStyle='#777';ctx.fillRect(fx+4,fy+6,8,4); // head
+      ctx.fillStyle='#999';ctx.fillRect(fx+4,fy+6,6,2);
+      // Axe
+      ctx.fillStyle='#5A3A18';ctx.fillRect(fx+18,fy+6,2,18); // handle
+      ctx.fillStyle='#666';ctx.fillRect(fx+16,fy+6,6,6); // head
+      // Hoe
+      ctx.fillStyle='#6A4A20';ctx.fillRect(fx+28,fy+8,2,16);
+      ctx.fillStyle='#777';ctx.fillRect(fx+26,fy+6,6,3);
+      // Price tags (yellow)
+      ctx.fillStyle='#FFE060';ctx.fillRect(fx+8,fy+24,6,4);ctx.fillRect(fx+20,fy+24,6,4);ctx.fillRect(fx+30,fy+24,6,4);
+      ctx.fillStyle='#222';ctx.font=`3px ${FONT}`;ctx.textAlign='center';
+      ctx.fillText('₿',fx+11,fy+27);ctx.fillText('₿',fx+23,fy+27);ctx.fillText('₿',fx+33,fy+27);
+    }
+    else if(d.item==='glass_case'){
+      // ── GLASS DISPLAY CASE — showing items for sale ───────────
+      // Case frame (dark wood)
+      ctx.fillStyle='#3A2210';ctx.fillRect(fx+2,fy+4,ST-4,ST-6);
+      // Glass panels (slightly blue-tinted)
+      ctx.fillStyle='rgba(180,200,220,0.15)';ctx.fillRect(fx+3,fy+5,ST-6,ST-8);
+      // Shelves inside
+      ctx.fillStyle='#4A3218';ctx.fillRect(fx+4,fy+16,ST-8,2);
+      // Items on display
+      const seed=(d.x*17+d.y*31)%3;
+      if(seed===0){
+        // Seeds display
+        ctx.fillStyle='#8B4513';ctx.fillRect(fx+8,fy+7,6,6); // seed bag
+        ctx.fillStyle='#3A8A3A';ctx.fillRect(fx+22,fy+7,6,6);
+        ctx.fillStyle='#2A7A2A';ctx.fillRect(fx+8,fy+19,8,5); // pack
+        ctx.fillStyle='#CC8800';ctx.fillRect(fx+22,fy+19,8,5);
+      } else if(seed===1){
+        // Mining gear
+        ctx.fillStyle='#888';ctx.fillRect(fx+8,fy+7,8,6); // circuit
+        ctx.fillStyle='#1A5A1A';ctx.fillRect(fx+9,fy+8,6,4);
+        ctx.fillStyle='#666';ctx.fillRect(fx+22,fy+7,8,6); // component
+        ctx.fillStyle='#555';ctx.fillRect(fx+10,fy+19,6,6);
+      } else {
+        // Upgrade items
+        ctx.fillStyle='#C8A040';ctx.fillRect(fx+10,fy+8,6,5);
+        ctx.fillStyle='#F7931A';ctx.fillRect(fx+11,fy+9,4,3);
+        ctx.fillStyle='#888';ctx.fillRect(fx+22,fy+8,8,5);
+      }
+      // Glass highlight
+      ctx.fillStyle='rgba(255,255,255,0.08)';ctx.fillRect(fx+4,fy+5,3,ST-10);
+      // Price label on front
+      ctx.fillStyle='#EEE';ctx.fillRect(fx+ST/2-6,fy+ST-5,12,4);
+      ctx.fillStyle='#222';ctx.font=`3px ${FONT}`;ctx.textAlign='center';
+      ctx.fillText('ON SALE',fx+ST/2,fy+ST-2);
+    }
+    else if(d.item==='rig_showcase'){
+      // ── RIG SHOWCASE — demo mining rig on display ─────────────
+      ctx.fillStyle='#3A2210';ctx.fillRect(fx+2,fy+8,ST-4,ST-10); // pedestal
+      ctx.fillStyle='#4A3218';ctx.fillRect(fx+3,fy+9,ST-6,ST-12);
+      // Mini rig (like a server box)
+      ctx.fillStyle='#333';ctx.fillRect(fx+6,fy+4,ST-12,16);
+      ctx.fillStyle='#444';ctx.fillRect(fx+7,fy+5,ST-14,14);
+      // Vents
+      ctx.fillStyle='#2A2A2A';
+      for(let i=0;i<4;i++) ctx.fillRect(fx+9,fy+7+i*3,ST-18,1);
+      // LEDs (animated)
+      const ft=_now/300;
+      ctx.fillStyle=Math.sin(ft)>0?'#0F0':'#080';ctx.fillRect(fx+ST-12,fy+6,2,2);
+      ctx.fillStyle=Math.sin(ft+1)>0?'#0F0':'#080';ctx.fillRect(fx+ST-12,fy+10,2,2);
+      ctx.fillStyle=Math.sin(ft+2)>0?'#F80':'#840';ctx.fillRect(fx+ST-12,fy+14,2,2);
+      // Label
+      ctx.fillStyle='#F7931A';ctx.font=`bold 5px ${FONT}`;ctx.textAlign='center';
+      ctx.fillText('DEMO',fx+ST/2,fy+ST-4);
+    }
+    else if(d.item==='shop_counter'){
+      // ── SHOP COUNTER — glass-topped display counter ───────────
+      // Body
+      ctx.fillStyle='#3A2210';ctx.fillRect(fx+1,fy+10,ST-2,22);
+      ctx.fillStyle='#4A3218';ctx.fillRect(fx+2,fy+12,ST-4,18);
+      // Glass top
+      ctx.fillStyle='#5A4228';ctx.fillRect(fx,fy+8,ST,4);
+      ctx.fillStyle='rgba(180,210,230,0.12)';ctx.fillRect(fx+2,fy+8,ST-4,3);
+      ctx.fillStyle='rgba(255,255,255,0.1)';ctx.fillRect(fx+2,fy+8,ST-4,1);
+      // Items visible through glass
+      ctx.fillStyle='#C8A040';ctx.fillRect(fx+8,fy+14,6,4);
+      ctx.fillStyle='#888';ctx.fillRect(fx+20,fy+14,8,4);
+      // Front panel detail
+      ctx.fillStyle='#2A1808';ctx.fillRect(fx+2,fy+24,ST-4,1);
+    }
+    else if(d.item==='shop_register'){
+      // ── CASH REGISTER — ₿ register on counter ────────────────
+      // Counter base (matches shop_counter)
+      ctx.fillStyle='#3A2210';ctx.fillRect(fx+1,fy+10,ST-2,22);
+      ctx.fillStyle='#4A3218';ctx.fillRect(fx+2,fy+12,ST-4,18);
+      ctx.fillStyle='#5A4228';ctx.fillRect(fx,fy+8,ST,4);
+      // Register body
+      ctx.fillStyle='#444';ctx.fillRect(fx+6,fy+0,ST-12,10);
+      ctx.fillStyle='#555';ctx.fillRect(fx+7,fy+1,ST-14,8);
+      // Screen
+      ctx.fillStyle='#0A1A0A';ctx.fillRect(fx+9,fy+2,ST-18,5);
+      ctx.fillStyle='#0C0';ctx.font=`bold 4px ${FONT}`;ctx.textAlign='center';
+      ctx.fillText('₿ READY',fx+ST/2,fy+6);
+      // Buttons
+      ctx.fillStyle='#888';
+      for(let i=0;i<3;i++) ctx.fillRect(fx+10+i*6,fy+8,4,2);
+      // Cash drawer
+      ctx.fillStyle='#333';ctx.fillRect(fx+8,fy+12,ST-16,4);
+      ctx.fillStyle='#F7931A';ctx.fillRect(fx+ST/2-3,fy+13,6,2); // ₿ slot
+    }
+    else if(d.item==='price_board'){
+      // ── PRICE BOARD — chalkboard with today's deals ───────────
+      ctx.fillStyle='#3A2210';ctx.fillRect(fx+2,fy+2,ST-4,ST-4);
+      ctx.fillStyle='#2A3A2A';ctx.fillRect(fx+4,fy+4,ST-8,ST-8);
+      ctx.fillStyle='#3A4A3A';ctx.fillRect(fx+5,fy+5,ST-10,ST-10);
+      ctx.fillStyle='#DDD';ctx.font=`bold 5px ${FONT}`;ctx.textAlign='center';
+      ctx.fillText("RUBY'S",fx+ST/2,fy+12);
+      ctx.fillStyle='#F7931A';ctx.font=`bold 5px ${FONT}`;
+      ctx.fillText('HARDWARE',fx+ST/2,fy+19);
+      ctx.fillStyle='#BBB';ctx.font=`4px ${FONT}`;
+      ctx.fillText('₿ Only!',fx+ST/2,fy+27);
+      ctx.fillStyle='#FFE060';ctx.font=`3px ${FONT}`;
+      ctx.fillText('OPEN 7AM-9PM',fx+ST/2,fy+33);
+    }
+    else if(d.item==='display_table'){
+      // ── DISPLAY TABLE — product showcase ──────────────────────
+      ctx.fillStyle='rgba(0,0,0,0.06)';ctx.beginPath();ctx.ellipse(fx+ST/2,fy+ST-3,12,3,0,0,Math.PI*2);ctx.fill();
+      // Legs
+      ctx.fillStyle='#4A3218';ctx.fillRect(fx+6,fy+26,3,12);ctx.fillRect(fx+ST-9,fy+26,3,12);
+      // Table surface
+      ctx.fillStyle='#5A4020';ctx.fillRect(fx+2,fy+18,ST-4,10);
+      ctx.fillStyle='#6A5030';ctx.fillRect(fx+3,fy+19,ST-6,8);
+      ctx.fillStyle='rgba(180,140,80,0.15)';ctx.fillRect(fx+3,fy+19,ST-6,1);
+      // Products on table (varies by position)
+      const seed=(d.x*13+d.y*29)%4;
+      if(seed===0){
+        // Seed packets
+        ctx.fillStyle='#4A8A3A';ctx.fillRect(fx+6,fy+12,8,7);
+        ctx.fillStyle='#8A4A20';ctx.fillRect(fx+20,fy+12,8,7);
+        ctx.fillStyle='#2A6A8A';ctx.fillRect(fx+12,fy+14,6,5);
+      } else if(seed===1){
+        // Tools
+        ctx.fillStyle='#888';ctx.fillRect(fx+8,fy+14,12,4);
+        ctx.fillStyle='#6A4A20';ctx.fillRect(fx+12,fy+12,4,8);
+      } else if(seed===2){
+        // Mining parts
+        ctx.fillStyle='#1A5A1A';ctx.fillRect(fx+8,fy+12,10,6);
+        ctx.fillStyle='#DDD';ctx.fillRect(fx+10,fy+13,3,2);ctx.fillRect(fx+14,fy+14,2,2);
+        ctx.fillStyle='#666';ctx.fillRect(fx+22,fy+13,8,5);
+      } else {
+        // Bottled goods
+        ctx.fillStyle='#226622';ctx.fillRect(fx+8,fy+12,4,7);
+        ctx.fillStyle='#882222';ctx.fillRect(fx+16,fy+12,4,7);
+        ctx.fillStyle='#AA8822';ctx.fillRect(fx+24,fy+12,4,7);
+        ctx.fillStyle='rgba(255,255,255,0.1)';
+        ctx.fillRect(fx+8,fy+13,1,4);ctx.fillRect(fx+16,fy+13,1,4);ctx.fillRect(fx+24,fy+13,1,4);
+      }
+      // Small price tag
+      ctx.fillStyle='#FFE060';ctx.fillRect(fx+ST/2-4,fy+16,8,3);
+    }
+    else if(d.item==='shop_mat'){
+      // ── WELCOME MAT — "WELCOME" at entrance ───────────────────
+      const hasW=interior&&interior.furniture.some(f=>f.item==='shop_mat'&&f.x===d.x-1&&f.y===d.y);
+      const hasE=interior&&interior.furniture.some(f=>f.item==='shop_mat'&&f.x===d.x+1&&f.y===d.y);
+      ctx.fillStyle='#4A3020';ctx.fillRect(fx,fy+ST/2-4,ST,8);
+      ctx.fillStyle='#5A4030';ctx.fillRect(fx+1,fy+ST/2-3,ST-2,6);
+      // Gold border
+      ctx.fillStyle='#8A7030';
+      if(!hasW) ctx.fillRect(fx,fy+ST/2-4,2,8);
+      if(!hasE) ctx.fillRect(fx+ST-2,fy+ST/2-4,2,8);
+      ctx.fillRect(fx,fy+ST/2-4,ST,1);ctx.fillRect(fx,fy+ST/2+3,ST,1);
+      // Text only on left tile
+      if(!hasW){
+        ctx.fillStyle='#C8A050';ctx.font=`bold 5px ${FONT}`;ctx.textAlign='center';
+        ctx.fillText('WELCOME',fx+ST,fy+ST/2+2);
+      }
+    }
+    else if(d.item==='shop_sign'){
+      // ── RUBY'S SHOP SIGN — hanging wooden sign ────────────────
+      ctx.fillStyle='#5A3A18';ctx.fillRect(fx+ST/2-2,fy+2,4,6); // bracket
+      ctx.fillStyle='#6A4A28';ctx.fillRect(fx+2,fy+6,ST-4,ST-8);
+      ctx.fillStyle='#7A5A32';ctx.fillRect(fx+3,fy+7,ST-6,ST-10);
+      // Text
+      ctx.fillStyle='#F7931A';ctx.font=`bold 7px ${FONT}`;ctx.textAlign='center';
+      ctx.fillText('₿',fx+ST/2,fy+18);
+      ctx.fillStyle='#EEE';ctx.font=`bold 4px ${FONT}`;
+      ctx.fillText('ACCEPTED',fx+ST/2,fy+26);
+      ctx.fillText('HERE',fx+ST/2,fy+32);
+    }
     else if(d.item==='crate'){
       ctx.fillStyle='#8A6A30';ctx.fillRect(fx+8,fy+10,ST-16,ST-14);
       ctx.fillStyle='#6A4A20';ctx.fillRect(fx+10,fy+16,ST-20,2);ctx.fillRect(fx+ST/2-1,fy+10,2,ST-14);
