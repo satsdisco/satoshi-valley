@@ -893,20 +893,156 @@ function drawDecor(d) {
       ctx.fillStyle='#44CC44';ctx.fillRect(fx+24,fy+19,5,5);
     }
     else if(d.item==='counter'){
-      ctx.fillStyle='#8A6A40';ctx.fillRect(fx+2,fy+12,ST-4,16);
-      ctx.fillStyle='#A08050';ctx.fillRect(fx+2,fy+10,ST-4,4);
-      ctx.fillStyle='#333';ctx.fillRect(fx+14,fy+6,14,6);
-      ctx.fillStyle='#0A0';ctx.fillRect(fx+16,fy+7,10,3);
+      // ── BAR COUNTER — polished dark wood with brass rail ──────
+      // Counter body
+      ctx.fillStyle='#5A3A18';ctx.fillRect(fx+1,fy+10,ST-2,20);
+      ctx.fillStyle='#6A4A28';ctx.fillRect(fx+2,fy+12,ST-4,16);
+      // Polished top
+      ctx.fillStyle='#8A6838';ctx.fillRect(fx,fy+8,ST,4);
+      ctx.fillStyle='rgba(255,230,170,0.2)';ctx.fillRect(fx+2,fy+8,ST-4,1); // sheen
+      // Brass foot rail
+      ctx.fillStyle='#B89838';ctx.fillRect(fx,fy+28,ST,2);
+      ctx.fillStyle='#D4B04C';ctx.fillRect(fx+2,fy+28,ST-4,1);
+      // Beer mug on counter
+      ctx.fillStyle='#C8A848';ctx.fillRect(fx+12,fy+4,8,6);
+      ctx.fillStyle='#E8C868';ctx.fillRect(fx+13,fy+5,6,4);
+      ctx.fillStyle='#FFF';ctx.fillRect(fx+14,fy+3,4,2); // foam
+      ctx.fillStyle='#B89838';ctx.fillRect(fx+20,fy+5,2,4); // handle
+    }
+    else if(d.item==='beer_taps'){
+      // ── BEER TAPS — mounted on counter ────────────────────────
+      // Counter base (matches counter)
+      ctx.fillStyle='#5A3A18';ctx.fillRect(fx+1,fy+10,ST-2,20);
+      ctx.fillStyle='#6A4A28';ctx.fillRect(fx+2,fy+12,ST-4,16);
+      ctx.fillStyle='#8A6838';ctx.fillRect(fx,fy+8,ST,4);
+      ctx.fillStyle='rgba(255,230,170,0.2)';ctx.fillRect(fx+2,fy+8,ST-4,1);
+      ctx.fillStyle='#B89838';ctx.fillRect(fx,fy+28,ST,2);
+      // Tap tower
+      ctx.fillStyle='#888';ctx.fillRect(fx+ST/2-6,fy-2,12,12);
+      ctx.fillStyle='#AAA';ctx.fillRect(fx+ST/2-5,fy-1,10,10);
+      // Two tap handles
+      ctx.fillStyle='#222';ctx.fillRect(fx+ST/2-4,fy-6,3,6);
+      ctx.fillStyle='#222';ctx.fillRect(fx+ST/2+2,fy-6,3,6);
+      // Handle knobs (coloured — different brews)
+      ctx.fillStyle='#C83838';ctx.fillRect(fx+ST/2-5,fy-8,5,3);
+      ctx.fillStyle='#E8A828';ctx.fillRect(fx+ST/2+1,fy-8,5,3);
+      // Drip tray
+      ctx.fillStyle='#555';ctx.fillRect(fx+ST/2-8,fy+6,16,3);
     }
     else if(d.item==='barrel'){
-      ctx.fillStyle='#6A4A20';ctx.beginPath();ctx.ellipse(fx+ST/2,fy+ST/2+4,14,16,0,0,Math.PI*2);ctx.fill();
-      ctx.fillStyle='#8A6A40';ctx.fillRect(fx+ST/2-12,fy+12,24,4);ctx.fillRect(fx+ST/2-12,fy+24,24,4);
-      ctx.fillStyle='#5A3A10';ctx.fillRect(fx+ST/2-1,fy+8,2,24);
+      // ── OAK BARREL — with iron bands and spigot ──────────────
+      ctx.fillStyle='#4A2A08';
+      ctx.beginPath();ctx.ellipse(fx+ST/2,fy+ST/2+2,15,17,0,0,Math.PI*2);ctx.fill();
+      ctx.fillStyle='#6A4A20';
+      ctx.beginPath();ctx.ellipse(fx+ST/2,fy+ST/2+2,13,15,0,0,Math.PI*2);ctx.fill();
+      // Wood grain
+      ctx.fillStyle='rgba(90,60,20,0.3)';
+      ctx.fillRect(fx+ST/2-1,fy+6,2,ST-10);
+      // Iron bands
+      ctx.fillStyle='#555';
+      ctx.fillRect(fx+ST/2-12,fy+10,24,2);
+      ctx.fillRect(fx+ST/2-12,fy+22,24,2);
+      ctx.fillStyle='#777';
+      ctx.fillRect(fx+ST/2-11,fy+10,22,1);
+      ctx.fillRect(fx+ST/2-11,fy+22,22,1);
+      // Lid highlight
+      ctx.fillStyle='rgba(160,120,60,0.3)';
+      ctx.beginPath();ctx.ellipse(fx+ST/2-2,fy+ST/2,6,10,0,0,Math.PI*2);ctx.fill();
     }
     else if(d.item==='table'){
       ctx.fillStyle='#9A7A50';ctx.fillRect(fx+4,fy+14,ST-8,14);
       ctx.fillStyle='#7A5A30';ctx.fillRect(fx+6,fy+28,6,12);ctx.fillRect(fx+ST-12,fy+28,6,12);
       ctx.fillStyle='#B08040';ctx.fillRect(fx+12,fy+10,8,6);ctx.fillStyle='#DDD';ctx.fillRect(fx+28,fy+11,6,5);
+    }
+    else if(d.item==='tavern_table'){
+      // ── TAVERN TABLE — round-ish with mugs and candle ─────────
+      // Shadow
+      ctx.fillStyle='rgba(0,0,0,0.1)';
+      ctx.beginPath();ctx.ellipse(fx+ST/2,fy+ST/2+8,16,8,0,0,Math.PI*2);ctx.fill();
+      // Legs
+      ctx.fillStyle='#5A3A18';
+      ctx.fillRect(fx+8,fy+24,4,14);ctx.fillRect(fx+ST-12,fy+24,4,14);
+      // Table top (rounded)
+      ctx.fillStyle='#7A5A30';
+      ctx.beginPath();ctx.ellipse(fx+ST/2,fy+ST/2+2,18,12,0,0,Math.PI*2);ctx.fill();
+      ctx.fillStyle='#8A6A3A';
+      ctx.beginPath();ctx.ellipse(fx+ST/2,fy+ST/2+1,16,10,0,0,Math.PI*2);ctx.fill();
+      // Wood grain ring
+      ctx.strokeStyle='rgba(100,70,30,0.25)';ctx.lineWidth=1;
+      ctx.beginPath();ctx.ellipse(fx+ST/2,fy+ST/2+1,10,6,0,0,Math.PI*2);ctx.stroke();
+      // Candle in centre
+      ctx.fillStyle='#EEE';ctx.fillRect(fx+ST/2-1,fy+ST/2-6,3,6);
+      ctx.fillStyle='#F8C830';ctx.fillRect(fx+ST/2-1,fy+ST/2-8,3,3); // flame
+      ctx.fillStyle='rgba(255,200,80,0.06)';
+      ctx.beginPath();ctx.arc(fx+ST/2,fy+ST/2-4,18,0,Math.PI*2);ctx.fill(); // glow
+      // Beer mug (left)
+      ctx.fillStyle='#C8A040';ctx.fillRect(fx+6,fy+ST/2-2,5,5);
+      ctx.fillStyle='#FFF';ctx.fillRect(fx+7,fy+ST/2-3,3,2); // foam
+      // Plate (right)
+      ctx.fillStyle='#CCC';
+      ctx.beginPath();ctx.ellipse(fx+ST-10,fy+ST/2,4,3,0,0,Math.PI*2);ctx.fill();
+    }
+    else if(d.item==='bottle_shelf'){
+      // ── BOTTLE SHELF — wall-mounted with coloured bottles ─────
+      ctx.fillStyle='#4A2A10';ctx.fillRect(fx+2,fy+2,ST-4,ST-4);
+      // Shelves (3 rows)
+      ctx.fillStyle='#6A4A28';
+      ctx.fillRect(fx+4,fy+8,ST-8,3);
+      ctx.fillRect(fx+4,fy+18,ST-8,3);
+      ctx.fillRect(fx+4,fy+28,ST-8,3);
+      // Side supports
+      ctx.fillStyle='#5A3A18';
+      ctx.fillRect(fx+4,fy+4,3,ST-8);ctx.fillRect(fx+ST-7,fy+4,3,ST-8);
+      // Bottles (colourful)
+      const bc=['#226622','#882222','#AA8822','#224488','#886622','#228844'];
+      for(let i=0;i<3;i++){
+        ctx.fillStyle=bc[i];ctx.fillRect(fx+8+i*8,fy+3,4,5);
+        ctx.fillStyle=bc[i+1];ctx.fillRect(fx+10+i*7,fy+13,4,5);
+        ctx.fillStyle=bc[i+2];ctx.fillRect(fx+9+i*8,fy+23,4,5);
+      }
+      // Bottle necks
+      ctx.fillStyle='rgba(0,0,0,0.2)';
+      for(let i=0;i<3;i++){
+        ctx.fillRect(fx+9+i*8,fy+2,2,2);
+        ctx.fillRect(fx+11+i*7,fy+12,2,2);
+        ctx.fillRect(fx+10+i*8,fy+22,2,2);
+      }
+    }
+    else if(d.item==='wall_sconce'){
+      // ── WALL SCONCE — iron bracket with candle ────────────────
+      const ft=_now/300;
+      ctx.fillStyle='#555';ctx.fillRect(fx+ST/2-3,fy+8,6,4); // bracket plate
+      ctx.fillStyle='#444';ctx.fillRect(fx+ST/2-1,fy+10,3,8); // arm
+      ctx.fillStyle='#555';ctx.fillRect(fx+ST/2-3,fy+16,7,3); // cup
+      // Candle
+      ctx.fillStyle='#EEE8CC';ctx.fillRect(fx+ST/2-1,fy+10,3,7);
+      // Flame (animated)
+      ctx.fillStyle='#F8C020';
+      ctx.fillRect(fx+ST/2-1,fy+7+Math.sin(ft)*1,3,4);
+      ctx.fillStyle='#FFE060';
+      ctx.fillRect(fx+ST/2,fy+6+Math.sin(ft+1)*1,1,3);
+      // Warm glow
+      ctx.fillStyle=`rgba(255,180,60,${0.04+Math.sin(ft)*0.015})`;
+      ctx.beginPath();ctx.arc(fx+ST/2,fy+12,30,0,Math.PI*2);ctx.fill();
+    }
+    else if(d.item==='rug'){
+      // ── WOVEN RUG — warm red/gold pattern ─────────────────────
+      ctx.fillStyle='#8A2828';ctx.fillRect(fx+2,fy+2,ST-4,ST-4);
+      ctx.fillStyle='#9A3030';ctx.fillRect(fx+4,fy+4,ST-8,ST-8);
+      // Border pattern (gold)
+      ctx.fillStyle='#C8A040';
+      ctx.fillRect(fx+4,fy+4,ST-8,2);ctx.fillRect(fx+4,fy+ST-6,ST-8,2);
+      ctx.fillRect(fx+4,fy+4,2,ST-8);ctx.fillRect(fx+ST-6,fy+4,2,ST-8);
+      // Inner pattern
+      ctx.fillStyle='#B83030';ctx.fillRect(fx+8,fy+8,ST-16,ST-16);
+      // Diamond motif
+      ctx.fillStyle='#C8A040';
+      const rc=fx+ST/2, ry=fy+ST/2;
+      ctx.fillRect(rc-1,ry-6,2,12);ctx.fillRect(rc-6,ry-1,12,2);
+      // Corner dots
+      ctx.fillStyle='#D8B850';
+      ctx.fillRect(fx+8,fy+8,2,2);ctx.fillRect(fx+ST-10,fy+8,2,2);
+      ctx.fillRect(fx+8,fy+ST-10,2,2);ctx.fillRect(fx+ST-10,fy+ST-10,2,2);
     }
     else if(d.item==='desk'){
       ctx.fillStyle='#6A5030';ctx.fillRect(fx+2,fy+16,ST-4,12);
@@ -922,7 +1058,20 @@ function drawDecor(d) {
       for(let b=0;b<3;b++){ctx.fillStyle=bc[b+2];ctx.fillRect(fx+10+b*7,fy+14,5,4);}
     }
     else if(d.item==='chair'){
-      ctx.fillStyle='#7A5A30';ctx.fillRect(fx+12,fy+20,ST-24,12);ctx.fillRect(fx+12,fy+14,ST-24,8);ctx.fillRect(fx+14,fy+6,ST-28,10);
+      // ── WOODEN CHAIR — with backrest and seat cushion ─────────
+      // Legs
+      ctx.fillStyle='#4A2A10';
+      ctx.fillRect(fx+12,fy+26,3,12);ctx.fillRect(fx+ST-15,fy+26,3,12);
+      ctx.fillRect(fx+14,fy+22,3,16);ctx.fillRect(fx+ST-17,fy+22,3,16);
+      // Seat
+      ctx.fillStyle='#6A4A28';ctx.fillRect(fx+10,fy+22,ST-20,6);
+      // Cushion
+      ctx.fillStyle='#8A3030';ctx.fillRect(fx+12,fy+21,ST-24,5);
+      ctx.fillStyle='#9A3838';ctx.fillRect(fx+13,fy+22,ST-26,3);
+      // Backrest
+      ctx.fillStyle='#5A3A18';ctx.fillRect(fx+12,fy+8,ST-24,16);
+      ctx.fillStyle='#6A4A28';ctx.fillRect(fx+14,fy+10,ST-28,5);
+      ctx.fillRect(fx+14,fy+17,ST-28,5);
     }
     else if(d.item==='workbench'){
       ctx.fillStyle='#6A5030';ctx.fillRect(fx+2,fy+16,ST-4,12);
@@ -962,13 +1111,51 @@ function drawDecor(d) {
       }
     }
     else if(d.item==='fireplace'){
-      ctx.fillStyle='#555';ctx.fillRect(fx+6,fy+4,ST-12,ST-6); // stone surround
-      ctx.fillStyle='#333';ctx.fillRect(fx+10,fy+10,ST-20,ST-14); // opening
+      // ── STONE FIREPLACE — with mantel, logs, and warm glow ────
       const ft=_now/200;
-      ctx.fillStyle='#FF6622';ctx.fillRect(fx+14,fy+16+Math.sin(ft)*2,4,8);
-      ctx.fillStyle='#FFAA22';ctx.fillRect(fx+20,fy+18+Math.sin(ft+1)*2,4,6);
-      ctx.fillStyle='#FF4400';ctx.fillRect(fx+17,fy+14+Math.sin(ft+2)*3,3,10);
-      ctx.fillStyle='rgba(255,150,50,0.08)';ctx.beginPath();ctx.arc(fx+ST/2,fy+ST/2,40,0,Math.PI*2);ctx.fill();
+      // Stone surround (layered for depth)
+      ctx.fillStyle='#4A4A4E';ctx.fillRect(fx+4,fy+2,ST-8,ST-4);
+      ctx.fillStyle='#5A5A5E';ctx.fillRect(fx+6,fy+4,ST-12,ST-8);
+      // Stone brick pattern
+      ctx.fillStyle='#505054';
+      ctx.fillRect(fx+6,fy+6,10,6);ctx.fillRect(fx+18,fy+6,10,6);
+      ctx.fillRect(fx+10,fy+14,12,6);
+      ctx.fillRect(fx+6,fy+22,10,6);ctx.fillRect(fx+18,fy+22,10,6);
+      // Mortar lines
+      ctx.fillStyle='rgba(80,80,88,0.5)';
+      ctx.fillRect(fx+6,fy+12,ST-12,1);ctx.fillRect(fx+6,fy+20,ST-12,1);
+      ctx.fillRect(fx+16,fy+4,1,ST-8);
+      // Dark firebox opening
+      ctx.fillStyle='#1A1A1E';ctx.fillRect(fx+10,fy+10,ST-20,ST-16);
+      ctx.fillStyle='#111';ctx.fillRect(fx+12,fy+12,ST-24,ST-20);
+      // Logs
+      ctx.fillStyle='#4A2A08';
+      ctx.fillRect(fx+12,fy+24,ST-24,4);
+      ctx.fillStyle='#3A1A04';
+      ctx.fillRect(fx+14,fy+22,ST-28,3);
+      // Fire — animated flames
+      ctx.fillStyle='#FF4400';
+      ctx.fillRect(fx+14,fy+14+Math.sin(ft)*2,4,10);
+      ctx.fillRect(fx+22,fy+16+Math.sin(ft+2)*2,3,8);
+      ctx.fillStyle='#FF7722';
+      ctx.fillRect(fx+17,fy+12+Math.sin(ft+1)*3,5,12);
+      ctx.fillStyle='#FFAA33';
+      ctx.fillRect(fx+19,fy+14+Math.sin(ft+0.5)*2,3,8);
+      ctx.fillStyle='#FFD060';
+      ctx.fillRect(fx+18,fy+16+Math.sin(ft*1.3)*2,2,5);
+      // Embers
+      ctx.fillStyle='#FF6600';
+      ctx.fillRect(fx+15+Math.sin(ft*1.7)*2,fy+24,2,2);
+      ctx.fillRect(fx+22+Math.sin(ft*2.1)*1,fy+25,1,1);
+      // Mantel (dark wood beam across top)
+      ctx.fillStyle='#3A2210';ctx.fillRect(fx+2,fy+2,ST-4,4);
+      ctx.fillStyle='#4A3218';ctx.fillRect(fx+3,fy+2,ST-6,3);
+      ctx.fillStyle='rgba(180,140,80,0.2)';ctx.fillRect(fx+4,fy+2,ST-8,1);
+      // Warm glow (larger radius)
+      ctx.fillStyle=`rgba(255,150,50,${0.06+Math.sin(ft*0.7)*0.02})`;
+      ctx.beginPath();ctx.arc(fx+ST/2,fy+ST/2,60,0,Math.PI*2);ctx.fill();
+      ctx.fillStyle=`rgba(255,120,30,${0.03+Math.sin(ft*1.1)*0.01})`;
+      ctx.beginPath();ctx.arc(fx+ST/2,fy+ST/2,90,0,Math.PI*2);ctx.fill();
     }
     else if(d.item==='bench'){
       ctx.fillStyle='#7A5A30';ctx.fillRect(fx+4,fy+20,ST-8,8);

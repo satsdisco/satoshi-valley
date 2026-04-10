@@ -1259,9 +1259,10 @@ function createInterior(type, w, h, furniture) {
   const doorX = Math.floor(w/2);
   tileMap[h-1][doorX] = T.PATH;
   if (w > 6) tileMap[h-1][doorX+1] = T.PATH;
-  // Mark non-chair furniture tiles as solid
+  // Mark furniture as solid (except walkable items)
+  const walkable=new Set(['chair','rug','wall_sconce']);
   for (const f of furniture) {
-    if (f.item !== 'chair') tileMap[f.y][f.x] = T.WALL;
+    if (!walkable.has(f.item)) tileMap[f.y][f.x] = T.WALL;
   }
   return {type, map: tileMap, w, h, furniture, doorX, spawnX: doorX*TILE+8, spawnY: (h-3)*TILE+8};
 }
@@ -1285,12 +1286,21 @@ function generateInteriors() {
     {x:3,y:7,item:'crate'},{x:10,y:7,item:'crate'},
   ]);
   INTERIOR_MAPS.tavern = createInterior('tavern', 12, 10, [
-    {x:1,y:1,item:'barrel'},{x:2,y:1,item:'barrel'},{x:9,y:1,item:'barrel'},{x:10,y:1,item:'barrel'},
-    {x:1,y:2,item:'counter'},{x:2,y:2,item:'counter'},{x:3,y:2,item:'counter'},
-    {x:3,y:4,item:'table'},{x:5,y:4,item:'table'},{x:7,y:4,item:'table'},
-    {x:3,y:6,item:'table'},{x:5,y:6,item:'table'},{x:7,y:6,item:'table'},
+    // Back wall: fireplace centre, bottle shelves flanking
+    {x:5,y:1,item:'bottle_shelf'},{x:6,y:1,item:'fireplace'},{x:7,y:1,item:'bottle_shelf'},
+    // Bar counter runs left side with beer taps
+    {x:1,y:1,item:'barrel'},{x:2,y:1,item:'barrel'},
+    {x:1,y:2,item:'counter'},{x:2,y:2,item:'counter'},{x:3,y:2,item:'beer_taps'},
+    // Dining area — tables with chairs tucked in
+    {x:3,y:4,item:'tavern_table'},{x:5,y:4,item:'tavern_table'},{x:7,y:4,item:'tavern_table'},
+    {x:3,y:6,item:'tavern_table'},{x:5,y:6,item:'tavern_table'},{x:7,y:6,item:'tavern_table'},
+    {x:2,y:4,item:'chair'},{x:2,y:6,item:'chair'},
     {x:9,y:4,item:'chair'},{x:9,y:6,item:'chair'},
-    {x:6,y:1,item:'fireplace'},
+    // Atmosphere — wall sconces, corner barrels
+    {x:10,y:1,item:'barrel'},{x:10,y:2,item:'barrel'},
+    {x:1,y:5,item:'wall_sconce'},{x:10,y:5,item:'wall_sconce'},
+    // Rug in centre
+    {x:5,y:5,item:'rug'},{x:6,y:5,item:'rug'},{x:7,y:5,item:'rug'},
   ]);
   INTERIOR_MAPS.shed = createInterior('shed', 10, 8, [
     {x:1,y:1,item:'workbench'},{x:2,y:1,item:'workbench'},
