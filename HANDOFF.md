@@ -6,11 +6,11 @@
 
 ## 🏗️ Current State
 
-**Last updated:** 2026-04-06 21:00 UTC
-**Last dev:** Hermes (shift 4 — roadmap update + sync)
-**Repo:** `satsdisco/satoshi-valley`
+**Last updated:** 2026-04-11 16:00 UTC
+**Last dev:** Claude (shift 5 — repo consolidation + env setup on new PC)
+**Repo:** `satsdisco/satoshi-valley` (sole active repo — Bender21m archived)
 **Live demo:** https://satsdisco.github.io/satoshi-valley
-**game.js lines:** ~6,781 | **Save version:** v8 | **Sprints complete:** 16 | **Open issues:** 2
+**game.js lines:** 5,356 | **Total web JS:** ~14,650 | **Save version:** v8 | **Sprints complete:** 29 | **Open issues:** 2
 
 ### What's Working ✅
 - Full mining loop (3 rig tiers, power grid, durability, overheating)
@@ -40,13 +40,13 @@
 
 ### Current Priority 🎯
 
-**CODE MODULARIZATION — split game.js before adding features**
+**Performance pass (#2) + resume modularization (Sprint 17 Phase 3)**
 
-6,781 lines in one file is unsustainable. Break it apart, fix perf issues, add test coverage. Then we build.
+game.js drifted back up during the art/mobile push (4,497 → 5,356). Before tackling new features, knock out the perf fixes — the concrete plan lives in `web/IMPROVEMENT_PLAN.md` (frame-level trig/time cache + insertion-sort for nearly-sorted entities) — then resume entity extraction.
 
 ### Known Bugs 🐛
-- #34: Building interiors don't change with citadel tier
-- #56: Performance (79 Math.sin calls/frame, entity sort every frame)
+- **satsdisco#1** — Building interiors don't change with citadel tier
+- **satsdisco#2** — Performance (79 Math.sin calls/frame + entity sort every frame). Fix plan already written in `web/IMPROVEMENT_PLAN.md`.
 
 ### What NOT to Do ❌
 - Don't add Fiatropolis or new regions yet (modularize first)
@@ -55,6 +55,28 @@
 - Don't rewrite the game engine
 
 ## 📝 Shift Log
+
+### Shift 5 — Claude (2026-04-11)
+**Did:**
+- Fresh dev environment setup on new PC (cloned to `~/Code/satoshi-valley`, installed Godot 4.3 stable to `/Applications/Godot.app`, headless import passed clean)
+- Consolidated repos: audited Bender21m branches (zero orphan commits, all already on main), merged archive-pointer PR to Bender21m, switched satsdisco Pages from Jekyll/legacy → workflow build (deploy.yml now ships `/web/`), updated all bender21m.github.io URLs across README/ROADMAP/HANDOFF/FLEXO-AUDIT
+- Enabled issues on satsdisco/satoshi-valley, migrated #34 → satsdisco#1 and #56 → satsdisco#2
+- Verified game now live at https://satsdisco.github.io/satoshi-valley/
+
+**Sprints 17–29 shipped since last handoff (5 days, 13 sprints):**
+- **Sprint 17 Phases 1–2:** modularization — extracted `game_audio.js` (62), `game_mines.js` (955), `game_quests.js` (319), `game_render.js` (6,425). Phases 3–4 (entities, UI/HUD) not started.
+- **Sprint 23:** Ruby's Hardware window fix + facade
+- **Sprint 24:** Hodl Tavern Tudor half-timber overhaul
+- **Sprint 25:** Town Hall + Citadel (ashlar stone, bell tower, portcullis)
+- **Sprint 26:** Mining Shed industrial overhaul + path wear + hand-painted signage
+- **Sprint 27:** Farmer's Market stalls (produce, chalkboard, bunting)
+- **Sprint 28:** Uncle Toshi's legendary log cabin (stacked fieldstone, notched logs, rocking chair, fireflies)
+- **Sprint 29:** terrain pass 1 (warmer grass palette, pixel dither, cobblestone paths, clover, wildflowers)
+- **Mobile deep polish:** unified touch router, hotbar hit-test fix (2×5 grid), overworld USE button, quick-action menu (☰), responsive shop/inventory, mine exit via context button
+- **Desktop TDZ black-screen fix** (#107)
+- **Interior overhauls:** Town Hall interior v2 (stained glass, columns, chandelier), Tavern interior (full musicians, barkeep, rug), pub-jam tavern music, Uncle Toshi's Cabin interior
+
+**Next priority:** satsdisco#2 perf fixes (low-risk, plan already written), then Sprint 17 Phase 3 (entity extraction) before game.js grows further
 
 ### Shift 4 — Hermes (2026-04-06, evening)
 **Did:**
@@ -108,9 +130,8 @@
 6. **Current focus: CODE MODULARIZATION** — not new features
 
 ## 🔑 Repo Access
-- **Bender21m** — upstream repo (Flexo had push access)
-- **satsdisco** — fork, PRs to upstream
-- **Hermes** — dev agent, works on satsdisco fork
+- **satsdisco/satoshi-valley** — sole active repo, deploys to https://satsdisco.github.io/satoshi-valley/ via `.github/workflows/deploy.yml`
+- **Bender21m/satoshi-valley** — archived (read-only), README redirects here
 
 ---
 
