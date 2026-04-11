@@ -2,8 +2,8 @@
 
 > *A Bitcoin farming/life sim — Stardew Valley meets the Bitcoin Standard.*
 >
-> **Live demo:** [bender21m.github.io/satoshi-valley](https://bender21m.github.io/satoshi-valley)
-> **Repos:** [Bender21m/satoshi-valley](https://github.com/Bender21m/satoshi-valley) (upstream) | [satsdisco/satoshi-valley](https://github.com/satsdisco/satoshi-valley) (fork)
+> **Live demo:** [satsdisco.github.io/satoshi-valley](https://satsdisco.github.io/satoshi-valley)
+> **Repo:** [satsdisco/satoshi-valley](https://github.com/satsdisco/satoshi-valley)
 
 ---
 

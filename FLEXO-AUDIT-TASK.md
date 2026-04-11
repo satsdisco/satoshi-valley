@@ -2,8 +2,8 @@
 
 You're working on **Satoshi Valley**, a Bitcoin farming/life sim game (Stardew Valley meets the Bitcoin Standard).
 
-- **Repo:** `https://github.com/Bender21m/satoshi-valley`
-- **Live demo:** `https://bender21m.github.io/satoshi-valley`
+- **Repo:** `https://github.com/satsdisco/satoshi-valley`
+- **Live demo:** `https://satsdisco.github.io/satoshi-valley`
 - **Codebase:** `web/game.js` (~3500 lines), `web/sprites.js`, `web/music.js`, `web/index.html`
 - **Roadmap:** `ROADMAP.md`
 - **Sprint plan:** `docs/SPRINT_PLAN.md`

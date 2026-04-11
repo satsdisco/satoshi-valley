@@ -8,8 +8,8 @@
 
 **Last updated:** 2026-04-06 21:00 UTC
 **Last dev:** Hermes (shift 4 — roadmap update + sync)
-**Repo:** `Bender21m/satoshi-valley` | Fork: `satsdisco/satoshi-valley`
-**Live demo:** https://bender21m.github.io/satoshi-valley
+**Repo:** `satsdisco/satoshi-valley`
+**Live demo:** https://satsdisco.github.io/satoshi-valley
 **game.js lines:** ~6,781 | **Save version:** v8 | **Sprints complete:** 16 | **Open issues:** 2
 
 ### What's Working ✅

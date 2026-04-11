@@ -4,7 +4,7 @@
 
 > Stack sats. Build your citadel. Fix the money, fix the world.
 
-🎮 **[Play Now](https://bender21m.github.io/satoshi-valley/)** | 📋 **[Roadmap](ROADMAP.md)** | 🤝 **[Contributing](CONTRIBUTING.md)**
+🎮 **[Play Now](https://satsdisco.github.io/satoshi-valley/)** | 📋 **[Roadmap](ROADMAP.md)** | 🤝 **[Contributing](CONTRIBUTING.md)**
 
 ---
 
