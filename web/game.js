@@ -266,6 +266,17 @@ let clickIndicator = null; // {x, y, life} for visual feedback
 let mouseX = 0, mouseY = 0;
 let lastShopClickTime = 0;
 
+function titleMenuGeometry() {
+  const compact = isMobile || isSmallScreen;
+  const spacing = compact ? Math.max(56, Math.floor(canvas.width * 0.035)) : Math.floor(canvas.width * 0.035);
+  return {
+    y: canvas.height * 0.50,
+    spacing,
+    halfWidth: Math.min(140, (canvas.width - 24) / 2),
+    halfHeight: compact ? 24 : spacing * 0.35,
+  };
+}
+
 canvas.addEventListener('mousemove', e => {
   mouseX = e.clientX; mouseY = e.clientY;
   if (gameState !== 'playing') { canvas.style.cursor = 'default'; return; }
@@ -408,12 +419,11 @@ canvas.addEventListener('click', e => {
     if (gameState === 'intro' && titleMenuOpen) {
       const hasSave = !!localStorage.getItem('sv_save');
       const options = hasSave ? ['new_game','continue','controls'] : ['new_game','controls'];
-      const menuY = canvas.height * 0.50;
-      const menuSpacing = Math.floor(canvas.width * 0.035);
+      const menu = titleMenuGeometry();
       for (let i = 0; i < options.length; i++) {
-        const y = menuY + i * menuSpacing;
-        if (e.clientX >= canvas.width/2 - 140 && e.clientX <= canvas.width/2 + 140 &&
-            e.clientY >= y - menuSpacing*0.35 && e.clientY <= y + menuSpacing*0.35) {
+        const y = menu.y + i * menu.spacing;
+        if (e.clientX >= canvas.width/2 - menu.halfWidth && e.clientX <= canvas.width/2 + menu.halfWidth &&
+            e.clientY >= y - menu.halfHeight && e.clientY <= y + menu.halfHeight) {
           titleCur = i;
           // Trigger selection
           const choice = options[i];
@@ -2161,29 +2171,29 @@ function drawIntro() {
       ? [{label:'⛏️  New Game', id:'new_game'}, {label:'📂  Continue', id:'continue'}, {label:'🎮  Controls', id:'controls'}]
       : [{label:'⛏️  New Game', id:'new_game'}, {label:'🎮  Controls', id:'controls'}];
     
-    const menuY = canvas.height * 0.50;
-    const menuSpacing = Math.floor(canvas.width * 0.035);
+    const menu = titleMenuGeometry();
     
     options.forEach((opt, i) => {
-      const y = menuY + i * menuSpacing;
+      const y = menu.y + i * menu.spacing;
       const selected = i === titleCur;
       
       // Selection indicator
       if (selected) {
         const pulse = 0.15 + Math.sin(t * 3) * 0.05;
         ctx.fillStyle = `rgba(247,147,26,${pulse})`;
-        ctx.fillRect(canvas.width/2 - 140, y - menuSpacing * 0.35, 280, menuSpacing * 0.7);
+        ctx.fillRect(canvas.width/2 - menu.halfWidth, y - menu.halfHeight,
+          menu.halfWidth * 2, menu.halfHeight * 2);
       }
       
       ctx.fillStyle = selected ? C.orange : '#666';
-      ctx.font = `bold ${Math.floor(canvas.width * 0.016)}px ${FONT}`;
+      ctx.font = `bold ${Math.max(isMobile || isSmallScreen ? 18 : 0, Math.floor(canvas.width * 0.016))}px ${FONT}`;
       ctx.textAlign = 'center';
       ctx.fillText(opt.label, canvas.width/2, y + 6);
       
       if (selected) {
         // Arrow indicators
-        ctx.fillText('▸', canvas.width/2 - 120, y + 6);
-        ctx.fillText('◂', canvas.width/2 + 120, y + 6);
+        ctx.fillText('▸', canvas.width/2 - menu.halfWidth + 20, y + 6);
+        ctx.fillText('◂', canvas.width/2 + menu.halfWidth - 20, y + 6);
       }
     });
     
